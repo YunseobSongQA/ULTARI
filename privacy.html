@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>개인정보 처리방침 | ULTARI</title>
+  <meta name="description" content="검증하신 이미지는 서버로 전송되지 않습니다. ULTARI에는 업로드 주소도 데이터베이스도 없습니다. GPS 좌표는 존재 여부만 확인하고 값을 읽지 않습니다.">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <a class="sr-only" href="#main">본문으로 건너뛰기</a>
+
+  <header class="site-head">
+    <div class="shell">
+      <a class="brand" href="/"><svg viewBox="3 5 26 21" width="26" height="21" fill="currentColor" aria-hidden="true"><rect x="3" y="15" width="3" height="11" rx="0.6"/><rect x="7.6" y="8" width="3" height="18" rx="0.6"/><rect x="12.2" y="18" width="3" height="8" rx="0.6"/><rect x="16.8" y="5" width="3" height="21" rx="0.6"/><rect x="21.4" y="12" width="3" height="14" rx="0.6"/><rect x="26" y="9" width="3" height="17" rx="0.6"/></svg><span>ULTARI</span></a>
+      <nav class="site-nav" aria-label="주요 메뉴">
+          <a href="/">검증 도구</a>
+          <a href="/how">검증 원리</a>
+          <a href="/grades">등급 체계</a>
+          <a href="/limits">한계</a>
+          <a href="/articles">읽을거리</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="shell">
+      <div class="page-head">
+        <p class="kicker">개인정보 처리방침</p>
+        <h1>이미지는 서버로 전송되지 않습니다</h1>
+        <p class="lede">이 문장이 이 방침의 전부입니다. 나머지는 그것을 어떻게 보장하는지에 대한 설명입니다.</p>
+      </div>
+
+      <div class="prose">
+        <h2>1. 이미지 처리</h2>
+        <p><strong>검증하신 이미지는 서버로 전송되지 않습니다.</strong> ULTARI에는 이미지를 받는 주소 자체가 없습니다. 업로드 엔드포인트도, 데이터베이스도, 서버 측 처리 코드도 존재하지 않습니다.</p>
+        <p>파일을 고르시면 브라우저가 그 파일을 자기 메모리로 읽어 들이고, 화면에 있는 자바스크립트가 그 자리에서 계산합니다. 계산이 끝나고 페이지를 닫으면 메모리에서 사라집니다. 어디에도 저장되지 않습니다.</p>
+        <p>확인하실 수 있습니다. 브라우저 개발자 도구의 네트워크 탭을 열어 둔 채로 사진을 검증해 보십시오. 이미지가 나가는 요청은 없습니다.</p>
+
+        <h2>2. 촬영 정보와 위치</h2>
+        <p>EXIF는 브라우저 안에서만 읽습니다. GPS 좌표는 <strong>존재 여부만</strong> 확인하고 값을 읽지 않습니다. 좌표는 화면에 표시되지 않고, 어떤 변수에도 남지 않으며, 어디로도 전송되지 않습니다.</p>
+        <p>사진의 진위를 확인하는 데 촬영 장소는 필요하지 않습니다. 반면 유출되면 사람이 다칠 수 있는 정보입니다. 그래서 아예 다루지 않습니다.</p>
+
+        <h2>3. 파일 지문</h2>
+        <p>SHA-256 해시는 브라우저의 Web Crypto로 계산됩니다. 계산된 값은 화면에 표시될 뿐 저장되거나 전송되지 않습니다. 이 값을 보관하고 싶으시면 직접 복사해 두셔야 합니다.</p>
+
+        <h2>4. 수집하는 정보</h2>
+        <p>ULTARI는 회원 가입이 없고, 쿠키를 심지 않으며, 로컬 스토리지를 쓰지 않고, 분석 스크립트를 넣지 않았습니다. 이용자를 식별하거나 추적하지 않습니다.</p>
+
+        <h2>5. 정직하게 적어 둘 것 — 외부로 나가는 요청</h2>
+        <p>이미지는 나가지 않지만, 페이지를 여는 것만으로 나가는 요청이 몇 가지 있습니다.</p>
+        <ul>
+          <li><strong>호스팅 접속 기록</strong> — 이 사이트는 Cloudflare Pages에 정적 파일로 올라가 있습니다. 웹페이지를 여는 모든 접속이 그렇듯 호스팅 제공자의 서버에 접속 기록(IP 주소, 접속 시각, 요청 경로, 브라우저 정보)이 남을 수 있습니다. ULTARI는 이 기록에 접근해 개별 이용자를 식별하는 용도로 쓰지 않습니다.</li>
+          <li><strong>글꼴 파일</strong> — 본문 글꼴로 Pretendard를 씁니다. 글꼴 파일은 jsDelivr(cdn.jsdelivr.net)에서 내려받습니다. 이 과정에서 이용자의 IP 주소가 해당 CDN에 전달됩니다. 이미지나 측정 결과는 전달되지 않습니다.</li>
+        </ul>
+        <p>이 둘은 정적 웹사이트를 운영하는 한 완전히 없앨 수 없습니다. 없앨 수 없다면 적어 두는 것이 맞다고 봅니다.</p>
+
+        <h2>6. 광고</h2>
+        <p>현재 이 사이트에는 광고가 게재되지 않습니다. 광고 관련 스크립트도 들어 있지 않습니다. 레이아웃에 자리만 비워 두었습니다.</p>
+        <p>향후 광고를 게재하게 되면 이 방침을 먼저 고치고, 광고 제공자가 쿠키나 식별자를 사용하는 범위를 여기에 적겠습니다. 어떤 경우에도 검증하신 이미지나 측정 결과는 광고 제공자에게 전달되지 않습니다. 전달할 경로 자체가 없습니다.</p>
+
+        <h2>7. 심사 신청</h2>
+        <p>2등급 또는 1등급 심사를 신청하시면 메일 프로그램이 열리고, 본문에 자동 검증의 측정값 요약이 들어갑니다. <strong>이미지는 첨부되지 않습니다.</strong> 무엇을 보낼지는 보내시기 전에 직접 확인하고 고치실 수 있습니다.</p>
+        <p>메일을 보내신 뒤부터는 일반적인 이메일 통신입니다. 접수된 내용은 심사 목적으로만 쓰이고, 심사가 끝나면 삭제를 요청하실 수 있습니다.</p>
+
+        <h2>8. 이용자의 권리</h2>
+        <p>ULTARI가 보관하는 개인정보가 없으므로 열람·정정·삭제를 요청할 대상이 없습니다. 심사를 신청하신 경우에 한해, 접수처로 연락하시면 제출 내용을 삭제해 드립니다.</p>
+
+        <h2>9. 문의</h2>
+        <p>이 방침에 대한 문의는 <a data-review-contact href="mailto:review@ultari.kr">review@ultari.kr</a>로 보내 주십시오.</p>
+
+        <h2>10. 개정</h2>
+        <p>방침이 바뀌면 이 페이지에 먼저 반영하고 시행일을 고칩니다.</p>
+        <p style="color:var(--ink-3);font-size:14px">시행일: 2026년 9월 11일</p>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="shell">
+      <nav class="foot-links" aria-label="전체 메뉴">
+          <a href="/">검증 도구</a>
+          <a href="/how">검증 원리</a>
+          <a href="/grades">등급 체계</a>
+          <a href="/limits">한계</a>
+          <a href="/articles">읽을거리</a>
+          <a href="/privacy">개인정보 처리방침</a>
+          <a href="/terms">이용약관</a>
+      </nav>
+      <p class="foot-note">ULTARI는 사진 파일에 남은 촬영 흔적을 브라우저 안에서 측정하고, 그 측정값을 근거로 등급을 발급합니다. 업로드한 이미지는 서버로 전송되지 않습니다. AI 이미지를 탐지하지 않고, AI 학습을 막지 않으며, 정확도가 100%라고 말하지 않습니다.</p>
+    </div>
+  </footer>
+  <script type="module">
+    import { REVIEW_CONTACT } from '/src/queue.js';
+    document.querySelectorAll('[data-review-contact]').forEach((el) => {
+      el.textContent = REVIEW_CONTACT;
+      if (el.tagName === 'A') el.href = 'mailto:' + REVIEW_CONTACT;
+    });
+  </script>
+</body>
+</html>

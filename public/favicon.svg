@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="ULTARI">
+  <rect width="32" height="32" fill="#F5F4F1"/>
+  <g fill="#14161A">
+    <rect x="3"    y="15" width="3" height="11" rx="0.6"/>
+    <rect x="7.6"  y="8"  width="3" height="18" rx="0.6"/>
+    <rect x="12.2" y="18" width="3" height="8"  rx="0.6"/>
+    <rect x="16.8" y="5"  width="3" height="21" rx="0.6"/>
+    <rect x="21.4" y="12" width="3" height="14" rx="0.6"/>
+    <rect x="26"   y="9"  width="3" height="17" rx="0.6"/>
+  </g>
+</svg>

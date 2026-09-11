@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EXIF는 증거가 아닙니다. 그래서 더 쓸모가 있습니다 | ULTARI</title>
+  <meta name="description" content="EXIF는 3초면 고칠 수 있는 텍스트입니다. 그럼에도 읽는 이유는 믿기 위해서가 아니라 픽셀과 대조하기 위해서입니다.">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <a class="sr-only" href="#main">본문으로 건너뛰기</a>
+
+  <header class="site-head">
+    <div class="shell">
+      <a class="brand" href="/"><svg viewBox="3 5 26 21" width="26" height="21" fill="currentColor" aria-hidden="true"><rect x="3" y="15" width="3" height="11" rx="0.6"/><rect x="7.6" y="8" width="3" height="18" rx="0.6"/><rect x="12.2" y="18" width="3" height="8" rx="0.6"/><rect x="16.8" y="5" width="3" height="21" rx="0.6"/><rect x="21.4" y="12" width="3" height="14" rx="0.6"/><rect x="26" y="9" width="3" height="17" rx="0.6"/></svg><span>ULTARI</span></a>
+      <nav class="site-nav" aria-label="주요 메뉴">
+          <a href="/">검증 도구</a>
+          <a href="/how">검증 원리</a>
+          <a href="/grades">등급 체계</a>
+          <a href="/limits">한계</a>
+          <a href="/articles" aria-current="page">읽을거리</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="shell">
+      <div class="page-head">
+        <p class="kicker"><a href="/articles">읽을거리</a></p>
+        <h1>EXIF는 증거가 아닙니다. 그래서 더 쓸모가 있습니다</h1>
+        <p class="lede">메모장으로도 고칠 수 있는 텍스트를 왜 아직도 읽는가.</p>
+        <p class="byline">2026년 9월 11일</p>
+      </div>
+
+      <div class="prose">
+        <p>JPEG 파일을 열어 보면 실제 이미지 데이터가 시작되기 전에 EXIF라는 영역이 있습니다. 카메라가 셔터를 누른 직후에 적어 넣는 메모입니다. 제조사, 모델, 렌즈, 조리개, 셔터 속도, ISO, 초점 거리, 촬영 시각, 그리고 설정에 따라서는 GPS 좌표까지.</p>
+        <p>이 메모는 아주 편리하고, 증거로서는 아무 값어치가 없습니다.</p>
+
+        <h2>텍스트는 텍스트일 뿐입니다</h2>
+        <p>EXIF는 암호화되어 있지 않고 서명되어 있지도 않습니다. 태그 번호와 값이 나열된 표일 뿐입니다. 무료 도구로 3초면 고칩니다. exiftool 명령 한 줄이면 어떤 이미지에든 “Canon EOS R5, 1/500초, f/2.8, ISO 100, 2024년 3월 12일”을 적어 넣을 수 있습니다.</p>
+        <p>그러니 “EXIF가 있으니 진짜 사진이다”는 성립하지 않습니다. 이건 논쟁의 여지가 있는 주장이 아니라 그냥 사실입니다. EXIF만 보고 진위를 말하는 도구가 있다면, 그 도구는 검사를 하는 것이 아니라 예의를 지키고 있는 것입니다.</p>
+
+        <h2>반대 방향도 성립하지 않습니다</h2>
+        <p>더 중요한 쪽은 이쪽입니다. EXIF가 없다고 해서 진짜 사진이 아닌 것도 아닙니다.</p>
+        <p>사진 한 장이 촬영자의 손을 떠나 누군가에게 도착하기까지 EXIF가 살아남을 확률은 생각보다 훨씬 낮습니다. 카카오톡으로 보내면 사라집니다. 인스타그램에 올리면 사라집니다. 페이스북, 트위터, 대부분의 웹 게시판이 그렇습니다. 이 플랫폼들은 저장 공간과 전송량을 줄이려고 이미지를 다시 압축하는데, 그 과정에서 메타데이터를 통째로 버립니다. 개인정보 보호 목적도 있습니다. GPS 좌표가 붙은 사진이 그대로 퍼지면 곤란한 일이 생기니까요.</p>
+        <p>그래서 “EXIF가 없다”는 정보는 사진에 대해 거의 아무것도 말해 주지 않습니다. 말해 주는 것은 그 파일이 어떤 경로를 거쳐 왔는가뿐입니다.</p>
+
+        <h2>그럼에도 읽는 이유</h2>
+        <p>EXIF를 믿을 수 없다면 왜 읽을까요. 믿기 위해서가 아니라 <strong>대조하기 위해서</strong>입니다.</p>
+        <p>EXIF를 고치는 일은 쉽습니다. 그런데 EXIF에 적은 대로 픽셀을 고치는 일은 어렵습니다. “ISO 6400으로 찍었다”고 적어 두면, 그 주장에 맞는 노이즈가 화면 전체에 밝기에 따라 정확한 비율로 앉아 있어야 합니다. “f/1.4로 찍었다”고 적어 두면, 그 조리개에서 나오는 얕은 심도와 주변부 광량 저하가 있어야 합니다. “35mm로 찍었다”고 적어 두면, 그 화각에 맞는 원근 왜곡이 있어야 합니다.</p>
+        <p>텍스트 한 줄과 화면 전체를 동시에 맞추는 일은, 텍스트 한 줄만 고치는 일보다 몇 단계 번거롭습니다. 그 번거로움의 차이가 이 검증이 서 있는 자리입니다.</p>
+        <p>즉 EXIF는 증거가 아니라 <strong>진술</strong>입니다. 그리고 진술의 값어치는 반대 신문이 가능할 때 생깁니다. ULTARI가 하는 일은 EXIF의 진술을 받아 적고, 픽셀에게 같은 질문을 다시 던지는 것입니다.</p>
+
+      <!-- 광고 영역: AdSense 승인 후 여기에 슬롯을 넣습니다. 승인 전에는 비워 둡니다. -->
+      <div class="ad-slot" data-ad-slot="in-article"></div>
+
+        <h2>실제로 무엇을 대조하는가</h2>
+        <p>가장 강한 대조는 ISO입니다. 센서의 증폭률을 올리면 신호와 함께 노이즈도 증폭됩니다. ISO 100과 ISO 6400의 화면은 어두운 영역의 거칠기에서 확연히 다릅니다. 그래서 EXIF가 ISO 6400을 주장하는데 어두운 부분이 매끈하면, 둘 중 하나는 사실이 아닙니다.</p>
+        <p>다만 여기서 조심할 것이 있습니다. 요즘 카메라, 특히 휴대폰은 촬영 직후에 노이즈를 아주 강하게 지웁니다. ISO 6400으로 찍고도 매끈한 화면이 나오는 일이 흔합니다. 그래서 이 대조가 어긋났다고 해서 “가짜”라고 말할 수는 없습니다. 말할 수 있는 것은 “기계가 답을 못 냈다”까지입니다.</p>
+        <p>그래서 ULTARI의 결과에는 “의심”이 없고 “보류”가 있습니다. 보류는 사진에 대한 평가가 아니라 검사에 대한 평가입니다.</p>
+
+        <h2>GPS를 읽지 않는 이유</h2>
+        <p>EXIF에는 GPS 좌표가 들어 있을 수 있습니다. 위도, 경도, 고도, 방위까지. ULTARI는 이 값이 <em>있는지 없는지</em>만 확인하고 값 자체는 읽지 않습니다.</p>
+        <p>이유는 단순합니다. 사진의 진위를 확인하는 데 촬영 장소는 필요하지 않습니다. 반면 좌표는 유출되면 사람이 다칠 수 있는 정보입니다. 필요하지 않은데 위험한 정보는 처음부터 다루지 않는 것이 맞습니다.</p>
+        <p>대신 좌표가 <em>들어 있다는 사실</em>은 알려 드립니다. 그 파일을 남에게 보낼 때 알고 계시는 편이 좋기 때문입니다.</p>
+
+        <h2>정리</h2>
+        <p>EXIF는 고칠 수 있고, 자주 지워지고, 그래서 단독으로는 아무것도 증명하지 않습니다. 이 사실을 인정하고 나면 오히려 쓸 곳이 생깁니다. 검증의 출발점이 아니라 <strong>대조의 한쪽 항</strong>으로.</p>
+        <p>파일이 하는 두 가지 진술 — 메타데이터의 진술과 픽셀의 진술 — 이 서로 같은 이야기를 하는지 보는 것. 그것이 ULTARI가 3등급에서 하는 일의 전부입니다. 어떻게 재는지는 <a href="/how">검증 원리</a>에, 이 방법이 놓치는 것들은 <a href="/limits">한계</a>에 적어 두었습니다.</p>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="shell">
+      <nav class="foot-links" aria-label="전체 메뉴">
+          <a href="/">검증 도구</a>
+          <a href="/how">검증 원리</a>
+          <a href="/grades">등급 체계</a>
+          <a href="/limits">한계</a>
+          <a href="/articles">읽을거리</a>
+          <a href="/privacy">개인정보 처리방침</a>
+          <a href="/terms">이용약관</a>
+      </nav>
+      <p class="foot-note">ULTARI는 사진 파일에 남은 촬영 흔적을 브라우저 안에서 측정하고, 그 측정값을 근거로 등급을 발급합니다. 업로드한 이미지는 서버로 전송되지 않습니다. AI 이미지를 탐지하지 않고, AI 학습을 막지 않으며, 정확도가 100%라고 말하지 않습니다.</p>
+    </div>
+  </footer>
+
+</body>
+</html>
