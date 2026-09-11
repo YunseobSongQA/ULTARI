@@ -43,6 +43,8 @@ export default defineConfig({
         index: page('index.html'),
         how: page('how.html'),
         grades: page('grades.html'),
+        archive: page('archive.html'),
+        roadmap: page('roadmap.html'),
         limits: page('limits.html'),
         privacy: page('privacy.html'),
         terms: page('terms.html'),

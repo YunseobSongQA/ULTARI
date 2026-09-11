@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>등급 체계 — 1이 가장 위입니다 | ULTARI</title>
-  <meta name="description" content="3등급은 기계가 30초에, 2등급은 사람이 며칠에, 1등급은 센서 지문 대조로 몇 주에 걸쳐 확인합니다. 현재 실제로 발급되는 것은 3등급뿐입니다.">
+  <meta name="description" content="간단 검사는 30초에 3등급까지, 상세 검사는 사람이 직접 보고 1등급까지. 대기 건수는 실제 접수 건수만 표시합니다.">
   <meta name="color-scheme" content="light">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -15,19 +15,20 @@
 
   <header class="site-head">
     <div class="shell">
-      <a class="brand" href="/"><svg viewBox="3 5 26 21" width="26" height="21" fill="currentColor" aria-hidden="true"><rect x="3" y="15" width="3" height="11" rx="0.6"/><rect x="7.6" y="8" width="3" height="18" rx="0.6"/><rect x="12.2" y="18" width="3" height="8" rx="0.6"/><rect x="16.8" y="5" width="3" height="21" rx="0.6"/><rect x="21.4" y="12" width="3" height="14" rx="0.6"/><rect x="26" y="9" width="3" height="17" rx="0.6"/></svg><span>ULTARI</span></a>
+      <a class="brand" href="/"><svg viewBox="1 4 30 24.6" width="27" height="22" fill="currentColor" aria-hidden="true"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg><span>ULTARI</span></a>
       <nav class="site-nav" aria-label="주요 메뉴">
-          <a href="/">검증 도구</a>
+          <a href="/">검증</a>
           <a href="/how">검증 원리</a>
-          <a href="/grades" aria-current="page">등급 체계</a>
-          <a href="/limits">한계</a>
+          <a href="/grades" aria-current="page">등급</a>
+          <a href="/archive">아카이브</a>
+          <a href="/roadmap">로드맵</a>
           <a href="/articles">읽을거리</a>
       </nav>
     </div>
   </header>
 
   <main id="main">
-    <div class="shell">
+    <div class="shell shell--narrow">
       <div class="page-head">
         <p class="kicker">등급 체계</p>
         <h1>1이 가장 위입니다</h1>
@@ -36,67 +37,70 @@
 
       <table class="grade-table">
         <thead>
-          <tr><th style="width:12%">등급</th><th style="width:20%">누가 판단</th><th>무엇을 확인</th><th style="width:16%">소요</th></tr>
+          <tr><th style="width:12%">등급</th><th style="width:20%">어디서</th><th>무엇을 확인</th><th style="width:16%">소요</th></tr>
         </thead>
         <tbody>
           <tr>
             <td><span class="g">1</span></td>
-            <td>기계 + 사람</td>
+            <td>상세 검사</td>
             <td>이 사람의 이 카메라가 맞는지. 센서 고유의 화소 불균일 패턴을 대조하고, 제출된 작업물을 표본으로 감사합니다.</td>
             <td>몇 주</td>
           </tr>
           <tr>
             <td><span class="g">2</span></td>
-            <td>사람</td>
+            <td>상세 검사</td>
             <td>찍힌 대상도 실제인지. 화면을 다시 찍은 것은 아닌지. 기계가 확정할 수 없는 자리를 사람이 봅니다.</td>
             <td>며칠</td>
           </tr>
           <tr>
             <td><span class="g">3</span></td>
-            <td>기계</td>
+            <td>간단 검사</td>
             <td>실제 카메라로 촬영됐는지. 파일에 남은 촬영 흔적이 서로 어긋나지 않는지.</td>
             <td>30초</td>
           </tr>
         </tbody>
       </table>
 
-      <div class="prose" style="margin-top:48px">
-        <h2>지금 실제로 발급되는 것은 3등급뿐입니다</h2>
-        <p>2등급과 1등급은 접수만 받고 있습니다. 사람이 붙어야 하는 일이고, 사람이 붙는 일은 사람이 준비된 만큼만 돌아갑니다. 준비되기 전에 발급하면 그건 등급이 아니라 스티커입니다.</p>
+      <div class="prose" style="margin-top:52px">
+        <h2>투입구가 둘인 이유</h2>
+        <p>기계가 30초에 할 수 있는 일과 사람이 며칠 걸려 하는 일은 종류가 다릅니다. 같은 창구에 넣으면 둘 다 어중간해집니다. 그래서 첫 화면에서부터 갈라 두었습니다.</p>
+        <p><strong>간단 검사</strong>는 파일만 봅니다. 기계가 잴 수 있는 것을 다 재고 3등급까지 발급합니다. 통과하면 인증 마크를 바로 내려받으실 수 있습니다.</p>
+        <p><strong>상세 검사</strong>는 같은 측정을 한 다음, 그 결과를 사람에게 넘깁니다. 사람이 붙고 대조할 것이 많아서 오래 걸립니다. 대신 기계가 못 보는 것을 봅니다.</p>
       </div>
 
-      <div class="panel" style="margin-top:28px">
+      <div class="panel" style="margin-top:32px">
         <p class="panel-title">심사 대기 현황</p>
         <dl class="def-list">
           <div><dt>2등급 심사</dt><dd><span data-queue-grade2>현재 대기 0건.</span> 접수 후 순서대로 봅니다.</dd></div>
           <div><dt>1등급 심사</dt><dd><span data-queue-grade1>현재 대기 0건.</span> 2등급 이력이 쌓인 뒤에 신청할 수 있습니다.</dd></div>
-          <div><dt>접수처</dt><dd><a data-review-contact href="mailto:review@ultari.kr">review@ultari.kr</a></dd></div>
+          <div><dt>접수처</dt><dd><a data-contact href="mailto:hello@ultari.kr">hello@ultari.kr</a></dd></div>
         </dl>
         <p style="margin:18px 0 0;font-size:13px;color:var(--ink-3)">여기 적힌 숫자는 실제 접수 건수입니다. 0건이면 0건이라고 씁니다. 진위를 파는 곳이 대기열을 부풀리면 그 순간 팔 물건이 없어집니다.</p>
       </div>
 
-      <div class="prose" style="margin-top:52px">
+      <div class="prose" style="margin-top:56px">
         <h2>3등급 — 기계가 보는 것</h2>
-        <p>파일에 남은 촬영 흔적을 재고, 그 값들이 서로 맞는지 봅니다. 30초면 끝나고 이 사이트에서 바로 발급됩니다. <a href="/how">무엇을 재는지</a>는 전부 공개돼 있습니다.</p>
-        <p>3등급이 말하는 것은 정확히 이만큼입니다.</p>
+        <p>파일에 남은 촬영 흔적을 재고, 그 값들이 서로 맞는지 봅니다. <a href="/how">무엇을 재는지</a>는 전부 공개돼 있습니다. 3등급이 말하는 것은 정확히 이만큼입니다.</p>
         <div class="note measure">
           이 사진은 실제 카메라로 촬영된 것으로 보입니다.<br>
           무엇을 찍었는지는 확인하지 않았습니다.<br>
           자동 검증은 우회 가능합니다. 확정 인증은 2등급부터입니다.
         </div>
-        <p>세 번째 줄이 중요합니다. 생성된 이미지를 모니터에 띄우고 카메라로 찍으면 3등급 검사는 통과합니다. 이건 구현이 허술해서가 아니라 자동 검증이라는 방법이 원래 여기까지이기 때문입니다. 숨기는 대신 적어 둡니다.</p>
+        <p>세 번째 줄이 중요합니다. 생성된 이미지를 모니터에 띄우고 카메라로 찍으면 3등급 검사는 통과합니다. 구현이 허술해서가 아니라 자동 검증이라는 방법이 원래 여기까지이기 때문입니다.</p>
 
         <h2>2등급 — 사람이 보는 것</h2>
-        <p>기계가 확정할 수 없는 자리를 사람이 봅니다. 화면 재촬영 의심 신호가 실제 모니터의 무늬인지 직물의 무늬인지, 화면 안의 그림자와 반사가 서로 맞는지, 같은 장소에서 찍은 다른 컷이 존재하는지. 며칠 걸립니다.</p>
-        <p>신청하시면 자동 검증에서 나온 측정값이 함께 전달됩니다. 이미지는 첨부되지 않습니다. 원본은 담당자와 연락이 닿은 뒤 직접 주고받습니다.</p>
+        <p>기계가 확정할 수 없는 자리를 사람이 봅니다. 화면 재촬영 의심 신호가 실제 모니터의 무늬인지 직물의 무늬인지, 화면 안의 그림자와 반사가 서로 맞는지, 같은 장소에서 찍은 다른 컷이 존재하는지.</p>
 
         <h2>1등급 — 카메라까지 묶는 것</h2>
-        <p>센서에는 개체마다 다른 화소 감도의 미세한 편차가 있습니다. 같은 센서 모델이라도 개체마다 패턴이 다르고, 이 패턴은 같은 카메라로 찍은 사진들에 공통으로 남습니다. 여러 장을 모아 이 패턴을 추출하면 “이 사진들은 같은 기계에서 나왔다”를 말할 수 있습니다.</p>
-        <p>여기에 사람의 표본 감사가 붙습니다. 제출된 작업 중 일부를 골라 촬영 경위를 확인합니다. 몇 주 걸립니다. 2등급 이력이 쌓인 분만 신청할 수 있습니다.</p>
+        <p>센서에는 개체마다 다른 화소 감도의 미세한 편차가 있습니다. 같은 센서 모델이라도 개체마다 패턴이 다르고, 이 패턴은 같은 카메라로 찍은 사진들에 공통으로 남습니다. 여러 장을 모아 추출하면 “이 사진들은 같은 기계에서 나왔다”를 말할 수 있습니다.</p>
+        <p>여기에 사람의 표본 감사가 붙습니다. 제출된 작업 중 일부를 골라 촬영 경위를 확인합니다. 2등급 이력이 쌓인 분만 신청하실 수 있습니다.</p>
+
+        <h2>인증 마크</h2>
+        <p>등급을 받으면 사진 오른쪽 아래에 울타리 마크와 등급, 원본 지문 앞자리를 새긴 파일을 내려받을 수 있습니다. 합성도 브라우저 안에서 하므로 사진은 밖으로 나가지 않습니다. 마크를 넣으면 파일이 달라져 지문도 달라지므로, 마크 안에 원본 지문을 같이 새깁니다.</p>
 
         <h2>왜 1이 가장 위인가</h2>
         <p>대부분의 서비스는 1등급을 가장 흔한 것으로 둡니다. 여기서는 반대로 두었습니다. 3등급은 누구나 30초면 받을 수 있어야 하고, 1등급은 받기 어려워야 합니다. 등급의 값어치는 받기 어려운 정도에서 나오지, 이름에서 나오지 않습니다.</p>
-        <p>그리고 3등급을 받지 못했다고 해서 사진에 문제가 있는 것이 아닙니다. 대부분은 파일에 문제가 있는 것입니다. 자세한 이야기는 <a href="/limits">한계</a> 페이지에 있습니다.</p>
+        <p>그리고 3등급을 받지 못했다고 해서 사진에 문제가 있는 것이 아닙니다. 대부분은 파일에 문제가 있는 것입니다. <a href="/limits">한계</a> 페이지에 적어 두었습니다.</p>
       </div>
 
     </div>
@@ -105,25 +109,19 @@
   <footer class="site-foot">
     <div class="shell">
       <nav class="foot-links" aria-label="전체 메뉴">
-          <a href="/">검증 도구</a>
+          <a href="/">검증</a>
           <a href="/how">검증 원리</a>
-          <a href="/grades">등급 체계</a>
-          <a href="/limits">한계</a>
+          <a href="/grades">등급</a>
+          <a href="/archive">아카이브</a>
+          <a href="/roadmap">로드맵</a>
           <a href="/articles">읽을거리</a>
+          <a href="/limits">한계</a>
           <a href="/privacy">개인정보 처리방침</a>
           <a href="/terms">이용약관</a>
       </nav>
-      <p class="foot-note">ULTARI는 사진 파일에 남은 촬영 흔적을 브라우저 안에서 측정하고, 그 측정값을 근거로 등급을 발급합니다. 업로드한 이미지는 서버로 전송되지 않습니다. AI 이미지를 탐지하지 않고, AI 학습을 막지 않으며, 정확도가 100%라고 말하지 않습니다.</p>
+      <p class="foot-note">ULTARI는 사진에 남은 촬영 흔적을 브라우저 안에서 측정하고 등급을 발급합니다. 사진은 서버로 전송되지 않습니다. AI 이미지를 탐지하지 않고, AI 학습을 막지 않습니다.</p>
     </div>
   </footer>
-  <script type="module">
-    import { REVIEW_QUEUE, REVIEW_CONTACT, queueLine } from '/src/queue.js';
-    document.querySelectorAll('[data-queue-grade2]').forEach((el) => { el.textContent = queueLine(REVIEW_QUEUE.grade2); });
-    document.querySelectorAll('[data-queue-grade1]').forEach((el) => { el.textContent = queueLine(REVIEW_QUEUE.grade1); });
-    document.querySelectorAll('[data-review-contact]').forEach((el) => {
-      el.textContent = REVIEW_CONTACT;
-      if (el.tagName === 'A') el.href = 'mailto:' + REVIEW_CONTACT;
-    });
-  </script>
+  <script type="module" src="/src/site.js"></script>
 </body>
 </html>
