@@ -3,6 +3,10 @@
  *
  * 합성도 브라우저 안에서 합니다. 원본도 결과물도 서버로 가지 않습니다.
  *
+ * 두 가지를 만들 수 있습니다.
+ *   1. 마크를 얹은 사진      — 그대로 올리시면 됩니다.
+ *   2. 마크만 담은 투명 PNG  — 편집 프로그램에서 직접 배치하실 때.
+ *
  * 새겨진 마크는 장식이 아니라 주장입니다. "이 파일은 ULTARI에서 3등급을 받았다."
  * 다만 마크를 넣는 순간 파일의 바이트가 달라지므로 지문도 달라집니다.
  * 그래서 마크에는 원본의 지문 앞자리를 같이 새기고, 화면에도 그 사실을 적습니다.
@@ -24,6 +28,14 @@ const FONT = '"Pretendard Variable", Pretendard, -apple-system, system-ui, sans-
 const PAPER = '#F5F4F1';
 const INK = '#14161A';
 const INK_2 = '#5E6166';
+
+export const POSITIONS = [
+  { id: 'bl', label: '좌측 하단' },
+  { id: 'br', label: '우측 하단' },
+  { id: 'tl', label: '좌측 상단' },
+  { id: 'tr', label: '우측 상단' },
+];
+export const DEFAULT_POSITION = 'bl';
 
 function roundedTop(ctx, x, y, w, h, r) {
   if (typeof ctx.roundRect === 'function') {
@@ -77,63 +89,6 @@ export function drawMark(ctx, x, y, h, color = INK) {
   ctx.restore();
 }
 
-/**
- * 사진 오른쪽 아래에 인증 명판을 새긴 이미지를 만듭니다.
- * @returns {Promise<{blob: Blob, type: string, width: number, height: number, url: string}>}
- */
-export async function renderMarkedImage(file, { grade, shortHash, dateText }) {
-  const bitmap = await createImageBitmap(file);   // 보이는 방향 그대로
-  const W = bitmap.width;
-  const H = bitmap.height;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(bitmap, 0, 0);
-  bitmap.close?.();
-
-  // 웹폰트가 아직 안 왔으면 명판 글자가 대체 글꼴로 그려집니다.
-  try { await document.fonts?.ready; } catch { /* 무시 */ }
-
-  const line1 = `ULTARI ${grade}등급`;
-  const line2 = `${shortHash} · ${dateText}`;
-
-  // 사진 크기에 맞춰 명판을 키웁니다. 명판 높이가 짧은 변의 5~6%가 되도록 잡았습니다.
-  // 사진에 얹는 서명은 이 정도가 읽히면서도 화면을 잡아먹지 않습니다.
-  let unit = Math.max(11, Math.min(40, Math.round(Math.min(W, H) * 0.013)));
-  let plate = measurePlate(ctx, unit, line1, line2);
-  if (plate.w > W * 0.72) {
-    unit = Math.max(9, Math.floor(unit * (W * 0.72) / plate.w));
-    plate = measurePlate(ctx, unit, line1, line2);
-  }
-
-  const margin = Math.round(unit * 1.35);
-  const px = Math.max(margin, W - plate.w - margin);
-  const py = Math.max(margin, H - plate.h - margin);
-
-  ctx.fillStyle = PAPER;
-  ctx.fillRect(px, py, plate.w, plate.h);
-  ctx.strokeStyle = 'rgba(20, 22, 26, 0.26)';
-  ctx.lineWidth = Math.max(1, Math.round(unit * 0.07));
-  ctx.strokeRect(px + ctx.lineWidth / 2, py + ctx.lineWidth / 2, plate.w - ctx.lineWidth, plate.h - ctx.lineWidth);
-
-  drawMark(ctx, px + plate.pad, py + (plate.h - plate.markH) / 2, plate.markH);
-
-  const tx = px + plate.pad + plate.markW + plate.gap;
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = INK;
-  ctx.font = plate.f1;
-  ctx.fillText(line1, tx, py + plate.pad + plate.s1);
-  ctx.fillStyle = INK_2;
-  ctx.font = plate.f2;
-  ctx.fillText(line2, tx, py + plate.pad + plate.s1 + plate.lead + plate.s2);
-
-  const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, 0.95));
-  return { blob, type, width: W, height: H, url: URL.createObjectURL(blob) };
-}
-
 function measurePlate(ctx, unit, line1, line2) {
   const pad = Math.round(unit * 0.95);
   const gap = Math.round(unit * 0.8);
@@ -152,10 +107,115 @@ function measurePlate(ctx, unit, line1, line2) {
   const markW = Math.round(markH * markAspect);
 
   return {
-    pad, gap, s1, s2, lead, f1, f2, markH, markW,
+    unit, pad, gap, s1, s2, lead, f1, f2, markH, markW,
+    border: Math.max(1, Math.round(unit * 0.07)),
     w: Math.round(pad * 2 + markW + gap + Math.max(w1, w2)),
     h: Math.round(pad * 2 + s1 + lead + s2),
   };
+}
+
+/**
+ * 명판 크기를 정합니다. 명판 높이가 짧은 변의 5~6%가 되도록 잡았습니다.
+ * 사진에 얹는 서명은 이 정도가 읽히면서도 화면을 잡아먹지 않습니다.
+ */
+function planPlate(ctx, W, H, line1, line2) {
+  let unit = Math.max(11, Math.min(40, Math.round(Math.min(W, H) * 0.013)));
+  let plate = measurePlate(ctx, unit, line1, line2);
+  if (plate.w > W * 0.72) {
+    unit = Math.max(9, Math.floor((unit * W * 0.72) / plate.w));
+    plate = measurePlate(ctx, unit, line1, line2);
+  }
+  return plate;
+}
+
+function drawPlate(ctx, x, y, plate, line1, line2) {
+  ctx.fillStyle = PAPER;
+  ctx.fillRect(x, y, plate.w, plate.h);
+  ctx.strokeStyle = 'rgba(20, 22, 26, 0.26)';
+  ctx.lineWidth = plate.border;
+  ctx.strokeRect(x + plate.border / 2, y + plate.border / 2, plate.w - plate.border, plate.h - plate.border);
+
+  drawMark(ctx, x + plate.pad, y + (plate.h - plate.markH) / 2, plate.markH);
+
+  const tx = x + plate.pad + plate.markW + plate.gap;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = INK;
+  ctx.font = plate.f1;
+  ctx.fillText(line1, tx, y + plate.pad + plate.s1);
+  ctx.fillStyle = INK_2;
+  ctx.font = plate.f2;
+  ctx.fillText(line2, tx, y + plate.pad + plate.s1 + plate.lead + plate.s2);
+}
+
+function placeAt(position, W, H, plate, margin) {
+  const left = margin;
+  const right = Math.max(margin, W - plate.w - margin);
+  const top = margin;
+  const bottom = Math.max(margin, H - plate.h - margin);
+  switch (position) {
+    case 'br': return { x: right, y: bottom };
+    case 'tl': return { x: left, y: top };
+    case 'tr': return { x: right, y: top };
+    case 'bl':
+    default: return { x: left, y: bottom };
+  }
+}
+
+const lines = ({ grade, shortHash, dateText }) => [`ULTARI ${grade}등급`, `${shortHash} · ${dateText}`];
+const waitForFonts = async () => { try { await document.fonts?.ready; } catch { /* 무시 */ } };
+
+/**
+ * 사진에 인증 명판을 얹은 이미지를 만듭니다.
+ * @param {File} file
+ * @param {{grade:number, shortHash:string, dateText:string, position?:string, maxEdge?:number}} opt
+ *   maxEdge를 주면 그 크기로 줄여 그립니다. 미리보기용입니다.
+ *   명판은 출력 크기에 비례하므로 줄여도 보이는 비율은 같습니다.
+ */
+export async function renderMarkedImage(file, opt) {
+  const bitmap = await createImageBitmap(file);   // 보이는 방향 그대로
+  const scale = opt.maxEdge ? Math.min(1, opt.maxEdge / Math.max(bitmap.width, bitmap.height)) : 1;
+  const W = Math.max(1, Math.round(bitmap.width * scale));
+  const H = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, W, H);
+  bitmap.close?.();
+
+  await waitForFonts();
+
+  const [line1, line2] = lines(opt);
+  const plate = planPlate(ctx, W, H, line1, line2);
+  const margin = Math.round(plate.unit * 1.35);
+  const { x, y } = placeAt(opt.position || DEFAULT_POSITION, W, H, plate, margin);
+  drawPlate(ctx, x, y, plate, line1, line2);
+
+  const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, 0.95));
+  return { blob, type, width: W, height: H, url: URL.createObjectURL(blob) };
+}
+
+/**
+ * 마크만 담은 투명 PNG. 편집 프로그램에서 직접 배치하실 때 씁니다.
+ * 크기는 원본 사진에 얹었을 때와 같게 잡으므로 1:1로 올리시면 됩니다.
+ */
+export async function renderMarkOnly({ width, height, ...opt }) {
+  await waitForFonts();
+  const probe = document.createElement('canvas').getContext('2d');
+  const [line1, line2] = lines(opt);
+  const plate = planPlate(probe, width, height, line1, line2);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = plate.w;
+  canvas.height = plate.h;
+  const ctx = canvas.getContext('2d');
+  drawPlate(ctx, 0, 0, plate, line1, line2);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  return { blob, type: 'image/png', width: plate.w, height: plate.h, url: URL.createObjectURL(blob) };
 }
 
 export function markedFilename(originalName, grade, type) {
@@ -164,12 +224,6 @@ export function markedFilename(originalName, grade, type) {
   return `${base}-ultari-grade${grade}.${ext}`;
 }
 
-/** 내려받기. 서버를 거치지 않고 브라우저가 직접 파일을 씁니다. */
-export function downloadBlobUrl(url, filename) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+export function markOnlyFilename(grade) {
+  return `ultari-grade${grade}-mark.png`;
 }

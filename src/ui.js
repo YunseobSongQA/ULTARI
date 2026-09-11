@@ -19,7 +19,10 @@ import { analyzeRephoto } from './verify/rephoto.js';
 import { fingerprintFile, formatBytes } from './verify/fingerprint.js';
 import { gradeResult, VERDICT } from './grade.js';
 import { REVIEW_QUEUE, CONTACT, MAIL, queueLine } from './queue.js';
-import { renderMarkedImage, markedFilename } from './watermark.js';
+import {
+  renderMarkedImage, renderMarkOnly, markedFilename, markOnlyFilename,
+  POSITIONS, DEFAULT_POSITION,
+} from './watermark.js';
 import { paintIcons } from './site.js';
 
 /* 증서에 찍히는 울타리 마크 — public/favicon.svg와 같은 도형 */
@@ -354,14 +357,32 @@ function renderResult(bundle, mode) {
     : '파일 지문을 계산하지 못했습니다 — 브라우저가 보안 컨텍스트가 아닙니다';
 
   const actions = [];
-  if (isPass) {
-    actions.push(`<button class="btn" type="button" data-action="watermark">
-      <span data-icon="download" class="ico"></span>인증 마크 넣어 내려받기</button>`);
-  }
   if (mode === 'quick') {
-    actions.push(`<a class="btn${isPass ? ' btn--ghost' : ''}" href="${MAIL.deepReview(summary)}">상세 검사로 올리기</a>`);
+    actions.push(`<a class="btn btn--ghost" href="${MAIL.deepReview(summary)}">상세 검사로 올리기</a>`);
   }
   actions.push(`<button class="btn btn--ghost" type="button" data-action="reset">다른 사진</button>`);
+
+  // 통과하면 마크 패널을 바로 펼칩니다. 버튼 뒤에 숨기면 결과물이 있는 줄도 모릅니다.
+  const markPanel = isPass ? `
+    <div class="panel wm-panel" data-watermark>
+      <p class="panel-title">인증 마크 — 내려받기</p>
+      <p class="wm-lead">사진에 마크를 새겨 받거나, 마크만 따로 받아 직접 배치하실 수 있습니다.</p>
+      <div class="wm-controls">
+        <span class="wm-label">마크 위치</span>
+        <div class="seg" role="radiogroup" aria-label="마크 위치">
+          ${POSITIONS.map((p) => `<button type="button" role="radio" class="seg-btn${p.id === DEFAULT_POSITION ? ' is-on' : ''}" aria-checked="${p.id === DEFAULT_POSITION}" data-pos="${p.id}">${escapeHtml(p.label)}</button>`).join('')}
+        </div>
+      </div>
+      <figure class="wm-figure">
+        <div class="wm-stage" data-wm-stage><span class="wm-loading">마크 새기는 중…</span></div>
+        <figcaption data-wm-caption>미리보기입니다. 내려받는 파일은 원본 해상도 그대로입니다.</figcaption>
+      </figure>
+      <div class="btn-row">
+        <button class="btn" type="button" data-action="dl-photo"><span data-icon="download"></span>마크 넣은 사진 내려받기</button>
+        <button class="btn btn--ghost" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
+      </div>
+      <p class="btn-note">브라우저의 기본 다운로드 폴더에 저장됩니다. 파일을 만드는 것도 저장하는 것도 이 기기에서만 일어납니다.</p>
+    </div>` : '';
 
   const deepPanel = mode === 'deep' ? `
     <div class="panel">
@@ -402,9 +423,9 @@ function renderResult(bundle, mode) {
       ${renderKeyLines(keyLines(bundle))}
       <p class="fingerprint-line">${fingerprint}</p>
       <div class="btn-row">${actions.join('')}</div>
-      <div data-watermark hidden></div>
     </section>
 
+    ${markPanel}
     ${reasonList('자동 검증이 멈춘 이유', result.blockers)}
     ${reasonList('서로 맞지 않는 측정값', result.contradictions)}
     ${deepPanel}
@@ -467,15 +488,35 @@ export function mountVerifier(root) {
     fileLine.innerHTML = '';
     runArea.hidden = true;
     progress.hidden = true;
+    if (stepList) stepList.innerHTML = '';
     lanes.hidden = false;
     root.querySelectorAll('input[type="file"]').forEach((i) => { i.value = ''; });
     lanes.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
 
+  const stepList = root.querySelector('[data-steps]');
+
+  const drawSteps = (activeIndex, allDone = false) => {
+    stepList.innerHTML = STEPS.map((label, i) => {
+      const state = allDone || i < activeIndex ? 'is-done' : i === activeIndex ? 'is-active' : '';
+      return `<li class="${state}"><span class="dot"></span><span>${escapeHtml(label)}</span></li>`;
+    }).join('');
+  };
+
   const showProgress = (index, label) => {
     progress.hidden = false;
+    drawSteps(index);
     progressLabel.textContent = `${label}…`;
     progressBar.style.width = `${Math.round(((index + 1) / STEPS.length) * 100)}%`;
+  };
+
+  const runNote = root.querySelector('.run-note');
+
+  const finishProgress = (elapsedMs) => {
+    drawSteps(STEPS.length, true);
+    progressBar.style.width = '100%';
+    progressLabel.textContent = `검사 완료 · ${STEPS.length}단계 · ${(elapsedMs / 1000).toFixed(1)}초`;
+    if (runNote) runNote.textContent = '이 기기에서만 계산했습니다. 어디로도 전송하지 않았습니다.';
   };
 
   const run = async (file, mode) => {
@@ -496,12 +537,20 @@ export function mountVerifier(root) {
       </div>`;
     runArea.scrollIntoView({ block: 'start', behavior: 'smooth' });
 
+    const startedAt = performance.now();
+    drawSteps(0);
+    progress.hidden = false;
+    progressBar.style.width = '0%';
+    progressLabel.textContent = '시작하는 중…';
+    if (runNote) runNote.textContent = '이 기기에서 계산 중입니다. 업로드가 아닙니다.';
+
     try {
       const bundle = await verifyFile(file, showProgress);
-      current = { file, mode, bundle };
-      progress.hidden = true;
+      current = { file, mode, bundle, position: DEFAULT_POSITION };
+      finishProgress(performance.now() - startedAt);
       output.innerHTML = renderResult(bundle, mode);
       paintIcons(output);
+      if (bundle.result.grade) await refreshMarkPreview();
     } catch (err) {
       progress.hidden = true;
       output.innerHTML = err && err.message === 'DECODE_FAILED'
@@ -528,50 +577,93 @@ export function mountVerifier(root) {
     zone.addEventListener('drop', (e) => run(e.dataTransfer?.files?.[0], mode));
   });
 
-  const makeWatermark = async (button) => {
+  const PREVIEW_EDGE = 1100;   // 미리보기는 이 크기로 줄여 그립니다. 비율은 같습니다.
+
+  const markOptions = () => ({
+    grade: current.bundle.result.grade,
+    shortHash: current.bundle.print.short || '지문 없음',
+    dateText: new Date().toISOString().slice(0, 10),
+    position: current.position,
+  });
+
+  const refreshMarkPreview = async () => {
     if (!current) return;
-    const holder = output.querySelector('[data-watermark]');
-    const grade = current.bundle.result.grade;
-    button.disabled = true;
-    const original = button.innerHTML;
-    button.textContent = '마크 새기는 중…';
+    const stage = output.querySelector('[data-wm-stage]');
+    const caption = output.querySelector('[data-wm-caption]');
+    if (!stage) return;
+    stage.innerHTML = '<span class="wm-loading">마크 새기는 중…</span>';
     try {
-      const stamped = await renderMarkedImage(current.file, {
-        grade,
-        shortHash: current.bundle.print.short || '지문 없음',
-        dateText: new Date().toISOString().slice(0, 10),
-      });
+      const preview = await renderMarkedImage(current.file, { ...markOptions(), maxEdge: PREVIEW_EDGE });
       if (markUrl) URL.revokeObjectURL(markUrl);
-      markUrl = stamped.url;
-      const filename = markedFilename(current.file.name, grade, stamped.type);
-      holder.hidden = false;
-      holder.innerHTML = `
-        <div class="wm" style="margin-top:24px;padding-top:22px;border-top:1px solid var(--rule)">
-          <div class="wm-preview"><img src="${markUrl}" alt="인증 마크가 새겨진 사진 미리보기"></div>
-          <div class="wm-body">
-            <p style="font-size:14.5px;margin-bottom:8px">
-              오른쪽 아래에 울타리 마크와 등급, 원본 지문 앞자리를 새겼습니다.
-              이 파일을 그대로 올리시면 됩니다.
-            </p>
-            <p style="font-size:13px;color:var(--ink-3);margin-bottom:0">
-              마크를 넣으면 파일의 바이트가 달라지므로 지문도 달라집니다.
-              그래서 마크 안에 원본 지문을 같이 새깁니다. 원본은 따로 보관해 두십시오.
-            </p>
-            <div class="btn-row">
-              <a class="btn" href="${markUrl}" download="${escapeHtml(filename)}">${escapeHtml(filename.length > 34 ? '내려받기' : filename)}</a>
-            </div>
-          </div>
-        </div>`;
-      button.innerHTML = original;
-      button.disabled = false;
-      paintIcons(output);
-      holder.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      markUrl = preview.url;
+      stage.innerHTML = `<img src="${markUrl}" alt="인증 마크가 새겨진 사진 미리보기">`;
+      caption.textContent =
+        `미리보기 ${preview.width}×${preview.height} · 내려받는 파일은 원본 ${current.bundle.pixels.width}×${current.bundle.pixels.height} 그대로입니다.`;
     } catch {
-      button.innerHTML = original;
-      button.disabled = false;
-      holder.hidden = false;
-      holder.innerHTML = `<p class="btn-note" style="color:var(--warn)">마크를 새기지 못했습니다. 사진이 너무 크면 실패할 수 있습니다.</p>`;
+      stage.innerHTML = '<span class="wm-loading">미리보기를 만들지 못했습니다. 내려받기는 시도해 보실 수 있습니다.</span>';
     }
+  };
+
+  const saveBlob = (url, filename) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  /** 내려받기는 원본 해상도로 그때 만듭니다. 미리보기용 축소본을 주지 않습니다. */
+  const downloadMarked = async (button) => {
+    if (!current) return;
+    const label = button.innerHTML;
+    button.disabled = true;
+    button.textContent = '원본 해상도로 만드는 중…';
+    try {
+      const full = await renderMarkedImage(current.file, markOptions());
+      saveBlob(full.url, markedFilename(current.file.name, current.bundle.result.grade, full.type));
+      setTimeout(() => URL.revokeObjectURL(full.url), 20000);
+      button.innerHTML = label;
+      paintIcons(output);
+    } catch {
+      button.textContent = '만들지 못했습니다';
+      setTimeout(() => { button.innerHTML = label; paintIcons(output); }, 2400);
+    } finally {
+      button.disabled = false;
+    }
+  };
+
+  const downloadMarkOnly = async (button) => {
+    if (!current) return;
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = '만드는 중…';
+    try {
+      const only = await renderMarkOnly({
+        width: current.bundle.pixels.width,
+        height: current.bundle.pixels.height,
+        ...markOptions(),
+      });
+      saveBlob(only.url, markOnlyFilename(current.bundle.result.grade));
+      setTimeout(() => URL.revokeObjectURL(only.url), 20000);
+      button.textContent = label;
+    } catch {
+      button.textContent = '만들지 못했습니다';
+      setTimeout(() => { button.textContent = label; }, 2400);
+    } finally {
+      button.disabled = false;
+    }
+  };
+
+  const choosePosition = (button) => {
+    if (!current) return;
+    current.position = button.dataset.pos;
+    output.querySelectorAll('.seg-btn').forEach((b) => {
+      const on = b === button;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-checked', String(on));
+    });
+    refreshMarkPreview();
   };
 
   const copySubmission = async (button) => {
@@ -593,11 +685,15 @@ export function mountVerifier(root) {
   };
 
   root.addEventListener('click', (e) => {
+    const pos = e.target.closest('.seg-btn');
+    if (pos) { e.preventDefault(); choosePosition(pos); return; }
     const el = e.target.closest('[data-action]');
     if (!el) return;
-    if (el.dataset.action === 'reset') { e.preventDefault(); reset(); }
-    if (el.dataset.action === 'watermark') { e.preventDefault(); makeWatermark(el); }
-    if (el.dataset.action === 'copy') { e.preventDefault(); copySubmission(el); }
+    const act = el.dataset.action;
+    if (act === 'reset') { e.preventDefault(); reset(); }
+    if (act === 'dl-photo') { e.preventDefault(); downloadMarked(el); }
+    if (act === 'dl-mark') { e.preventDefault(); downloadMarkOnly(el); }
+    if (act === 'copy') { e.preventDefault(); copySubmission(el); }
   });
 
   paintIcons(root);

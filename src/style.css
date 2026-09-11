@@ -165,10 +165,46 @@ main.main--tool { padding-block: 44px 80px; }
 
 /* ── 진행 / 파일 ─────────────────────────────────────── */
 
-.run { margin-top: 34px; }
-.progress { font-size: 14px; color: var(--ink-2); margin-top: 20px; }
-.progress .bar { height: 2px; background: var(--rule); margin-top: 10px; overflow: hidden; }
+/* 무언가 돌아가고 있다는 것이 눈에 보여야 합니다.
+   진행이 안 보이면 사용자는 업로드가 안 된 줄 압니다. */
+.run {
+  margin-top: 30px; border: 1px solid var(--rule-strong);
+  background: var(--surface); padding: 24px 26px;
+}
+.progress { font-size: 14px; color: var(--ink-2); }
+
+.run-steps {
+  list-style: none; margin: 20px 0 18px; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 2px 24px;
+}
+.run-steps li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13.5px; color: var(--ink-3); padding: 5px 0;
+}
+.run-steps .dot {
+  width: 13px; height: 13px; flex: none; position: relative;
+  border: 1px solid var(--rule-strong); background: var(--raised);
+}
+.run-steps li.is-done { color: var(--ink-2); }
+.run-steps li.is-done .dot { background: var(--ink); border-color: var(--ink); }
+.run-steps li.is-active { color: var(--ink); font-weight: 500; }
+.run-steps li.is-active .dot { border-color: var(--measure); }
+.run-steps li.is-active .dot::after {
+  content: ""; position: absolute; inset: 2px; background: var(--measure);
+  animation: ultari-pulse 900ms ease-in-out infinite;
+}
+@keyframes ultari-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .run-steps li.is-active .dot::after { animation: none; }
+}
+
+.progress .bar { height: 3px; background: var(--rule); overflow: hidden; }
 .progress .bar i { display: block; height: 100%; background: var(--measure); width: 0; transition: width 180ms ease; }
+.run-status {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline;
+  margin: 12px 0 0; font-size: 14px; color: var(--ink);
+}
+.run-status .run-note { font-size: 12.5px; color: var(--ink-3); }
 
 .file-line {
   display: flex; gap: 16px; align-items: flex-start;
@@ -312,13 +348,31 @@ main.main--tool { padding-block: 44px 80px; }
 
 /* ── 인증 마크 ───────────────────────────────────────── */
 
-.wm { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
-.wm-preview {
-  flex: none; width: 208px; border: 1px solid var(--rule-strong);
-  background: var(--raised); padding: 8px;
+.wm-panel { background: var(--raised); }
+.wm-lead { font-size: 15px; margin-bottom: 18px; }
+
+.wm-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.wm-label { font-size: 13px; color: var(--ink-2); }
+
+.seg { display: inline-flex; border: 1px solid var(--rule-strong); }
+.seg-btn {
+  font: inherit; font-size: 13.5px; padding: 7px 14px; cursor: pointer;
+  background: transparent; color: var(--ink-2); border: 0;
+  border-right: 1px solid var(--rule-strong);
 }
-.wm-preview img { display: block; width: 100%; height: auto; }
-.wm-body { flex: 1; min-width: 250px; }
+.seg-btn:last-child { border-right: 0; }
+.seg-btn:hover { color: var(--ink); }
+.seg-btn.is-on { background: var(--ink); color: var(--paper); }
+
+.wm-figure { margin: 0; }
+.wm-stage {
+  border: 1px solid var(--rule); background: var(--paper);
+  min-height: 220px; display: flex; align-items: center; justify-content: center;
+  padding: 10px;
+}
+.wm-stage img { display: block; max-width: 100%; max-height: 420px; height: auto; }
+.wm-loading { font-size: 13.5px; color: var(--ink-3); }
+.wm-figure figcaption { font-size: 12.5px; color: var(--ink-3); margin-top: 9px; }
 
 /* ── 신청서 ──────────────────────────────────────────── */
 
@@ -427,5 +481,9 @@ main.main--tool { padding-block: 44px 80px; }
 
   .def-list div, .keyline div { flex-direction: column; gap: 2px; }
   .def-list dt, .keyline dt { width: auto; }
-  .wm-preview { width: 100%; }
+  .run { padding: 18px; }
+  .run-steps { grid-template-columns: 1fr; }
+  .seg { flex-wrap: wrap; }
+  .seg-btn { flex: 1 0 40%; border-bottom: 1px solid var(--rule-strong); }
+  .wm-stage { min-height: 160px; }
 }

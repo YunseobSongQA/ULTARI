@@ -30,10 +30,10 @@
   <main id="main" class="main--tool">
     <div class="shell">
       <div class="hero">
-        <h1>카메라로 찍은 사진인지<br>30초 만에 확인합니다</h1>
+        <h1>사람이 들인 시간을<br>인증합니다</h1>
       </div>
-      <p class="hero-sub">파일에 남은 촬영 흔적을 재서 등급을 발급하고, 사진에 인증 마크를 새겨 드립니다. <strong>사진은 이 브라우저를 벗어나지 않습니다.</strong></p>
-      <p class="local-badge"><span data-icon="lock"></span>업로드 주소 자체가 없습니다. 계산은 전부 이 기기에서 끝납니다.</p>
+      <p class="hero-sub">새벽에 나가 기다리고 셔터를 누른 시간은 파일에 흔적으로 남습니다. ULTARI는 그 흔적을 재서 <strong>사진 한 장에 들어간 사람의 몫</strong>을 증명해 드립니다. 사진을 올려 보시면 30초 만에 나옵니다.</p>
+      <p class="local-badge"><span data-icon="lock"></span>사진은 이 브라우저를 벗어나지 않습니다. 업로드 주소 자체가 없습니다.</p>
 
       <section data-verifier>
         <div class="lanes" data-lanes>
@@ -69,8 +69,12 @@
         <div class="run" data-run hidden>
           <div class="file-line" data-file-line></div>
           <div class="progress" data-progress hidden>
-            <span data-progress-label></span>
+            <ol class="run-steps" data-steps></ol>
             <div class="bar"><i data-progress-bar></i></div>
+            <p class="run-status">
+              <span data-progress-label></span>
+              <span class="run-note">이 기기에서 계산 중입니다. 업로드가 아닙니다.</span>
+            </p>
           </div>
         </div>
 
@@ -113,7 +117,8 @@
         <details class="fold">
           <summary>인증 마크는 어떻게 쓰나<span class="hint">3등급부터</span></summary>
           <div class="fold-body">
-            <p>간단 검사를 통과하면 사진 오른쪽 아래에 울타리 마크와 등급, 원본 지문 앞자리를 새긴 파일을 내려받을 수 있습니다. 합성도 브라우저 안에서 하므로 사진은 여전히 밖으로 나가지 않습니다.</p>
+            <p>간단 검사를 통과하면 결과 화면에 마크가 새겨진 미리보기가 바로 뜹니다. 마크에는 울타리 도형과 등급, 원본 지문 앞자리가 들어갑니다. 합성도 브라우저 안에서 하므로 사진은 여전히 밖으로 나가지 않습니다.</p>
+            <p>내려받는 방법은 두 가지입니다. <strong>마크를 얹은 사진</strong>을 원본 해상도로 받거나, <strong>마크만 담은 투명 PNG</strong>를 받아 편집 프로그램에서 직접 배치하실 수 있습니다. 마크 위치는 좌측 하단, 우측 하단, 좌측 상단, 우측 상단 중에 고르시면 됩니다.</p>
             <p>SNS나 포트폴리오에 그대로 올리시면 됩니다. 보는 사람은 마크에 적힌 지문으로 원본과 대조할 수 있습니다.</p>
             <p style="color:var(--ink-2);font-size:14.5px">마크를 넣으면 파일의 바이트가 달라지므로 지문도 달라집니다. 그래서 마크 안에 원본 지문을 같이 새깁니다. 원본은 따로 보관해 두십시오.</p>
           </div>
