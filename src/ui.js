@@ -1679,6 +1679,23 @@ export function mountVerifier(root) {
     }
   });
 
+  /**
+   * 상단 메뉴의 "현황 조회"는 /#lookup으로 옵니다. <details>는 앵커로
+   * 이동해도 저절로 열리지 않아서 직접 엽니다. 다른 페이지에서 눌러 온
+   * 경우와 이 페이지에서 다시 누른 경우 둘 다 받습니다.
+   */
+  const openLookupFromHash = () => {
+    if (window.location.hash !== '#lookup') return;
+    const box = root.querySelector('[data-lookup]');
+    if (!box) return;
+    box.open = true;
+    box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    // 펼쳐진 뒤에 포커스를 줍니다. 같은 틱에 주면 아직 숨어 있어 먹지 않습니다.
+    setTimeout(() => root.querySelector('[data-lookup-contact]')?.focus({ preventScroll: true }), 60);
+  };
+  window.addEventListener('hashchange', openLookupFromHash);
+  openLookupFromHash();
+
   paintIcons(root);
   paintMine();
 }

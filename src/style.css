@@ -86,9 +86,29 @@ code { font-family: var(--mono); font-size: 0.9em; background: #EDEBE6; padding:
 .site-nav a { border-bottom: none; color: var(--ink-2); }
 .site-nav a:hover { color: var(--ink); }
 .site-nav a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -1px 0 var(--ink); }
+/* 현황 조회는 읽을거리가 아니라 도구입니다. 메뉴에서 한 칸 떼어 둡니다. */
+.site-nav .nav-lookup {
+  color: var(--ink); border: 1px solid var(--rule-strong);
+  padding: 3px 10px; margin-left: 4px;
+}
+.site-nav .nav-lookup:hover { border-color: var(--ink); }
+
+@media (max-width: 620px) {
+  /* 메뉴가 일곱 항목이 되면서 좁은 화면에서 네 줄이 됐습니다. 한 줄로 눕혀
+     옆으로 밀어 보게 합니다. 가로 스크롤은 이 줄 안에서만 일어납니다. */
+  .site-nav {
+    flex-wrap: nowrap; overflow-x: auto; gap: 16px; width: 100%;
+    margin-top: 12px; padding-bottom: 2px; scrollbar-width: none;
+  }
+  .site-nav::-webkit-scrollbar { display: none; }
+  .site-nav a { white-space: nowrap; }
+  /* 잘리는 자리에 두면 안 됩니다. 좁은 화면에서는 도구를 맨 앞에 둡니다. */
+  .site-nav .nav-lookup { order: -1; margin: 0 4px 0 0; }
+  .site-head .shell { flex-wrap: wrap; }
+}
 
 main { display: block; padding-block: 60px 80px; }
-main.main--tool { padding-block: 44px 80px; }
+main.main--tool { padding-block: 32px 80px; }
 
 .site-foot { border-top: 1px solid var(--rule); padding-block: 34px 60px; font-size: 13px; color: var(--ink-2); }
 .site-foot .foot-links { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -103,11 +123,19 @@ main.main--tool { padding-block: 44px 80px; }
 
 .hero { margin-bottom: 0; }
 .hero h1 { font-size: 42px; line-height: 1.2; letter-spacing: -0.034em; }
-.hero-sub {
-  font-size: 17px; color: var(--ink-2); margin: 16px 0 0;
-  max-width: 50ch; line-height: 1.6;
+/* 첫 화면에 투입구가 들어와야 합니다. 머리글 아래 한 줄만 두고
+   긴 설명은 투입구 아래로 내렸습니다. */
+.hero-lead {
+  font-size: 17px; color: var(--ink-2); margin: 14px 0 0;
+  max-width: 52ch; line-height: 1.6;
 }
-.hero-sub strong { color: var(--ink); font-weight: 500; }
+.hero-lead strong { color: var(--ink); font-weight: 500; }
+
+.hero-sub {
+  font-size: 14.5px; color: var(--ink-3); margin: 10px 0 0;
+  max-width: 56ch; line-height: 1.65;
+}
+.hero-sub strong { color: var(--ink-2); font-weight: 500; }
 
 .local-badge {
   display: inline-flex; align-items: center; gap: 8px;
@@ -119,7 +147,7 @@ main.main--tool { padding-block: 44px 80px; }
 
 .lanes {
   display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
-  margin-top: 30px;
+  margin-top: 20px;
 }
 .lane {
   border: 1px solid var(--rule-strong); background: var(--surface);
@@ -607,7 +635,7 @@ main.main--tool { padding-block: 44px 80px; }
 
 @media (max-width: 860px) {
   .lanes { grid-template-columns: 1fr; gap: 14px; }
-  .hero h1 { font-size: 36px; }
+  .hero h1 { font-size: 34px; }
   .hero { max-width: none; }
 }
 
@@ -820,7 +848,7 @@ main.main--tool { padding-block: 44px 80px; }
 
 /* 받는 매체 세 가지. 투입구 위에서 무엇을 받는지 먼저 말합니다. */
 .kinds {
-  list-style: none; margin: 22px 0 0; padding: 0;
+  list-style: none; margin: 18px 0 0; padding: 0;
   display: flex; gap: 10px; flex-wrap: wrap;
 }
 .kinds li {
@@ -847,13 +875,16 @@ main.main--tool { padding-block: 44px 80px; }
 .fold-lead:first-child { margin-top: 0; }
 
 @media (max-width: 620px) {
-  .kinds li { flex: 1 1 100%; }
-}
-
-/* 메인 화면에서 현황 조회로 가는 줄. 투입구와 같이 숨습니다. */
-.entry-lookup {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  margin: 16px 0 0; font-size: 13.5px; color: var(--ink-2);
+  /* 좁은 화면에서 칩이 세 줄을 차지해 투입구를 밀어냈습니다(측정 518px).
+     한 줄로 눕히고 형식 목록은 접습니다 — 투입구 설명에 이미 있습니다. */
+  .kinds {
+    flex-wrap: nowrap; overflow-x: auto; gap: 8px;
+    margin-inline: calc(var(--pad) * -1); padding-inline: var(--pad);
+    scrollbar-width: none;
+  }
+  .kinds::-webkit-scrollbar { display: none; }
+  .kinds li { flex: none; padding: 7px 12px; }
+  .kinds li span:last-child { display: none; }
 }
 
 /* ── 심사 콘솔 ───────────────────── */

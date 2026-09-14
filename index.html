@@ -23,6 +23,7 @@
           <a href="/archive">아카이브</a>
           <a href="/roadmap">로드맵</a>
           <a href="/articles">읽을거리</a>
+          <a class="nav-lookup" href="/#lookup">현황 조회</a>
       </nav>
     </div>
   </header>
@@ -32,15 +33,13 @@
       <div class="hero">
         <h1>사람이 들인 시간을<br>인증합니다</h1>
       </div>
-      <p class="hero-sub">새벽에 나가 기다린 시간, 마이크 앞에서 다시 부른 시간은 파일에 흔적으로 남습니다. ULTARI는 그 흔적을 재서 <strong>작업물 하나에 들어간 사람의 몫</strong>을 증명해 드립니다. 올려 보시면 바로 나옵니다.</p>
+      <p class="hero-lead">사진·영상·음악에 남은 촬영과 녹음의 흔적을 재서 <strong>작업물 하나에 들어간 사람의 몫</strong>을 증명해 드립니다.</p>
 
       <ul class="kinds">
         <li><span class="kind-mark" data-icon="frame"></span><b>사진</b><span>JPEG · PNG · HEIC</span></li>
         <li><span class="kind-mark" data-icon="film"></span><b>영상</b><span>MP4 · MOV · WebM</span></li>
         <li><span class="kind-mark" data-icon="wave"></span><b>음악·소리</b><span>MP3 · M4A · WAV · FLAC</span></li>
       </ul>
-
-      <p class="local-badge"><span data-icon="lock"></span>간단 검사는 이 브라우저 안에서 끝납니다. 파일이 전송되는 것은 상세 검사를 직접 신청하실 때뿐입니다.</p>
 
       <section data-verifier>
         <div data-lanes>
@@ -74,10 +73,8 @@
 
         </div>
 
-        <p class="entry-lookup">
-          이미 상세 검사를 신청하셨다면
-          <button class="btn btn--mini btn--ghost" type="button" data-action="lookup-open">상세 검사 진행 현황 조회</button>
-        </p>
+        <p class="local-badge"><span data-icon="lock"></span>간단 검사는 이 브라우저 안에서 끝납니다. 파일이 전송되는 것은 상세 검사를 직접 신청하실 때뿐입니다.</p>
+        <p class="hero-sub">새벽에 나가 기다린 시간, 마이크 앞에서 다시 부른 시간은 파일에 흔적으로 남습니다. 무엇을 어떻게 재는지는 아래에 전부 적어 두었습니다.</p>
         </div>
 
         <div class="run" data-run hidden>
@@ -108,7 +105,7 @@
 
         <div data-output></div>
 
-        <details class="fold fold--lookup" data-lookup>
+        <details class="fold fold--lookup" id="lookup" data-lookup>
           <summary>상세 검사 현황 조회<span class="hint">신청할 때 적은 연락처와 비밀번호로</span></summary>
           <div class="fold-body">
             <div class="apply-grid">
@@ -237,6 +234,7 @@
           <a href="/archive">아카이브</a>
           <a href="/roadmap">로드맵</a>
           <a href="/articles">읽을거리</a>
+          <a class="nav-lookup" href="/#lookup">현황 조회</a>
           <a href="/limits">한계</a>
           <a href="/privacy">개인정보 처리방침</a>
           <a href="/terms">이용약관</a>
