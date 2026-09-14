@@ -420,7 +420,17 @@ function renderScorePanel(bundle) {
 
   /* 마크 발급선 — 숫자를 그대로 적습니다. */
   const mp = pixels.megapixels;
+  const prov = bundle.provenance;
   const gates = [
+    {
+      // 파일이 스스로 밝힌 것이라 다른 조건보다 앞에 둡니다. 이 줄 하나로 발급이 막힙니다.
+      ok: !prov?.declaresAi,
+      label: 'AI 생성 표식',
+      need: '없어야 함',
+      got: prov?.declaresAi
+        ? `있음${prov.generator ? ` · ${prov.generator}` : ''}`
+        : prov?.present ? '없음 (출처 기록은 있음)' : '없음',
+    },
     {
       ok: mp >= GATE.minMegapixels,
       label: '화소',
@@ -487,17 +497,17 @@ function renderScorePanel(bundle) {
           </li>`).join('')}
       </ul>
       <p class="gate-verdict${eligible ? ' is-ok' : ''}">
-        ${declared
-          ? '파일에 AI 생성 기록이 있어, 아래 조건과 무관하게 인증 마크를 발급하지 않습니다.'
-          : eligible
-            ? '네 줄을 모두 충족해 인증 마크를 발급했습니다.'
-            : '한 줄이라도 어긋나면 발급하지 않습니다. 위에서 ✕ 표시된 항목이 막고 있는 조건입니다.'}
+        ${eligible
+          ? '다섯 줄을 모두 충족해 인증 마크를 발급했습니다.'
+          : declared
+            ? 'AI 생성 표식이 있어 첫 줄에서 막혔습니다. 나머지 측정값과 무관하게 발급하지 않습니다.'
+            : '다섯 줄을 모두 충족해야 발급합니다. 위에서 ✕ 표시된 항목이 막고 있는 조건입니다.'}
       </p>
-      ${declared ? '' : `
-        <p class="score-caveat">
-          마크 발급은 위 네 조건으로 결정합니다. 환산 수치(${trace}%)는 판단 근거가 아니라 표시용입니다 —
-          같은 수치라도 모순 1건이 있으면 발급하지 않습니다.
-        </p>`}
+      <p class="score-caveat">
+        마크 발급은 위 다섯 조건으로 결정합니다. 환산 수치(${trace}%)는 판단 근거가 아니라
+        표시용입니다 — 같은 수치라도 모순이 1건 있으면 발급하지 않습니다.
+        첫 줄은 파일에 적힌 기록이고, 나머지 네 줄은 픽셀과 메타데이터를 재서 얻은 값입니다.
+      </p>
     </div>`;
 }
 
