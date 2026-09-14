@@ -36,17 +36,22 @@ Cloudflare Pages는 같은 규칙을 기본으로 제공합니다.
 
 ## 상세 검사 접수 — 서버 설정
 
-상세 검사만 서버를 씁니다. Cloudflare Pages Functions(`functions/api/*`)와 바인딩 두 개,
+상세 검사만 서버를 씁니다. Cloudflare Pages Functions(`functions/api/*`)와 KV 하나,
 관리 키 하나가 필요합니다. **대시보드에서 직접 만들어 연결해야 합니다.**
 
 | 종류 | 바인딩 이름 | 쓰임 |
 |---|---|---|
-| KV 네임스페이스 | `ULTARI_APPS` | 접수 기록, 대기 색인 |
-| R2 버킷 | `ULTARI_FILES` | 사진 원본 |
-| 환경 변수 (시크릿) | `ULTARI_ADMIN_KEY` | 심사자가 상태를 옮길 때 쓰는 키 |
+| KV 네임스페이스 | `ULTARI_APPS` | 접수 기록, 대기 색인, 사진 원본 |
+| 환경 변수 (시크릿) | `ULTARI_ADMIN_KEY` | 심사자용 키. 상태 변경과 사진 조회 |
 
-Pages → 프로젝트 → Settings → Bindings에서 추가합니다. 셋 중 하나라도 없으면 접수 API가
-503과 함께 무엇이 빠졌는지 알려 주고, 조회 폼은 그대로 실패합니다. 간단 검사는 영향받지 않습니다.
+사진도 KV에 넣습니다. R2가 더 맞는 자리지만 Cloudflare가 R2에 결제수단 등록을 요구합니다 —
+무료 한도 안에서만 써도 카드를 걸어야 합니다. KV 값 한도는 25MiB이고 업로드 상한을 20MB로
+잡았으니 심사 대기열 분량은 충분합니다. 분량이 늘면 `photoKey()`가 가리키는 곳만 R2로 바꾸면
+됩니다.
+
+Pages → 프로젝트 → Settings → Bindings에서 추가합니다. KV가 없으면 접수 API가 503으로
+답하고, 빠진 바인딩 이름은 로그에만 남습니다(방문자에게 내부 이름을 보이지 않습니다).
+간단 검사는 영향받지 않습니다.
 
 ### 경로
 
@@ -55,7 +60,8 @@ Pages → 프로젝트 → Settings → Bindings에서 추가합니다. 셋 중 
 | POST | `/api/apply` | 사진 + 연락처 + 상황을 받아 접수번호와 조회 열쇠를 발급 |
 | GET | `/api/status?id=&token=` | 접수번호와 열쇠가 둘 다 맞으면 현황 반환 |
 | GET | `/api/admin` | 대기 건수만 반환 (공개) |
-| POST | `/api/admin` | 상태 변경. `x-ultari-admin` 헤더에 관리 키 필요 |
+| GET | `/api/admin?photo=ID` | 심사자가 사진을 내려받음. 관리 키 필요 |
+| POST | `/api/admin` | 상태 변경, 보관 만료 삭제. 관리 키 필요 |
 
 상태는 `received` → `reviewing` → `done`이고 `waiting`(추가 자료 대기)과 `rejected`도 있습니다.
 
@@ -68,12 +74,23 @@ Pages → 프로젝트 → Settings → Bindings에서 추가합니다. 셋 중 
 않습니다. 메신저를 거친 실제 사진도 그렇게 나오고, 그런 사진이야말로 사람 심사가 필요합니다.
 
 ```bash
+# 사진 받아 보기
+curl -H "x-ultari-admin: $ULTARI_ADMIN_KEY"   "https://ultari.pages.dev/api/admin?photo=ABCD-2345" -o ABCD-2345.jpg
+
 # 심사 착수
 curl -X POST https://ultari.pages.dev/api/admin   -H "x-ultari-admin: $ULTARI_ADMIN_KEY" -H "content-type: application/json"   -d '{"id":"ABCD-2345","status":"reviewing","note":"담당자 배정"}'
 
 # 완료
 curl -X POST https://ultari.pages.dev/api/admin   -H "x-ultari-admin: $ULTARI_ADMIN_KEY" -H "content-type: application/json"   -d '{"id":"ABCD-2345","status":"done","result":"2등급 발급"}'
 ```
+
+```bash
+# 보관 기간(완료 후 90일)이 끝난 접수 — 사진과 연락처를 지웁니다
+curl -X POST https://ultari.pages.dev/api/admin   -H "x-ultari-admin: $ULTARI_ADMIN_KEY" -H "content-type: application/json"   -d '{"id":"ABCD-2345","action":"purge"}'
+```
+
+`/privacy`에 "완료 후 90일에 지운다"고 적어 두었으므로 지울 수단이 없으면 그 문장이 거짓이
+됩니다. 그래서 삭제를 같이 만들었습니다. 아직 자동으로 돌지는 않으니 손으로 부르셔야 합니다.
 
 조회 열쇠는 접수 응답에 한 번만 나가고 서버에는 SHA-256 해시만 남습니다. 재발급이 불가능한
 것은 의도된 것이고, 접수번호가 새어도 남의 신청을 열 수 없게 하기 위한 것입니다.
@@ -82,7 +99,7 @@ curl -X POST https://ultari.pages.dev/api/admin   -H "x-ultari-admin: $ULTARI_AD
 
 ```bash
 npm run build
-npx wrangler pages dev dist --kv ULTARI_APPS --r2 ULTARI_FILES --binding ULTARI_ADMIN_KEY=dev
+npx wrangler pages dev dist --kv ULTARI_APPS --binding ULTARI_ADMIN_KEY=dev
 ```
 
 ## 배포 (Cloudflare Pages)

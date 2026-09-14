@@ -12,7 +12,7 @@
  * 열 수 없게 하기 위해서입니다.
  */
 
-import { LIMITS, STATUS, checkEnv, etaFrom, fail, json, newId, newToken, safeText } from './_shared.js';
+import { LIMITS, STATUS, checkEnv, etaFrom, fail, json, newId, newToken, photoKey, safeText } from './_shared.js';
 import { scanProvenance } from '../../src/verify/provenance.js';
 
 const sha256 = async (text) => {
@@ -96,11 +96,9 @@ export async function onRequestPost({ request, env }) {
   const { days, etaISO } = etaFrom(grade, queueAhead, now.getTime());
 
   const ext = EXT[photo.type] || 'bin';
-  const objectKey = `applications/${id}/original.${ext}`;
   try {
-    await env.ULTARI_FILES.put(objectKey, bytes, {
-      httpMetadata: { contentType: photo.type || 'application/octet-stream' },
-      customMetadata: { applicationId: id },
+    await env.ULTARI_APPS.put(photoKey(id), bytes, {
+      metadata: { type: photo.type || 'application/octet-stream', ext, name: safeText(photo.name, 120) },
     });
   } catch {
     return fail('사진을 저장하지 못했습니다. 잠시 뒤에 다시 시도해 주세요.', 502);
@@ -116,7 +114,7 @@ export async function onRequestPost({ request, env }) {
     summary,
     fingerprint,
     file: {
-      key: objectKey,
+      key: photoKey(id),
       name: safeText(photo.name, 120),
       type: photo.type || null,
       size: photo.size,

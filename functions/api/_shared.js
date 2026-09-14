@@ -9,7 +9,10 @@
  */
 
 export const LIMITS = {
-  // Pages Functions 요청 본문 한도보다 넉넉히 아래로 잡습니다.
+  // 사진은 KV 값으로 들어갑니다. KV 값 한도가 25MiB라 그 아래로 잡습니다.
+  // R2를 쓰지 않는 이유는 Cloudflare가 R2에 결제수단 등록을 요구하기 때문입니다.
+  // 무료 한도 안에서 쓰더라도 카드를 걸어야 합니다. 심사 대기열 정도의 분량은
+  // KV로 충분하고, 늘어나면 그때 R2로 옮기면 됩니다.
   maxBytes: 20 * 1024 * 1024,
   maxNote: 2000,
   maxContact: 200,
@@ -69,11 +72,11 @@ export const fail = (message, status = 400) => json({ ok: false, error: message 
 
 /** 바인딩이 없으면 조용히 죽지 않고 무엇이 빠졌는지 알려 줍니다. */
 export function checkEnv(env) {
-  const missing = [];
-  if (!env.ULTARI_APPS) missing.push('ULTARI_APPS (KV)');
-  if (!env.ULTARI_FILES) missing.push('ULTARI_FILES (R2)');
-  return missing;
+  return env.ULTARI_APPS ? [] : ['ULTARI_APPS (KV)'];
 }
+
+/** 사진은 접수 기록과 같은 네임스페이스에 따로 둡니다. */
+export const photoKey = (id) => `photo:${id}`;
 
 export const safeText = (value, max) =>
   String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
