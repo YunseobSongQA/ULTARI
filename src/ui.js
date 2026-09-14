@@ -18,8 +18,9 @@ import { analyzeCompression } from './verify/compression.js';
 import { analyzeRephoto } from './verify/rephoto.js';
 import { fingerprintFile, formatBytes } from './verify/fingerprint.js';
 import { readProvenance } from './verify/provenance.js';
+import { analyzeSynthesis } from './verify/synthesis.js';
 import { gradeResult, VERDICT, GATE } from './grade.js';
-import { scoreTraces, STATE_LABEL, aiSignals, SIDE } from './score.js';
+import { scoreTraces, STATE_LABEL, aiSignals, synthesisSignals, SIDE } from './score.js';
 import { REVIEW_QUEUE, CONTACT, MAIL, queueLine } from './queue.js';
 import {
   renderMarkedImage, renderMarkOnly, markedFilename, markOnlyFilename,
@@ -285,6 +286,7 @@ const STEPS = [
   '광학 흔적',
   '압축 이력',
   '화면 재촬영 신호',
+  '생성물 흔적',
 ];
 
 export async function verifyFile(file, onStep) {
@@ -306,8 +308,10 @@ export async function verifyFile(file, onStep) {
   const compression = analyzeCompression(pixels);
   await step(7);
   const rephoto = analyzeRephoto(pixels, optics);
+  await step(8);
+  const synthesis = await analyzeSynthesis(pixels, file);
 
-  const bundle = { exif, consistency, optics, compression, rephoto, pixels, print, provenance };
+  const bundle = { exif, consistency, optics, compression, rephoto, pixels, print, provenance, synthesis };
   return { ...bundle, result: gradeResult(bundle) };
 }
 
@@ -418,7 +422,7 @@ function renderScorePanel(bundle) {
      측정이 가능한지를 말할 뿐 AI인지를 말하지 않기 때문입니다.
      접어 두지 않습니다 — 판별 근거는 눌러야 나오면 근거 구실을 못 합니다. */
   const prov = bundle.provenance;
-  const signals = aiSignals(bundle);
+  const signals = [...aiSignals(bundle), ...synthesisSignals(bundle)];
   const tally = { camera: 0, unknown: 0, ai: 0 };
   signals.forEach((r) => { tally[r.side] += 1; });
 
@@ -456,6 +460,14 @@ function renderScorePanel(bundle) {
 
       <p class="panel-title score-sub">
         AI 판별 기준 <span class="tally">카메라 쪽 ${tally.camera} · 판단 보류 ${tally.unknown} · AI 쪽 ${tally.ai}</span>
+      </p>
+      <p class="tally-read${tally.camera === 0 ? ' is-none' : ''}">
+        ${tally.camera === 0
+          ? `카메라를 거친 흔적이 <strong>한 건도</strong> 잡히지 않았습니다.
+             ${signals.length}가지를 따로 봤고 그중 카메라 쪽으로 기운 것이 없습니다.
+             다만 흔적이 지워진 실제 사진에서도 같은 결과가 나옵니다 — AI라는 단정이 아닙니다.`
+          : `카메라를 거친 흔적이 <strong>${tally.camera}건</strong> 잡혔습니다.
+             ${tally.ai > 0 ? `다만 ${tally.ai}건은 반대 방향입니다.` : ''}`}
       </p>
       <ul class="sig">
         ${signals.map((r) => `

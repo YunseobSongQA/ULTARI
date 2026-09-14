@@ -278,3 +278,60 @@ export function aiSignals(b) {
 
   return rows;
 }
+
+/**
+ * 픽셀에서 잰 생성물 흔적을 판별 기준 줄로 옮깁니다.
+ * synthesis.js가 없는 옛 번들에서도 죽지 않도록 방어적으로 읽습니다.
+ */
+export function synthesisSignals(b) {
+  const syn = b.synthesis;
+  if (!syn) return [];
+  const rows = [];
+
+  {
+    const q = syn.quant;
+    const side = !q.present ? 'unknown' : q.standard ? 'ai' : 'camera';
+    rows.push({
+      label: '저장 프로그램 지문',
+      basis: 'JPEG 양자화 테이블이 제조사 고유여야 함',
+      got: !q.present ? 'JPEG 아님 — 테이블 없음'
+        : q.standard ? `표준 라이브러리 테이블 (품질 ${q.quality})` : '비표준 테이블 — 제조사 고유',
+      side,
+      note: !q.present
+        ? 'PNG 등 무손실 파일에는 이 표가 없습니다. 생성 모델의 기본 출력도 PNG입니다'
+        : q.standard
+          ? 'libjpeg·PIL 같은 라이브러리가 그대로 쓰는 표입니다. 카메라에서 바로 나온 파일이 아닙니다'
+          : '카메라 제조사가 자기 표를 쓴 흔적입니다. 라이브러리로 다시 저장하면 사라집니다',
+    });
+  }
+
+  {
+    const c = syn.cfa;
+    const side = !c.measurable ? 'unknown'
+      : c.detected ? 'camera' : c.absent ? 'ai' : 'unknown';
+    rows.push({
+      label: '센서 컬러필터 흔적',
+      basis: '디모자이크가 남기는 2×2 주기가 있어야 함',
+      got: c.ratio == null ? '측정 불가' : `위상비 ${c.ratio.toFixed(3)}`,
+      side,
+      note: '센서는 화소마다 색 하나만 받고 나머지를 이웃에서 보간합니다. 그 자국이 2×2로 반복됩니다. '
+        + '생성물에는 없지만, 크기를 바꾸면 실제 사진에서도 지워집니다',
+    });
+  }
+
+  {
+    const sp = syn.spectrum;
+    const odd = sp.measurable && !sp.natural;
+    rows.push({
+      label: '주파수 감쇠',
+      basis: `자연 영상의 기울기 α ${1.4}~${3.2}`,
+      got: sp.alpha == null ? '측정 불가'
+        : `α=${sp.alpha.toFixed(2)}${odd ? (sp.tooSteep ? ' — 고주파가 모자람' : ' — 고주파가 과함') : ''}`,
+      side: odd ? 'ai' : 'unknown',
+      note: '자연 영상은 1/f^α를 따릅니다. 확산 모델 출력은 고주파가 덜 실리는 경향이 있지만, '
+        + '피사체에 따라 크게 움직여서 범위를 벗어날 때만 이상으로 봅니다',
+    });
+  }
+
+  return rows;
+}

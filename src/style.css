@@ -628,3 +628,11 @@ main.main--tool { padding-block: 44px 80px; }
   display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
 }
 .end-actions .btn-note { width: 100%; margin-top: 2px; }
+
+/* 기준표를 다 읽지 않아도 결론이 보이게 한 줄로 먼저 말합니다. */
+.tally-read {
+  margin: 0 0 18px; font-size: 14px; line-height: 1.65; color: var(--ink-2);
+  border-left: 2px solid var(--measure); padding-left: 14px;
+}
+.tally-read.is-none { border-left-color: var(--warn); }
+.tally-read strong { color: var(--ink); font-weight: 600; }

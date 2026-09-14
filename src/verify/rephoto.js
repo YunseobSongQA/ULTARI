@@ -25,8 +25,8 @@ const T = {
   maxTiles: 5,
 };
 
-/** 제자리 radix-2 FFT */
-function fft(re, im) {
+/** 제자리 radix-2 FFT. synthesis.js도 씁니다. */
+export function fft(re, im) {
   const n = re.length;
   for (let i = 1, j = 0; i < n; i++) {
     let bit = n >> 1;
