@@ -571,7 +571,7 @@ function renderScorePanel(bundle) {
 
       ${found.length ? `<ul class="sig">${found.map(sigRow).join('')}</ul>` : ''}
       ${quiet.length
-        ? fold('판단이 서지 않은 기준', `${quiet.length}가지 · 이 사진에서는 잴 수 없었습니다`,
+        ? fold('판단이 서지 않은 기준', `${quiet.length}가지 · 이 파일에서는 잴 수 없었습니다`,
           `<ul class="sig sig--quiet">${quiet.map(sigRow).join('')}</ul>`)
         : ''}
 
@@ -667,7 +667,7 @@ function renderResult(bundle, mode, openForm = false) {
             카메라나 갤러리에서 바로 꺼낸 원본으로 다시 시도해 주세요.</p>` : ''}
         ${elig.oversize ? `
           <p><strong>파일이 접수 상한 ${UPLOAD_MB}MB를 넘습니다.</strong>
-            이 사진은 ${escapeHtml(formatBytes(bundle.print?.bytes) || '크기 미상')}입니다.</p>
+            이 파일은 ${escapeHtml(formatBytes(bundle.print?.bytes) || '크기 미상')}입니다.</p>
           <p>줄여서 올리시면 원본이 아니어서 심사할 수 없습니다. 원본 그대로 맡기셔야 한다면
             <a href="mailto:${CONTACT}">${CONTACT}</a>로 연락해 주십시오.</p>` : ''}
       </div>
@@ -684,7 +684,7 @@ function renderResult(bundle, mode, openForm = false) {
       </p>
 
       <div class="apply-warn">
-        <p><strong>이 버튼을 누르면 사진 원본이 서버로 올라갑니다.</strong></p>
+        <p><strong>이 버튼을 누르면 원본 파일이 서버로 올라갑니다.</strong></p>
         <p>간단 검사는 브라우저 안에서 끝나지만, 사람이 보려면 파일이 사람에게 가야 합니다.
            무엇을 보관하고 언제 지우는지는 <a href="/privacy">개인정보 처리방침</a>에 적어 두었습니다.</p>
       </div>
@@ -726,7 +726,7 @@ function renderResult(bundle, mode, openForm = false) {
       <p class="apply-eta" data-apply-eta></p>
 
       <div class="btn-row">
-        <button class="btn" type="button" data-action="apply-send">신청하고 사진 올리기</button>
+        <button class="btn" type="button" data-action="apply-send">신청하고 파일 올리기</button>
         <button class="btn btn--ghost" type="button" data-action="apply-summary">보낼 측정 요약 보기</button>
       </div>
       <div class="apply-bar" data-apply-bar hidden>
@@ -761,7 +761,7 @@ function renderResult(bundle, mode, openForm = false) {
     <div class="top-actions">
       ${elig.ok ? `
         <button class="btn btn--mini" type="button" data-action="swap-mode">상세 검사 신청하기</button>` : ''}
-      <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
+      <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
     </div>`;
 
   return `
@@ -802,7 +802,7 @@ function renderResult(bundle, mode, openForm = false) {
         <button class="btn" type="button" data-action="${mode === 'quick' ? 'swap-mode' : 'apply-open'}">
           상세 검사 신청하기
         </button>` : ''}
-      <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
+      <button class="btn btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
       <p class="btn-note">${elig.ok
         ? '검사를 다시 돌리지 않습니다. 이미 계산한 측정값을 그대로 씁니다.'
         : elig.declared
@@ -840,6 +840,16 @@ const UPLOAD_MB = Math.round(MAX_UPLOAD / 1024 / 1024);
  */
 const traceOf = (bundle) =>
   (bundle.kind === 'video' || bundle.kind === 'audio' ? mediaScore(bundle) : scoreTraces(bundle));
+
+/**
+ * 신청서에 함께 올라가는 측정 요약. 매체마다 표가 다릅니다.
+ * 사진용 buildRows는 exif를 구조 분해하므로 영상 bundle에 대면 터집니다 —
+ * 실제로 접수가 "Cannot read properties of undefined" 로 실패했습니다.
+ */
+const summaryFor = (bundle) =>
+  (bundle.kind === 'video' || bundle.kind === 'audio'
+    ? mediaSummaryLines(bundle)
+    : summaryLines(bundle.result, buildRows(bundle), bundle.print));
 
 /**
  * 상세 검사를 신청할 수 있는 상태인지 판정합니다.
@@ -895,7 +905,7 @@ function renderEligibility(bundle, elig) {
   return `
     <section class="elig${elig.ok ? '' : ' elig--no'}">
       <p class="elig-kicker">상세 검사 신청</p>
-      <h2 class="elig-head">${elig.ok ? '신청하실 수 있습니다' : '이 사진으로는 신청하실 수 없습니다'}</h2>
+      <h2 class="elig-head">${elig.ok ? '신청하실 수 있습니다' : '이 파일로는 신청하실 수 없습니다'}</h2>
 
       <ul class="elig-checks">
         ${elig.checks.map((c) => `
@@ -912,12 +922,12 @@ function renderEligibility(bundle, elig) {
       </p>
       ${elig.ok ? `
         <p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>
-        <p class="elig-note">아래 버튼을 누르면 신청서가 열립니다. 사진은 신청서 안의 전송 버튼을 누를 때 올라갑니다.</p>` : ''}
+        <p class="elig-note">아래 버튼을 누르면 신청서가 열립니다. 파일은 신청서 안의 전송 버튼을 누를 때 올라갑니다.</p>` : ''}
 
       <div class="top-actions">
         ${elig.ok ? `
           <button class="btn btn--mini" type="button" data-action="apply-open">상세 검사 신청</button>` : ''}
-        <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
+        <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
       </div>
     </section>`;
 }
@@ -1014,7 +1024,7 @@ function renderAward(st) {
       </p>
       <input id="${pick}" class="file-input" type="file" accept="image/*" data-award-file>
       <label class="drop drop--mini" for="${pick}">
-        <span class="drop-main">심사받은 사진 고르기</span>
+        <span class="drop-main">심사받은 파일 고르기</span>
         <span class="drop-sub">지문이 다르면 새기지 않습니다</span>
       </label>
       <div data-award-out></div>
@@ -1413,13 +1423,13 @@ export function mountVerifier(root) {
     }
     if (password !== password2) { say('비밀번호 확인이 다릅니다.', true); return; }
     if (current.file.size > MAX_UPLOAD) {
-      say(`사진이 ${Math.round(MAX_UPLOAD / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 신청해 주세요.`, true);
+      say(`파일이 ${Math.round(MAX_UPLOAD / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 신청해 주세요.`, true);
       return;
     }
 
     button.disabled = true;
     bar.hidden = false;
-    say('사진을 올리고 있습니다. 이 창을 닫지 마세요.');
+    say('파일을 올리고 있습니다. 이 창을 닫지 마세요.');
 
     try {
       const r = await submitApplication({
@@ -1428,7 +1438,7 @@ export function mountVerifier(root) {
         contact,
         password,
         note,
-        summary: summaryLines(current.bundle.result, buildRows(current.bundle), current.bundle.print).join(String.fromCharCode(10)),
+        summary: summaryFor(current.bundle).join(String.fromCharCode(10)),
         fingerprint: current.bundle.print?.short || '',
         onProgress: (v) => {
           const n = Math.round(v);

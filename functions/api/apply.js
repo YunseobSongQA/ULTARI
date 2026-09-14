@@ -47,10 +47,10 @@ export async function onRequestPost({ request, env }) {
 
   const photo = form.get('photo');
   if (!(photo instanceof File) || photo.size === 0) {
-    return fail('사진 파일이 없습니다.');
+    return fail('파일이 없습니다.');
   }
   if (photo.size > LIMITS.maxBytes) {
-    return fail(`사진이 ${Math.round(LIMITS.maxBytes / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 신청해 주세요.`, 413);
+    return fail(`파일이 ${Math.round(LIMITS.maxBytes / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 신청해 주세요.`, 413);
   }
 
   const grade = form.get('grade') === '1' ? 1 : 2;
@@ -76,7 +76,7 @@ export async function onRequestPost({ request, env }) {
   try {
     bytes = new Uint8Array(await photo.arrayBuffer());
   } catch {
-    return fail('사진을 읽지 못했습니다.');
+    return fail('파일을 읽지 못했습니다.');
   }
   const prov = scanProvenance(bytes);
   if (prov.declaresAi) {
@@ -111,7 +111,7 @@ export async function onRequestPost({ request, env }) {
       metadata: { type: photo.type || 'application/octet-stream', ext, name: safeText(photo.name, 120) },
     });
   } catch {
-    return fail('사진을 저장하지 못했습니다. 잠시 뒤에 다시 시도해 주세요.', 502);
+    return fail('파일을 저장하지 못했습니다. 잠시 뒤에 다시 시도해 주세요.', 502);
   }
 
   const record = {
