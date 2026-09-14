@@ -8,7 +8,7 @@
  * 그래서 조회와 같이 만듭니다.
  */
 
-import { STATUS, checkEnv, fail, json, photoKey, safeText } from './_shared.js';
+import { STATUS, checkEnv, contactIndexKey, fail, json, photoKey, safeText } from './_shared.js';
 import { sanitizeChecks, sanitizeGrade } from '../../src/review-criteria.js';
 
 /** 되돌리기용 snapshot. 바꾸기 전 상태를 쌓아 두고 하나씩 되짚습니다. */
@@ -45,6 +45,31 @@ export async function onRequestPost({ request, env }) {
   const id = safeText(body.id, 12).toUpperCase();
   const record = await env.ULTARI_APPS.get(`app:${id}`, 'json');
   if (!record) return fail('그런 접수번호가 없습니다.', 404);
+
+  /* 접수 자체를 지웁니다. 사진, 기록, 색인까지 전부. 되돌릴 수 없습니다.
+     보관 만료 정리(purge)와 다릅니다 — 그쪽은 사진과 연락처만 지우고
+     접수번호와 심사 이력은 남겨 둡니다. */
+  if (body.action === 'delete') {
+    await env.ULTARI_APPS.delete(photoKey(id));
+    await env.ULTARI_APPS.delete(`app:${id}`);
+
+    const open = (await env.ULTARI_APPS.get('index:open', 'json')) || [];
+    if (open.includes(id)) {
+      await env.ULTARI_APPS.put('index:open', JSON.stringify(open.filter((x) => x !== id)));
+    }
+
+    // 연락처 색인에 남겨 두면 조회에서 없는 접수를 가리킵니다.
+    const seed = record.contactKey || record.contact || '';
+    if (seed) {
+      const key = await contactIndexKey(seed);
+      const mine = (await env.ULTARI_APPS.get(key, 'json')) || [];
+      const left = mine.filter((x) => x !== id);
+      if (left.length) await env.ULTARI_APPS.put(key, JSON.stringify(left));
+      else await env.ULTARI_APPS.delete(key);
+    }
+
+    return json({ ok: true, id, deleted: true });
+  }
 
   /* 보관 기간이 끝난 접수는 사진부터 지웁니다. /privacy에 완료 후 90일로 적어
      두었으므로, 지울 수단이 없으면 그 문장이 거짓이 됩니다. */

@@ -46,6 +46,14 @@ function mountConsole(scope) {
   let items = [];
   let filter = 'open';
 
+  /* 사진은 관리 키를 헤더로 보내야 받을 수 있어서 img src로 걸 수 없습니다.
+     한 번 받아 objectURL로 두고 새로 읽을 때도 다시 받지 않습니다. */
+  const photos = new Map();
+  const names = new Map();
+  // 없는 사진을 목록마다 다시 찾지 않습니다. 오래된 접수는 사진이 없을 수 있습니다.
+  const missing = new Set();
+  const AUTO_LOAD_MAX = 8 * 1024 * 1024;   // 이보다 큰 사진은 눌러서 봅니다
+
   const say = (text, bad = false) => {
     gateMsg.textContent = text;
     gateMsg.classList.toggle('is-bad', bad);
@@ -86,7 +94,15 @@ function mountConsole(scope) {
       ? shown.map(card).join('')
       : '<p class="adm-empty">해당하는 접수가 없습니다.</p>';
     paintIcons(list);
+    fillPhotos();
   };
+
+  const shotFigure = (a, url) => `
+    <a class="adm-shot-frame" href="${url}" target="_blank" rel="noopener">
+      <img src="${url}" alt="${escapeHtml(a.id)} 접수 사진">
+    </a>
+    <p class="adm-shot-meta">${escapeHtml(a.file?.name || '이름 없음')}
+      <span class="dim">${escapeHtml(formatBytes(a.file?.size) || '')} · ${escapeHtml(a.file?.type || '형식 미상')} · 눌러서 크게</span></p>`;
 
   const gradeOptions = (a) => {
     const picked = typeof a.awarded === 'number' ? String(a.awarded) : (a.finished ? 'none' : '');
@@ -130,6 +146,18 @@ function mountConsole(scope) {
         <span class="dim">신청 ${escapeHtml(formatDate(a.createdAt))}</span>
         <span class="dim">예상 ${escapeHtml(formatDate(a.etaDate))} · 영업일 ${a.etaDays}일</span>
       </p>
+
+      <div class="adm-shot" data-shot>
+        ${purged
+          ? '<p class="adm-shot-none">사진이 삭제됐습니다 (보관 만료 정리).</p>'
+          : photos.has(a.id)
+            ? shotFigure(a, photos.get(a.id))
+            : missing.has(a.id)
+              ? '<p class="adm-shot-none">저장된 사진이 없습니다.</p>'
+              : (a.file?.size || 0) > AUTO_LOAD_MAX
+                ? `<button class="btn btn--mini btn--ghost" type="button" data-action="photo-show">사진 보기 <span class="dim">${escapeHtml(formatBytes(a.file?.size) || '')}</span></button>`
+                : '<p class="adm-shot-none">사진을 불러오는 중…</p>'}
+      </div>
 
       <dl class="receipt-keys">
         <div><dt>연락처</dt><dd>${a.contact
@@ -185,11 +213,12 @@ function mountConsole(scope) {
           h.note ? ` — ${escapeHtml(h.note)}` : ''}</li>`).join('')}</ul>` : ''}
 
       <div class="btn-row adm-actions">
-        ${purged ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="photo"><span data-icon="download"></span>사진 내려받기</button>'}
+        ${purged ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="photo"><span data-icon="download"></span>원본 내려받기</button>'}
         ${a.status === 'reviewing' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="reviewing">심사 착수</button>'}
         ${a.status === 'waiting' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="waiting">추가 자료 대기</button>'}
         ${back ? `<button class="btn btn--mini btn--ghost" type="button" data-action="revert">되돌리기 <span class="dim">→ ${escapeHtml(back)}</span></button>` : ''}
-        ${purged ? '' : '<button class="btn btn--mini btn--ghost adm-danger" type="button" data-action="purge">사진·연락처 삭제</button>'}
+        ${purged ? '' : '<button class="btn btn--mini btn--ghost adm-danger" type="button" data-action="purge">보관 만료 정리 <span class="dim">사진·연락처만</span></button>'}
+        <button class="btn btn--mini btn--ghost adm-danger" type="button" data-action="delete">접수 삭제 <span class="dim">전부</span></button>
       </div>
       <p class="adm-msg" data-msg hidden></p>
     </article>`;
@@ -216,25 +245,58 @@ function mountConsole(scope) {
     p.hidden = !text;
   };
 
-  /** 사진은 헤더가 필요해서 링크로 걸 수 없습니다. 받아서 저장합니다. */
+  /** 사진 원본을 받아 둡니다. 미리보기와 내려받기가 같은 것을 씁니다. */
+  const grabPhoto = async (id) => {
+    if (photos.has(id)) return photos.get(id);
+    const res = await fetch(`/api/admin?photo=${encodeURIComponent(id)}`, { headers: headers() });
+    if (!res.ok) {
+      if (res.status === 404) missing.add(id);
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error || `받지 못했습니다 (HTTP ${res.status}).`);
+    }
+    const name = (res.headers.get('content-disposition') || '').match(/filename="([^"]+)"/)?.[1] || `${id}.bin`;
+    const url = URL.createObjectURL(await res.blob());
+    photos.set(id, url);
+    names.set(id, name);
+    return url;
+  };
+  /** 카드에 사진을 박아 넣습니다. 목록을 다시 읽어도 다시 받지 않습니다. */
+  const showPhoto = async (cardEl, id) => {
+    const box = cardEl.querySelector('[data-shot]');
+    if (!box) return;
+    const item = items.find((x) => x.id === id);
+    try {
+      const url = await grabPhoto(id);
+      box.innerHTML = shotFigure(item || { id }, url);
+    } catch (err) {
+      box.innerHTML = missing.has(id)
+        ? '<p class="adm-shot-none">저장된 사진이 없습니다.</p>'
+        : `<p class="adm-shot-none is-bad">사진을 불러오지 못했습니다 — ${escapeHtml(err.message)}</p>`;
+    }
+  };
+
+  /** 보이는 카드의 사진을 차례로 받습니다. 큰 파일은 눌러서 봅니다. */
+  const fillPhotos = async () => {
+    for (const a of items) {
+      if (a.file?.purgedAt || photos.has(a.id) || missing.has(a.id)) continue;
+      if ((a.file?.size || 0) > AUTO_LOAD_MAX) continue;
+      const cardEl = list.querySelector(`.adm-card[data-id="${a.id}"]`);
+      if (!cardEl) continue;
+      await showPhoto(cardEl, a.id);
+    }
+  };
+
   const downloadPhoto = async (el, id) => {
     cardMsg(el, '사진을 받는 중…');
     try {
-      const res = await fetch(`/api/admin?photo=${encodeURIComponent(id)}`, { headers: headers() });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || `받지 못했습니다 (HTTP ${res.status}).`);
-      }
-      const name = (res.headers.get('content-disposition') || '').match(/filename="([^"]+)"/)?.[1] || `${id}.bin`;
-      const url = URL.createObjectURL(await res.blob());
+      const url = await grabPhoto(id);
       const a = document.createElement('a');
       a.href = url;
-      a.download = name;
+      a.download = names.get(id) || `${id}.bin`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 20000);
-      cardMsg(el, `${name} 으로 저장했습니다.`);
+      cardMsg(el, `${a.download} 으로 저장했습니다.`);
     } catch (err) {
       cardMsg(el, err.message, true);
     }
@@ -298,11 +360,31 @@ function mountConsole(scope) {
     send(el, id, undefined, { action: 'revert' });
   };
 
+  /** 접수 자체를 지웁니다. 사진·기록·색인 전부. 되돌릴 수 없습니다. */
+  const destroy = async (el, id) => {
+    if (!window.confirm(`${id} 접수를 완전히 삭제합니다.
+
+사진, 심사 기록, 조회 색인까지 모두 지워지고 신청자도 조회할 수 없게 됩니다. 되돌릴 수 없습니다.`)) return;
+    cardMsg(el, '지우는 중…');
+    try {
+      await post({ id, action: 'delete' });
+      const url = photos.get(id);
+      if (url) { URL.revokeObjectURL(url); photos.delete(id); }
+      await load();
+    } catch (err) {
+      cardMsg(el, err.message, true);
+    }
+  };
+
   const purge = async (el, id) => {
-    if (!window.confirm(`${id}의 사진과 연락처를 지웁니다. 되돌릴 수 없습니다.`)) return;
+    if (!window.confirm(`${id}의 사진과 연락처를 지웁니다. 접수번호와 심사 기록은 남습니다.
+
+보관 기간(완료 후 90일)이 끝난 건을 정리하는 기능입니다. 되돌릴 수 없습니다.`)) return;
     cardMsg(el, '지우는 중…');
     try {
       await post({ id, action: 'purge' });
+      const url = photos.get(id);
+      if (url) { URL.revokeObjectURL(url); photos.delete(id); }
       cardMsg(el, '');
       await load();
     } catch (err) {
@@ -355,6 +437,8 @@ function mountConsole(scope) {
       e.preventDefault();
       key = '';
       items = [];
+      photos.forEach((url) => URL.revokeObjectURL(url));
+      photos.clear();
       try { sessionStorage.removeItem(KEY_STORE); } catch { /* 무시 */ }
       keyInput.value = '';
       box.hidden = true;
@@ -369,6 +453,8 @@ function mountConsole(scope) {
     if (!cardEl) return;
     const id = cardEl.dataset.id;
     if (act === 'photo') { e.preventDefault(); downloadPhoto(cardEl, id); }
+    if (act === 'photo-show') { e.preventDefault(); showPhoto(cardEl, id); }
+    if (act === 'delete') { e.preventDefault(); destroy(cardEl, id); }
     if (act === 'move') { e.preventDefault(); move(cardEl, id, el.dataset.status); }
     if (act === 'save') { e.preventDefault(); move(cardEl, id, cardEl.dataset.status); }
     if (act === 'finish') { e.preventDefault(); finish(cardEl, id, 'done'); }

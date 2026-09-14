@@ -29,6 +29,7 @@ import {
 } from './watermark.js';
 import { paintIcons } from './site.js';
 import { CHECK_LABEL, CHECK_STATES } from './review-criteria.js';
+import { renderCertificate, certificateFilename } from './certificate.js';
 import {
   submitApplication, fetchStatus, fetchStatusByContact, fetchQueue, listApplications,
   rememberApplication, formatDate, MAX_UPLOAD, MIN_PASSWORD,
@@ -895,6 +896,39 @@ function renderDecision(st) {
     </div>`;
 }
 
+/**
+ * 발급물 — 인증서와 인증 마크.
+ *
+ * 인증서는 조회 응답만으로 그립니다. 마크는 원본 파일이 있어야 새길 수 있어서
+ * 여기서 파일을 한 번 더 받습니다. 그 파일은 서버로 가지 않고, 심사받은 파일과
+ * 지문이 같은지 먼저 대조합니다 — 다른 사진에 마크를 새겨 주면 마크가 거짓이 됩니다.
+ */
+function renderAward(st) {
+  if (!st.finished || typeof st.awarded !== 'number') return '';
+  const pick = `award-file-${st.id}`;
+  return `
+    <div class="award" data-award="${escapeHtml(st.id)}">
+      <p class="award-top">${st.awarded}등급 발급물</p>
+      <div class="btn-row">
+        <button class="btn btn--mini" type="button" data-action="cert-dl">
+          <span data-icon="download"></span>인증서 내려받기
+        </button>
+      </div>
+      <p class="award-note">
+        인증 마크는 심사받은 원본에 새깁니다. 같은 파일을 골라 주시면
+        지문 <span class="hash">${escapeHtml(st.fingerprint || '없음')}…</span>과 맞는지 대조한 뒤 새겨 드립니다.
+        이 파일도 서버로 가지 않습니다.
+      </p>
+      <input id="${pick}" class="file-input" type="file" accept="image/*" data-award-file>
+      <label class="drop drop--mini" for="${pick}">
+        <span class="drop-main">심사받은 사진 고르기</span>
+        <span class="drop-sub">지문이 다르면 새기지 않습니다</span>
+      </label>
+      <div data-award-out></div>
+      <p class="award-msg" data-award-msg hidden></p>
+    </div>`;
+}
+
 function renderStatus(st) {
   // waiting(추가 자료 대기)은 심사 중의 한 상태입니다. 레일은 세 칸으로 둡니다.
   const at = st.status === 'received' ? 0
@@ -914,6 +948,7 @@ function renderStatus(st) {
       </dl>
       ${renderDecision(st)}
       ${st.result ? `<p class="status-result">${escapeHtml(st.result)}</p>` : ''}
+      ${renderAward(st)}
       ${st.history?.length ? `<ul class="status-hist">${st.history.map((h) =>
         `<li><span class="dim">${escapeHtml(formatDate(h.at))}</span> ${escapeHtml(h.label)}${h.note ? ` — ${escapeHtml(h.note)}` : ''}</li>`).join('')}</ul>` : ''}
     </div>`;
@@ -1303,6 +1338,9 @@ export function mountVerifier(root) {
     setTimeout(() => { el.textContent = label; }, 2200);
   };
 
+  /* 조회된 접수 — 발급물을 만들 때 쓰는 값과 고른 파일. */
+  const awards = new Map();
+
   /** 조회 결과를 그립니다. 같은 연락처로 여러 건이면 모두 나옵니다. */
   const paintStatus = async (ask) => {
     const target = root.querySelector('[data-lookup-out]');
@@ -1313,6 +1351,7 @@ export function mountVerifier(root) {
     try {
       const data = await ask();
       const items = Array.isArray(data.items) && data.items.length ? data.items : [data];
+      items.forEach((it) => awards.set(it.id, { ...(awards.get(it.id) || {}), st: it }));
       target.innerHTML = (items.length > 1
         ? `<p class="mine-title">맞는 접수 ${items.length}건</p>` : '')
         + items.map(renderStatus).join('');
@@ -1337,6 +1376,119 @@ export function mountVerifier(root) {
     paintStatus(() => fetchStatusByContact(contact, password));
   };
 
+  /* ── 발급물 ─────────────────────────────────────── */
+
+  const awardMsg = (box, text, bad = false) => {
+    const p = box.querySelector('[data-award-msg]');
+    if (!p) return;
+    p.textContent = text;
+    p.classList.toggle('is-bad', bad);
+    p.hidden = !text;
+  };
+
+  /** 마크만 받는 경우를 위해 원본 크기를 읽습니다. 그림은 쓰지 않습니다. */
+  const naturalSize = (file) => new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve({ width: img.naturalWidth, height: img.naturalHeight }); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('DECODE_FAILED')); };
+    img.src = url;
+  });
+
+  const awardOptions = (entry) => ({
+    grade: entry.st.awarded,
+    shortHash: entry.st.fingerprint || '지문 없음',
+    dateText: (entry.st.updatedAt || new Date().toISOString()).slice(0, 10),
+    position: DEFAULT_POSITION,
+  });
+
+  const makeCertificate = async (box, button) => {
+    const entry = awards.get(box.dataset.award);
+    if (!entry?.st) return;
+    const label = button.innerHTML;
+    button.disabled = true;
+    button.textContent = '인증서를 만드는 중…';
+    try {
+      const cert = await renderCertificate(entry.st);
+      saveBlob(cert.url, certificateFilename(entry.st.id, entry.st.awarded));
+      setTimeout(() => URL.revokeObjectURL(cert.url), 20000);
+      awardMsg(box, '인증서를 내려받았습니다. 이 기기에서 만들었습니다.');
+    } catch {
+      awardMsg(box, '인증서를 만들지 못했습니다.', true);
+    } finally {
+      button.disabled = false;
+      button.innerHTML = label;
+      paintIcons(box);
+    }
+  };
+
+  /** 심사받은 파일인지 지문으로 확인한 뒤에만 마크를 새깁니다. */
+  const pickAwardPhoto = async (input) => {
+    const box = input.closest('[data-award]');
+    const entry = awards.get(box?.dataset.award);
+    const file = input.files?.[0];
+    const out = box?.querySelector('[data-award-out]');
+    if (!box || !entry?.st || !file || !out) return;
+
+    out.innerHTML = '';
+    awardMsg(box, '지문을 대조하는 중…');
+
+    const print = await fingerprintFile(file);
+    if (!print.short) {
+      awardMsg(box, '이 브라우저에서는 지문을 계산할 수 없습니다(보안 컨텍스트가 아닙니다).', true);
+      return;
+    }
+    if (entry.st.fingerprint && print.short !== entry.st.fingerprint) {
+      awardMsg(box, `심사받은 파일이 아닙니다. 고르신 파일의 지문은 ${print.short}…이고, 심사받은 파일은 ${entry.st.fingerprint}…입니다.`, true);
+      return;
+    }
+
+    try {
+      const size = await naturalSize(file);
+      const preview = await renderMarkedImage(file, { ...awardOptions(entry), maxEdge: PREVIEW_EDGE });
+      if (entry.markUrl) URL.revokeObjectURL(entry.markUrl);
+      awards.set(box.dataset.award, { ...entry, file, size, markUrl: preview.url });
+      out.innerHTML = `
+        <figure class="wm-figure">
+          <div class="wm-stage"><img src="${preview.url}" alt="인증 마크가 새겨진 사진 미리보기"></div>
+          <figcaption>미리보기 ${preview.width}×${preview.height} · 내려받는 파일은 원본 ${size.width}×${size.height} 그대로입니다.</figcaption>
+        </figure>
+        <div class="btn-row">
+          <button class="btn btn--mini" type="button" data-action="award-dl-photo">
+            <span data-icon="download"></span>마크 넣은 사진 내려받기
+          </button>
+          <button class="btn btn--mini btn--ghost" type="button" data-action="award-dl-mark">마크만 내려받기 (투명 PNG)</button>
+        </div>`;
+      paintIcons(out);
+      awardMsg(box, `지문이 맞습니다. ${entry.st.awarded}등급 마크를 새겼습니다.`);
+    } catch {
+      awardMsg(box, '이 파일을 브라우저가 열지 못했습니다. RAW와 일부 HEIC는 직접 디코딩되지 않습니다.', true);
+    }
+  };
+
+  const downloadAward = async (box, button, markOnly) => {
+    const entry = awards.get(box.dataset.award);
+    if (!entry?.file) return;
+    const label = button.innerHTML;
+    button.disabled = true;
+    button.textContent = '원본 해상도로 만드는 중…';
+    try {
+      const made = markOnly
+        ? await renderMarkOnly({ width: entry.size.width, height: entry.size.height, ...awardOptions(entry) })
+        : await renderMarkedImage(entry.file, awardOptions(entry));
+      saveBlob(made.url, markOnly
+        ? markOnlyFilename(entry.st.awarded)
+        : markedFilename(entry.file.name, entry.st.awarded, made.type));
+      setTimeout(() => URL.revokeObjectURL(made.url), 20000);
+    } catch {
+      awardMsg(box, '만들지 못했습니다.', true);
+    } finally {
+      button.disabled = false;
+      button.innerHTML = label;
+      paintIcons(box);
+    }
+  };
+
   /** 이 브라우저에 적어 둔 접수는 열쇠를 다시 치지 않아도 됩니다. */
   const paintMine = () => {
     const box = root.querySelector('[data-mine]');
@@ -1355,6 +1507,7 @@ export function mountVerifier(root) {
 
   root.addEventListener('change', (e) => {
     if (e.target.matches('[data-apply-grade]')) paintEta();
+    if (e.target.matches('[data-award-file]')) pickAwardPhoto(e.target);
   });
 
   root.addEventListener('click', (e) => {
@@ -1384,6 +1537,13 @@ export function mountVerifier(root) {
     if (act === 'dl-photo') { e.preventDefault(); downloadMarked(el); }
     if (act === 'dl-mark') { e.preventDefault(); downloadMarkOnly(el); }
     if (act === 'copy') { e.preventDefault(); copySubmission(el); }
+
+    const box = el.closest('[data-award]');
+    if (box) {
+      if (act === 'cert-dl') { e.preventDefault(); makeCertificate(box, el); }
+      if (act === 'award-dl-photo') { e.preventDefault(); downloadAward(box, el, false); }
+      if (act === 'award-dl-mark') { e.preventDefault(); downloadAward(box, el, true); }
+    }
   });
 
   paintIcons(root);
