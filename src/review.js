@@ -13,11 +13,15 @@
 const LOCAL_KEY = 'ultari.applications.v1';
 
 export const MAX_UPLOAD = 20 * 1024 * 1024;
+export const MIN_PASSWORD = 8;
 
 /**
  * 접수번호와 조회 열쇠를 이 브라우저에 적어 둡니다.
- * 서버는 열쇠의 해시만 갖고 있어서, 잃어버리면 다시 발급해 줄 수 없습니다.
- * 그래서 화면에도 적어 두시라고 권합니다.
+ *
+ * 열쇠는 화면에 보여 주지 않습니다. 이 브라우저가 비밀번호를 다시 치지 않고
+ * 자기 접수를 여는 데만 씁니다. 다른 기기에서는 연락처와 비밀번호로 엽니다.
+ * 비밀번호는 여기에 적지 않습니다 — 적어 두면 이 브라우저를 쓰는 다음 사람이
+ * 그대로 씁니다.
  */
 export function rememberApplication(entry) {
   try {
@@ -60,6 +64,7 @@ export function submitApplication(opt) {
   body.append('photo', opt.file, opt.file.name || 'photo');
   body.append('grade', String(opt.grade ?? 2));
   body.append('contact', opt.contact ?? '');
+  body.append('password', opt.password ?? '');
   body.append('note', opt.note ?? '');
   body.append('summary', opt.summary ?? '');
   body.append('fingerprint', opt.fingerprint ?? '');
@@ -91,14 +96,24 @@ export function submitApplication(opt) {
 
 const safeParse = (text) => { try { return JSON.parse(text); } catch { return null; } };
 
-/** 현황 조회. 접수번호와 조회 열쇠가 둘 다 맞아야 열립니다. */
-export async function fetchStatus(id, token) {
-  const url = `/api/status?id=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`;
-  const res = await fetch(url, { cache: 'no-store' });
+/** 비밀은 주소에 담지 않습니다. 주소는 접속 기록에 남습니다. */
+async function askStatus(body) {
+  const res = await fetch('/api/status', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
   const data = await res.json().catch(() => null);
   if (!res.ok || !data?.ok) throw new Error(data?.error || `조회에 실패했습니다 (HTTP ${res.status}).`);
   return data;
 }
+
+/** 신청할 때 적은 연락처와 정한 비밀번호로 엽니다. 맞는 접수를 모두 돌려줍니다. */
+export const fetchStatusByContact = (contact, password) => askStatus({ contact, password });
+
+/** 이 브라우저에 적어 둔 접수를 엽니다. 열쇠는 사용자가 보지 않습니다. */
+export const fetchStatus = (id, token) => askStatus({ id, token });
 
 /** 현재 대기 건수. 실패하면 null을 돌려주고 화면은 숫자를 감춥니다. */
 export async function fetchQueue() {

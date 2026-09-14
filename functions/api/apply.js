@@ -4,21 +4,22 @@
  * 사용자가 "신청" 버튼을 누른 뒤에만 호출됩니다. 간단 검사는 이 경로를
  * 거치지 않습니다.
  *
- * 받는 것: 사진 원본, 연락처, 촬영 상황 설명, 브라우저에서 계산한 측정 요약.
- * 돌려주는 것: 접수번호와 조회 열쇠, 예상 완료일.
+ * 받는 것: 사진 원본, 연락처, 조회 비밀번호, 촬영 상황 설명, 측정 요약.
+ * 돌려주는 것: 접수번호와 예상 완료일.
  *
- * 조회 열쇠는 여기서 한 번만 내려가고 서버는 해시만 남깁니다. 잃어버리면
- * 다시 발급해 줄 수 없고, 그렇게 만든 이유는 접수번호가 새어도 남의 신청을
- * 열 수 없게 하기 위해서입니다.
+ * 현황 조회는 연락처와 비밀번호로 합니다. 32자 열쇠를 받아 적게 하는 것은
+ * 너무 번거로웠습니다. 비밀번호는 소금 섞어 늘린 해시만 남기므로 저희도
+ * 원문을 알지 못합니다.
+ *
+ * 조회 열쇠도 여전히 발급하지만 화면에 보여 주지 않습니다. 신청한 브라우저가
+ * 비밀번호 없이 자기 접수를 열어 보는 데만 씁니다.
  */
 
-import { LIMITS, STATUS, checkEnv, etaFrom, fail, json, newId, newToken, photoKey, safeText } from './_shared.js';
+import {
+  LIMITS, PW_ITERATIONS, STATUS, checkEnv, contactIndexKey, derivePassword, etaFrom,
+  fail, json, newId, newToken, normalizeContact, photoKey, safeText, sha256Hex,
+} from './_shared.js';
 import { scanProvenance } from '../../src/verify/provenance.js';
-
-const sha256 = async (text) => {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-};
 
 const EXT = {
   'image/jpeg': 'jpg',
@@ -57,6 +58,14 @@ export async function onRequestPost({ request, env }) {
   if (contact.length < 5) {
     return fail('연락받을 메일 주소나 전화번호를 적어 주세요.');
   }
+  const password = String(form.get('password') ?? '');
+  if (password.length < LIMITS.minPassword) {
+    return fail(`조회 비밀번호를 ${LIMITS.minPassword}자 이상으로 정해 주세요.`);
+  }
+  if (password.length > LIMITS.maxPassword) {
+    return fail(`조회 비밀번호가 ${LIMITS.maxPassword}자를 넘습니다.`);
+  }
+
   const note = safeText(form.get('note'), LIMITS.maxNote);
   const summary = safeText(form.get('summary'), LIMITS.maxNote);
   const fingerprint = safeText(form.get('fingerprint'), 80);
@@ -81,7 +90,8 @@ export async function onRequestPost({ request, env }) {
 
   const id = newId();
   const token = newToken();
-  const tokenHash = await sha256(token);
+  const tokenHash = await sha256Hex(token);
+  const pwHash = await derivePassword(password, contact);
   const now = new Date();
 
   // 대기 건수는 아직 끝나지 않은 접수만 셉니다.
@@ -107,6 +117,9 @@ export async function onRequestPost({ request, env }) {
   const record = {
     id,
     tokenHash,
+    pwHash,
+    pwIterations: PW_ITERATIONS,
+    contactKey: normalizeContact(contact),
     grade,
     status: 'received',
     contact,
@@ -129,9 +142,16 @@ export async function onRequestPost({ request, env }) {
 
   try {
     await env.ULTARI_APPS.put(`app:${id}`, JSON.stringify(record));
+
     const open = (await env.ULTARI_APPS.get('index:open', 'json')) || [];
     open.push(id);
     await env.ULTARI_APPS.put('index:open', JSON.stringify(open));
+
+    // 연락처 → 접수번호 색인. 이것이 없으면 번호를 모르는 사람은 조회할 수 없습니다.
+    const byContact = await contactIndexKey(contact);
+    const mine = (await env.ULTARI_APPS.get(byContact, 'json')) || [];
+    if (!mine.includes(id)) mine.push(id);
+    await env.ULTARI_APPS.put(byContact, JSON.stringify(mine.slice(-50)));
   } catch {
     return fail('접수를 기록하지 못했습니다. 잠시 뒤에 다시 시도해 주세요.', 502);
   }
@@ -139,7 +159,7 @@ export async function onRequestPost({ request, env }) {
   return json({
     ok: true,
     id,
-    token,
+    token,          // 화면에 보이지 않습니다. 이 브라우저가 자기 접수를 열 때만 씁니다.
     grade,
     status: 'received',
     statusLabel: STATUS.received.label,

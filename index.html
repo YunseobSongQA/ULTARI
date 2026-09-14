@@ -102,16 +102,16 @@
         <div data-output></div>
 
         <details class="fold fold--lookup" data-lookup>
-          <summary>상세 검사 현황 조회<span class="hint">접수번호와 조회 열쇠로</span></summary>
+          <summary>상세 검사 현황 조회<span class="hint">신청할 때 적은 연락처와 비밀번호로</span></summary>
           <div class="fold-body">
             <div class="apply-grid">
               <label class="fld">
-                <span class="fld-label">접수번호</span>
-                <input type="text" data-lookup-id placeholder="ABCD-2345" maxlength="9" autocomplete="off">
+                <span class="fld-label">연락처</span>
+                <input type="text" data-lookup-contact placeholder="신청할 때 적으신 메일 주소 또는 전화번호" maxlength="200" autocomplete="email">
               </label>
               <label class="fld">
-                <span class="fld-label">조회 열쇠</span>
-                <input type="text" data-lookup-token placeholder="32자" maxlength="32" autocomplete="off">
+                <span class="fld-label">조회 비밀번호</span>
+                <input type="password" data-lookup-pw maxlength="72" autocomplete="current-password">
               </label>
             </div>
             <div class="btn-row">

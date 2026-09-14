@@ -9,6 +9,9 @@
  */
 
 export const LIMITS = {
+  // 조회 비밀번호. 신청자가 정하고, 서버는 소금 섞은 해시만 남깁니다.
+  minPassword: 8,
+  maxPassword: 72,
   // 사진은 KV 값으로 들어갑니다. KV 값 한도가 25MiB라 그 아래로 잡습니다.
   // R2를 쓰지 않는 이유는 Cloudflare가 R2에 결제수단 등록을 요구하기 때문입니다.
   // 무료 한도 안에서 쓰더라도 카드를 걸어야 합니다. 심사 대기열 정도의 분량은
@@ -81,3 +84,78 @@ export const photoKey = (id) => `photo:${id}`;
 
 export const safeText = (value, max) =>
   String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+
+/* ── 조회 자격 ──────────────────────────────────────── */
+
+const encoder = new TextEncoder();
+
+const toHex = (bytes) => [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+const fromHex = (hex) => new Uint8Array((hex.match(/../g) || []).map((h) => parseInt(h, 16)));
+
+export const sha256Hex = async (text) =>
+  toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(text))));
+
+/** 길이가 같아도 앞에서 갈리면 빨리 끝나는 비교를 피합니다. */
+export function sameSecret(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * 조회 비밀번호는 PBKDF2로 늘려 저장합니다. 그냥 SHA-256 한 번이면 사람이 고른
+ * 비밀번호는 초당 수억 번 대조할 수 있습니다.
+ *
+ * 반복 횟수는 요청당 CPU 예산에서 나온 값입니다. workerd에서 30,000회가 7ms로
+ * 측정됐고 Workers 무료 플랜의 요청당 CPU는 10ms라, 20,000회(약 5ms)로 잡았습니다.
+ * 권장치보다 낮은 대신 최소 길이를 8자로 두고 틀린 시도를 세어 막습니다(fail: 키).
+ * 이 비밀번호가 지키는 것은 심사 현황이고, 사진과 연락처는 조회 응답에 들어가지
+ * 않습니다.
+ *
+ * 소금은 연락처에서 결정론적으로 만듭니다. 접수마다 무작위 소금을 쓰면 한 번의
+ * 조회에서 접수 수만큼 PBKDF2를 돌려야 하고, 그러면 CPU 예산을 넘습니다.
+ * 연락처가 소금이면 한 번 늘린 값을 여러 접수와 싸게 대조할 수 있습니다.
+ * 대신 도둑이 특정 메일 주소를 겨냥해 미리 표를 만들 수 있다는 것이 값입니다 —
+ * 그 비용은 여전히 PBKDF2가 지배합니다.
+ *
+ * 반복 횟수를 바꾸면 그 전에 정한 비밀번호는 대조되지 않습니다. 바꾸실 때는
+ * 이전 횟수로도 한 번 더 대조하는 코드를 여기에 두십시오.
+ */
+export const PW_ITERATIONS = 20000;
+
+async function saltFor(contact) {
+  const seed = `ultari:pw:${normalizeContact(contact)}`;
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(seed)));
+}
+
+export async function derivePassword(password, contact, iterations = PW_ITERATIONS) {
+  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: await saltFor(contact), iterations }, key, 256,
+  );
+  return toHex(new Uint8Array(bits));
+}
+
+/** 늘린 값 하나를 여러 접수와 대조합니다. 여기서는 해시만 비교합니다. */
+export const samePassword = (hash, record) =>
+  Boolean(record?.pwHash)
+  && (record.pwIterations || PW_ITERATIONS) === PW_ITERATIONS
+  && sameSecret(hash, record.pwHash);
+
+/**
+ * 조회는 신청할 때 적은 연락처로 합니다. 대소문자와 공백, 전화번호의
+ * 하이픈은 무시합니다 — 적은 그대로 다시 치게 하면 조회가 안 됩니다.
+ */
+export const normalizeContact = (value) => {
+  const flat = String(value ?? '').trim().toLowerCase().replace(/\s+/g, '');
+  return flat.includes('@') ? flat : flat.replace(/[^0-9+]/g, '');
+};
+
+/** 연락처 색인은 해시를 키로 씁니다. 키 목록만 훑어도 메일 주소가 나오면 안 됩니다. */
+export const contactIndexKey = async (value) => `by:${await sha256Hex(normalizeContact(value))}`;
+
+/** 틀린 시도 세기. 조회에는 다른 잠금 장치가 없습니다. */
+export const failKey = (indexKey) => `fail:${indexKey.slice(3)}`;
+export const FAIL_LIMIT = 10;
+export const FAIL_WINDOW = 900;   // 초. KV expirationTtl 최소값은 60초입니다.

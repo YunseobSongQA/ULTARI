@@ -89,7 +89,8 @@ export async function onRequestGet({ request, env }) {
       const record = await env.ULTARI_APPS.get(key.name, 'json');
       if (!record) continue;
       const meta = STATUS[record.status] || STATUS.received;
-      const { tokenHash, ...rest } = record;
+      // 조회 자격에 쓰이는 값은 심사에 필요하지 않습니다. 목록에서 뺍니다.
+      const { tokenHash, pwHash, pwSalt, pwIterations, ...rest } = record;
       items.push({
         ...rest,
         statusLabel: meta.label,

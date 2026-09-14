@@ -29,8 +29,8 @@ import {
 } from './watermark.js';
 import { paintIcons } from './site.js';
 import {
-  submitApplication, fetchStatus, fetchQueue, listApplications,
-  rememberApplication, formatDate, MAX_UPLOAD,
+  submitApplication, fetchStatus, fetchStatusByContact, fetchQueue, listApplications,
+  rememberApplication, formatDate, MAX_UPLOAD, MIN_PASSWORD,
 } from './review.js';
 
 /* 증서에 찍히는 울타리 마크 — public/favicon.svg와 같은 도형 */
@@ -613,10 +613,25 @@ function renderResult(bundle, mode, openForm = false) {
           </select>
         </label>
         <label class="fld">
-          <span class="fld-label">연락받을 곳 <em>필수</em></span>
+          <span class="fld-label">연락받을 곳 <em>필수 · 현황 조회에도 씁니다</em></span>
           <input type="text" data-apply-contact placeholder="메일 주소 또는 전화번호" maxlength="200" autocomplete="email">
         </label>
       </div>
+
+      <div class="apply-grid">
+        <label class="fld">
+          <span class="fld-label">조회 비밀번호 <em>필수 · ${MIN_PASSWORD}자 이상</em></span>
+          <input type="password" data-apply-pw maxlength="72" autocomplete="new-password">
+        </label>
+        <label class="fld">
+          <span class="fld-label">비밀번호 확인</span>
+          <input type="password" data-apply-pw2 maxlength="72" autocomplete="new-password">
+        </label>
+      </div>
+      <p class="apply-hint">
+        나중에 <strong>이 연락처와 비밀번호로</strong> 진행 현황을 보십니다.
+        서버에는 비밀번호를 늘려 섞은 값만 남으므로 저희도 원문을 알지 못하고 다시 알려 드릴 수 없습니다.
+      </p>
       <label class="fld">
         <span class="fld-label">촬영 상황 <em>있으면 심사가 빨라집니다</em></span>
         <textarea data-apply-note rows="3" maxlength="2000"
@@ -835,17 +850,17 @@ function renderReceipt(r) {
       ${renderRail(0)}
       <dl class="receipt-keys">
         <div><dt>접수번호</dt><dd class="big">${escapeHtml(r.id)}</dd></div>
-        <div><dt>조회 열쇠</dt><dd class="mono">${escapeHtml(r.token)}</dd></div>
+        <div><dt>조회 방법</dt><dd>신청하실 때 적으신 <strong>연락처 + 비밀번호</strong></dd></div>
         <div><dt>예상 완료</dt><dd>${escapeHtml(formatDate(r.etaDate))} <span class="dim">· 영업일 ${r.etaDays}일</span></dd></div>
         <div><dt>앞선 대기</dt><dd>${r.queueAhead}건</dd></div>
       </dl>
       <p class="receipt-note">
-        조회 열쇠는 <strong>지금 이 화면에만</strong> 나옵니다. 서버에는 열쇠의 해시만 남겨서
-        다시 발급해 드릴 수 없습니다. 이 브라우저에도 적어 두었지만, 따로 옮겨 두시는 편이 안전합니다.
+        접수번호는 문의하실 때 쓰시면 빠릅니다. 현황은 번호 없이 연락처와 비밀번호만으로도 열립니다.
+        이 브라우저에는 접수 기록을 적어 두어, 아래 목록에서 비밀번호 없이 바로 보실 수 있습니다.
       </p>
       <div class="btn-row">
         <button class="btn btn--mini" type="button" data-action="copy-receipt"
-          data-id="${escapeHtml(r.id)}" data-token="${escapeHtml(r.token)}">접수번호와 열쇠 복사</button>
+          data-id="${escapeHtml(r.id)}">접수번호 복사</button>
         <button class="btn btn--mini btn--ghost" type="button" data-action="check-status"
           data-id="${escapeHtml(r.id)}" data-token="${escapeHtml(r.token)}">현황 보기</button>
       </div>
@@ -1192,6 +1207,8 @@ export function mountVerifier(root) {
     const fill = applyEl('[data-apply-fill]');
     const pct = applyEl('[data-apply-pct]');
     const contact = applyEl('[data-apply-contact]')?.value?.trim() || '';
+    const password = applyEl('[data-apply-pw]')?.value || '';
+    const password2 = applyEl('[data-apply-pw2]')?.value || '';
     const note = applyEl('[data-apply-note]')?.value?.trim() || '';
     const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
 
@@ -1203,6 +1220,11 @@ export function mountVerifier(root) {
     };
 
     if (contact.length < 5) { say('연락받을 메일 주소나 전화번호를 적어 주세요.', true); return; }
+    if (password.length < MIN_PASSWORD) {
+      say(`조회 비밀번호를 ${MIN_PASSWORD}자 이상으로 정해 주세요. 이 비밀번호로 현황을 보십니다.`, true);
+      return;
+    }
+    if (password !== password2) { say('비밀번호 확인이 다릅니다.', true); return; }
     if (current.file.size > MAX_UPLOAD) {
       say(`사진이 ${Math.round(MAX_UPLOAD / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 신청해 주세요.`, true);
       return;
@@ -1217,6 +1239,7 @@ export function mountVerifier(root) {
         file: current.file,
         grade,
         contact,
+        password,
         note,
         summary: summaryLines(current.bundle.result, buildRows(current.bundle), current.bundle.print).join(String.fromCharCode(10)),
         fingerprint: current.bundle.print?.short || '',
@@ -1226,6 +1249,7 @@ export function mountVerifier(root) {
           pct.innerHTML = `${n}<small>%</small>`;
         },
       });
+      // 비밀번호는 적지 않습니다. 이 브라우저용 열쇠만 적습니다.
       rememberApplication({ id: r.id, token: r.token, grade: r.grade, createdAt: r.createdAt, etaDate: r.etaDate });
       say('접수됐습니다.');
       applyEl('[data-apply-done]').innerHTML = renderReceipt(r);
@@ -1239,7 +1263,7 @@ export function mountVerifier(root) {
   };
 
   const copyReceipt = async (el) => {
-    const text = `ULTARI 상세 검사 접수번호 ${el.dataset.id} / 조회 열쇠 ${el.dataset.token}`;
+    const text = `ULTARI 상세 검사 접수번호 ${el.dataset.id} (현황 조회는 신청 때 적은 연락처와 비밀번호로)`;
     const label = el.textContent;
     try {
       await navigator.clipboard.writeText(text);
@@ -1250,23 +1274,37 @@ export function mountVerifier(root) {
     setTimeout(() => { el.textContent = label; }, 2200);
   };
 
-  const showStatus = async (id, token) => {
+  /** 조회 결과를 그립니다. 같은 연락처로 여러 건이면 모두 나옵니다. */
+  const paintStatus = async (ask) => {
     const target = root.querySelector('[data-lookup-out]');
     if (!target) return;
     root.querySelector('[data-lookup]')?.setAttribute('open', '');
     target.innerHTML = '<p class="apply-msg">조회하는 중…</p>';
     target.scrollIntoView({ block: 'center', behavior: 'smooth' });
     try {
-      target.innerHTML = renderStatus(await fetchStatus(id, token));
+      const data = await ask();
+      const items = Array.isArray(data.items) && data.items.length ? data.items : [data];
+      target.innerHTML = (items.length > 1
+        ? `<p class="mine-title">맞는 접수 ${items.length}건</p>` : '')
+        + items.map(renderStatus).join('');
     } catch (err) {
       target.innerHTML = `<p class="apply-msg is-bad">${escapeHtml(err.message)}</p>`;
     }
   };
 
+  const showStatus = (id, token) => paintStatus(() => fetchStatus(id, token));
+
   const lookupFromForm = () => {
-    const id = root.querySelector('[data-lookup-id]')?.value?.trim().toUpperCase() || '';
-    const token = root.querySelector('[data-lookup-token]')?.value?.trim() || '';
-    showStatus(id, token);
+    const contact = root.querySelector('[data-lookup-contact]')?.value?.trim() || '';
+    const password = root.querySelector('[data-lookup-pw]')?.value || '';
+    if (contact.length < 5 || password.length < MIN_PASSWORD) {
+      const target = root.querySelector('[data-lookup-out]');
+      if (target) {
+        target.innerHTML = '<p class="apply-msg is-bad">신청하실 때 적으신 연락처와 비밀번호를 넣어 주세요.</p>';
+      }
+      return;
+    }
+    paintStatus(() => fetchStatusByContact(contact, password));
   };
 
   /** 이 브라우저에 적어 둔 접수는 열쇠를 다시 치지 않아도 됩니다. */
@@ -1275,7 +1313,7 @@ export function mountVerifier(root) {
     if (!box) return;
     const mine = listApplications();
     box.innerHTML = mine.length ? `
-      <p class="mine-title">이 브라우저에 남아 있는 접수 ${mine.length}건</p>
+      <p class="mine-title">이 브라우저에 남아 있는 접수 ${mine.length}건 <span class="dim">비밀번호 없이 열립니다</span></p>
       <ul class="mine-list">${mine.map((a) => `
         <li>
           <span class="mine-id">${escapeHtml(a.id)}</span>
@@ -1310,7 +1348,7 @@ export function mountVerifier(root) {
       // 이 브라우저에서 신청한 건이 있으면 번호를 적지 않아도 목록에 나옵니다.
       fold.open = true;
       fold.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      root.querySelector('[data-lookup-id]')?.focus({ preventScroll: true });
+      root.querySelector('[data-lookup-contact]')?.focus({ preventScroll: true });
     }
     if (act === 'reset') { e.preventDefault(); reset(); }
     if (act === 'dl-photo') { e.preventDefault(); downloadMarked(el); }

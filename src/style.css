@@ -710,6 +710,13 @@ main.main--tool { padding-block: 44px 80px; }
   outline: 2px solid var(--measure); outline-offset: 1px;
 }
 
+/* 비밀번호가 무엇에 쓰이는지 칸 아래에서 말합니다. 나중에 물어봐야 알면 늦습니다. */
+.apply-hint {
+  margin: 2px 0 16px; font-size: 12.5px; line-height: 1.65; color: var(--ink-3);
+  border-left: 2px solid var(--rule-strong); padding-left: 12px;
+}
+.apply-hint strong { color: var(--ink-2); }
+
 .apply-eta { font-size: 13.5px; color: var(--ink-2); margin: 4px 0 0; }
 
 .apply-bar { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
