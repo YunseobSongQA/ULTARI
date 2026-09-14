@@ -89,28 +89,69 @@ export function drawMark(ctx, x, y, h, color = INK) {
   ctx.restore();
 }
 
-function measurePlate(ctx, unit, line1, line2) {
-  const pad = Math.round(unit * 0.95);
-  const gap = Math.round(unit * 0.8);
-  const s1 = Math.round(unit * 1.2);
-  const s2 = Math.round(unit * 0.92);
-  const lead = Math.round(unit * 0.34);
+/* 자간. 캔버스에는 letter-spacing이 없어 글자마다 직접 벌립니다.
+   워드마크는 자간이 있어야 서명처럼 보입니다. */
+function trackedWidth(ctx, text, tracking) {
+  let w = 0;
+  for (const ch of text) w += ctx.measureText(ch).width + tracking;
+  return w - tracking;
+}
+
+function fillTracked(ctx, text, x, y, tracking) {
+  let cx = x;
+  for (const ch of text) {
+    ctx.fillText(ch, cx, y);
+    cx += ctx.measureText(ch).width + tracking;
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') { ctx.roundRect(x, y, w, h, r); return; }
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function measurePlate(ctx, unit, wordmark, gradeText, subline) {
+  const pad = Math.round(unit * 0.92);
+  const markH = Math.round(unit * 2.2);
+  const markW = Math.round(markH * markAspect);
+  const divGap = Math.round(unit * 0.85);
+
+  const s1 = Math.round(unit * 1.14);
+  const s2 = Math.round(unit * 0.82);
+  const lead = Math.round(unit * 0.46);
+  const track = Math.max(1, Math.round(s1 * 0.09));
+
   const f1 = `600 ${s1}px ${FONT}`;
+  const fp = `500 ${Math.round(unit * 0.86)}px ${FONT}`;
   const f2 = `400 ${s2}px ${FONT}`;
 
   ctx.font = f1;
-  const w1 = ctx.measureText(line1).width;
+  const wordW = trackedWidth(ctx, wordmark, track);
+  ctx.font = fp;
+  const pillPad = Math.round(unit * 0.44);
+  const pillW = Math.round(ctx.measureText(gradeText).width + pillPad * 2);
+  const pillH = Math.round(unit * 1.36);
+  const pillGap = Math.round(unit * 0.52);
   ctx.font = f2;
-  const w2 = ctx.measureText(line2).width;
+  const subW = ctx.measureText(subline).width;
 
-  const markH = Math.round(unit * 2.05);
-  const markW = Math.round(markH * markAspect);
+  const line1W = wordW + pillGap + pillW;
+  const textW = Math.max(line1W, subW);
+  const textH = Math.max(s1, pillH) + lead + s2;
 
   return {
-    unit, pad, gap, s1, s2, lead, f1, f2, markH, markW,
-    border: Math.max(1, Math.round(unit * 0.07)),
-    w: Math.round(pad * 2 + markW + gap + Math.max(w1, w2)),
-    h: Math.round(pad * 2 + s1 + lead + s2),
+    unit, pad, markH, markW, divGap, s1, s2, lead, track,
+    f1, fp, f2, pillPad, pillW, pillH, pillGap, wordW,
+    radius: Math.round(unit * 0.52),
+    border: Math.max(1, Math.round(unit * 0.055)),
+    w: Math.round(pad * 2 + markW + divGap * 2 + 1 + textW),
+    h: Math.round(pad * 2 + Math.max(markH, textH)),
   };
 }
 
@@ -118,33 +159,71 @@ function measurePlate(ctx, unit, line1, line2) {
  * 명판 크기를 정합니다. 명판 높이가 짧은 변의 5~6%가 되도록 잡았습니다.
  * 사진에 얹는 서명은 이 정도가 읽히면서도 화면을 잡아먹지 않습니다.
  */
-function planPlate(ctx, W, H, line1, line2) {
+function planPlate(ctx, W, H, wordmark, gradeText, subline) {
   let unit = Math.max(11, Math.min(40, Math.round(Math.min(W, H) * 0.013)));
-  let plate = measurePlate(ctx, unit, line1, line2);
+  let plate = measurePlate(ctx, unit, wordmark, gradeText, subline);
   if (plate.w > W * 0.72) {
     unit = Math.max(9, Math.floor((unit * W * 0.72) / plate.w));
-    plate = measurePlate(ctx, unit, line1, line2);
+    plate = measurePlate(ctx, unit, wordmark, gradeText, subline);
   }
   return plate;
 }
 
-function drawPlate(ctx, x, y, plate, line1, line2) {
-  ctx.fillStyle = PAPER;
-  ctx.fillRect(x, y, plate.w, plate.h);
-  ctx.strokeStyle = 'rgba(20, 22, 26, 0.26)';
-  ctx.lineWidth = plate.border;
-  ctx.strokeRect(x + plate.border / 2, y + plate.border / 2, plate.w - plate.border, plate.h - plate.border);
+function drawPlate(ctx, x, y, plate, wordmark, gradeText, subline) {
+  const { pad, border, radius } = plate;
 
-  drawMark(ctx, x + plate.pad, y + (plate.h - plate.markH) / 2, plate.markH);
+  // 바탕은 살짝 비칩니다. 사진 위에 얹은 종이처럼 보이게.
+  roundRect(ctx, x, y, plate.w, plate.h, radius);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+  ctx.fill();
+  roundRect(ctx, x + border / 2, y + border / 2, plate.w - border, plate.h - border, radius);
+  ctx.strokeStyle = 'rgba(20, 22, 26, 0.16)';
+  ctx.lineWidth = border;
+  ctx.stroke();
 
-  const tx = x + plate.pad + plate.markW + plate.gap;
+  // 마크
+  drawMark(ctx, x + pad, y + (plate.h - plate.markH) / 2, plate.markH);
+
+  // 마크와 글자를 가르는 헤어라인
+  const divX = Math.round(x + pad + plate.markW + plate.divGap) + 0.5;
+  const inset = Math.round(pad * 0.55);
+  ctx.beginPath();
+  ctx.moveTo(divX, y + inset);
+  ctx.lineTo(divX, y + plate.h - inset);
+  ctx.strokeStyle = 'rgba(20, 22, 26, 0.13)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const tx = divX + plate.divGap;
+  const textH = Math.max(plate.s1, plate.pillH) + plate.lead + plate.s2;
+  const top = y + (plate.h - textH) / 2;
+
+  // 워드마크 — 자간을 줘서 서명처럼
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = INK;
   ctx.font = plate.f1;
-  ctx.fillText(line1, tx, y + plate.pad + plate.s1);
+  const baseline1 = top + Math.max(plate.s1, plate.pillH) - Math.round((plate.pillH - plate.s1) / 2);
+  fillTracked(ctx, wordmark, tx, baseline1, plate.track);
+
+  // 등급은 테두리 칩. 사이트의 등급 도장과 같은 말투입니다.
+  const pillX = tx + plate.wordW + plate.pillGap;
+  const pillY = top + Math.max(0, Math.round((plate.s1 - plate.pillH) / 2));
+  roundRect(ctx, pillX + 0.5, pillY + 0.5, plate.pillW - 1, plate.pillH - 1, Math.round(plate.unit * 0.24));
+  ctx.strokeStyle = 'rgba(20, 22, 26, 0.38)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.font = plate.fp;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = INK;
+  ctx.fillText(gradeText, pillX + plate.pillW / 2, pillY + plate.pillH / 2 + plate.unit * 0.04);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  // 지문과 날짜
   ctx.fillStyle = INK_2;
   ctx.font = plate.f2;
-  ctx.fillText(line2, tx, y + plate.pad + plate.s1 + plate.lead + plate.s2);
+  ctx.fillText(subline, tx, top + Math.max(plate.s1, plate.pillH) + plate.lead + plate.s2 * 0.82);
 }
 
 function placeAt(position, W, H, plate, margin) {
@@ -161,7 +240,7 @@ function placeAt(position, W, H, plate, margin) {
   }
 }
 
-const lines = ({ grade, shortHash, dateText }) => [`ULTARI ${grade}등급`, `${shortHash} · ${dateText}`];
+const lines = ({ grade, shortHash, dateText }) => ['ULTARI', `${grade}등급`, `${shortHash} · ${dateText}`];
 const waitForFonts = async () => { try { await document.fonts?.ready; } catch { /* 무시 */ } };
 
 /**
@@ -187,11 +266,11 @@ export async function renderMarkedImage(file, opt) {
 
   await waitForFonts();
 
-  const [line1, line2] = lines(opt);
-  const plate = planPlate(ctx, W, H, line1, line2);
+  const [wordmark, gradeText, subline] = lines(opt);
+  const plate = planPlate(ctx, W, H, wordmark, gradeText, subline);
   const margin = Math.round(plate.unit * 1.35);
   const { x, y } = placeAt(opt.position || DEFAULT_POSITION, W, H, plate, margin);
-  drawPlate(ctx, x, y, plate, line1, line2);
+  drawPlate(ctx, x, y, plate, wordmark, gradeText, subline);
 
   const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, 0.95));
@@ -205,14 +284,14 @@ export async function renderMarkedImage(file, opt) {
 export async function renderMarkOnly({ width, height, ...opt }) {
   await waitForFonts();
   const probe = document.createElement('canvas').getContext('2d');
-  const [line1, line2] = lines(opt);
-  const plate = planPlate(probe, width, height, line1, line2);
+  const [wordmark, gradeText, subline] = lines(opt);
+  const plate = planPlate(probe, width, height, wordmark, gradeText, subline);
 
   const canvas = document.createElement('canvas');
   canvas.width = plate.w;
   canvas.height = plate.h;
   const ctx = canvas.getContext('2d');
-  drawPlate(ctx, 0, 0, plate, line1, line2);
+  drawPlate(ctx, 0, 0, plate, wordmark, gradeText, subline);
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
   return { blob, type: 'image/png', width: plate.w, height: plate.h, url: URL.createObjectURL(blob) };
