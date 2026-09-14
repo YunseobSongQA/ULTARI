@@ -1224,3 +1224,11 @@ main.main--tool { padding-block: 32px 80px; }
 /* 랜딩에서 골라 온 투입구를 한 번 짚어 줍니다. */
 .lane--wanted { border-color: var(--measure); box-shadow: inset 0 0 0 1px var(--measure); }
 .lane--wanted .lane-tag .dot { background: var(--measure); }
+
+/* 설명 페이지에서 매체를 나누는 큰 제목 */
+.prose .prose-part {
+  font-size: 27px; letter-spacing: -0.03em;
+  margin: 64px 0 6px; padding-top: 22px;
+  border-top: 2px solid var(--ink);
+}
+.prose .prose-part + p { color: var(--ink-2); }
