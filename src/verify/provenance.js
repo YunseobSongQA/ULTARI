@@ -162,30 +162,31 @@ function signerFrom(hay) {
   return best ? best[0] : null;
 }
 
-/**
- * @param {File} file
- * @returns {Promise<object>} 파일이 밝힌 출처
- */
-export async function readProvenance(file) {
-  const empty = {
-    present: false, declaresAi: false, sourceType: null, sourceLabel: null,
-    sourceDetail: null, generator: null, signer: null, watermarked: false,
-    createdAt: null, via: null, markers: [],
-  };
+const EMPTY = {
+  present: false, declaresAi: false, sourceType: null, sourceLabel: null,
+  sourceDetail: null, generator: null, signer: null, watermarked: false,
+  createdAt: null, via: null, markers: [],
+};
 
-  let bytes;
-  try {
-    bytes = new Uint8Array(await file.arrayBuffer());
-  } catch {
-    return empty;
-  }
+/**
+ * 바이트만 보고 판단합니다. DOM을 쓰지 않으므로 브라우저와 서버(Workers)가
+ * 같은 코드로 같은 답을 냅니다.
+ *
+ * 신청을 막는 판단은 서버에서도 해야 합니다. 화면에서만 막으면 요청을 직접
+ * 보내는 것으로 지나갈 수 있고, 그러면 막았다고 말할 수 없습니다.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {object} 파일이 밝힌 출처
+ */
+export function scanProvenance(bytes) {
+  if (!bytes || !bytes.length) return EMPTY;
 
   const parts = isPng(bytes) ? collectPng(bytes)
     : isJpeg(bytes) ? collectJpeg(bytes)
       : [latin1(bytes.subarray(0, Math.min(bytes.length, 2 << 20)))];
 
   const hay = parts.join('\n');
-  if (!hay) return empty;
+  if (!hay) return EMPTY;
 
   const markers = [];
 
@@ -249,4 +250,16 @@ export async function readProvenance(file) {
     via: hasC2pa ? 'C2PA' : 'metadata',
     markers,
   };
+}
+
+/**
+ * @param {File} file
+ * @returns {Promise<object>} 파일이 밝힌 출처
+ */
+export async function readProvenance(file) {
+  try {
+    return scanProvenance(new Uint8Array(await file.arrayBuffer()));
+  } catch {
+    return EMPTY;
+  }
 }

@@ -567,7 +567,23 @@ function renderResult(bundle, mode) {
       <p class="btn-note">브라우저의 기본 다운로드 폴더에 저장됩니다. 파일을 만드는 것도 저장하는 것도 이 기기에서만 일어납니다.</p>
     </div>` : '';
 
-  const deepPanel = mode === 'deep' ? `
+  const applyBlocked = isDeclared ? `
+    <div class="panel" data-apply>
+      <p class="panel-title">상세 검사 신청</p>
+      <div class="apply-warn">
+        <p><strong>이 사진은 상세 검사를 신청하실 수 없습니다.</strong></p>
+        <p>파일이 스스로 AI 생성물이라고 기록하고 있습니다${bundle.provenance?.generator
+          ? ` (기록된 생성기: ${escapeHtml(bundle.provenance.generator)})` : ''}.
+          이 기록은 생성한 쪽이 규격(C2PA)에 따라 서명해 남긴 것이라 사람이 다시 볼 여지가 없습니다.</p>
+        <p>측정값 때문이 아니라 파일에 적힌 것 때문입니다. 촬영한 사진이 맞다면
+          카메라나 갤러리에서 바로 꺼낸 원본으로 다시 시도해 주세요.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
+      </div>
+    </div>` : '';
+
+  const deepPanel = mode === 'deep' && !isDeclared ? `
     <div class="panel" data-apply>
       <p class="panel-title">상세 검사 신청</p>
       <p class="apply-lead">
@@ -623,11 +639,14 @@ function renderResult(bundle, mode) {
     : '';
 
   return `
+    ${mode === 'deep' ? applyBlocked + deepPanel : ''}
+
     <div class="top-actions">
-      <button class="btn btn--mini" type="button" data-action="reset">다른 사진 검사하기</button>
-      <button class="btn btn--mini btn--ghost" type="button" data-action="swap-mode">
-        이 사진으로 ${mode === 'quick' ? '상세 검사' : '간단 검사'}
-      </button>
+      ${isDeclared ? '' : `
+        <button class="btn btn--mini" type="button" data-action="swap-mode">
+          ${mode === 'quick' ? '상세 검사 신청하기' : '간단 검사 결과로 돌아가기'}
+        </button>`}
+      <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
     </div>
 
     <section class="cert${certClass}">
@@ -645,7 +664,6 @@ function renderResult(bundle, mode) {
     ${renderScorePanel(bundle)}
 
     ${markPanel}
-    ${deepPanel}
 
     <div class="folds">
       ${reasonFold('자동 검증이 멈춘 이유', result.blockers)}
@@ -661,11 +679,14 @@ function renderResult(bundle, mode) {
     </div>
 
     <div class="end-actions">
-      <button class="btn" type="button" data-action="reset">다른 사진 검사하기</button>
-      <button class="btn btn--ghost" type="button" data-action="swap-mode">
-        이 사진으로 ${mode === 'quick' ? '상세 검사' : '간단 검사'}
-      </button>
-      <p class="btn-note">다시 재지 않습니다. 이미 계산한 측정값을 그대로 씁니다.</p>
+      ${isDeclared ? '' : `
+        <button class="btn" type="button" data-action="swap-mode">
+          ${mode === 'quick' ? '상세 검사 신청하기' : '간단 검사 결과로 돌아가기'}
+        </button>`}
+      <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
+      <p class="btn-note">${isDeclared
+        ? '이 파일은 AI 생성 기록이 있어 상세 검사를 신청할 수 없습니다.'
+        : '검사를 다시 돌리지 않습니다. 이미 계산한 측정값을 그대로 씁니다.'}</p>
     </div>`;
 }
 
@@ -1032,7 +1053,7 @@ export function mountVerifier(root) {
     const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
     const base = grade === 1 ? 15 : 4;
     if (open == null) {
-      line.textContent = `영업일 ${base}일 정도 걸립니다. 대기 건수는 확인하지 못했습니다.`;
+      line.textContent = `${grade}등급은 영업일 ${base}일 정도 걸립니다. 접수하면 정확한 완료 예정일이 나옵니다.`;
       return;
     }
     const days = base + Math.floor(open / 5) * base;

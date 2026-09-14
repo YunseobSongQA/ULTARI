@@ -13,6 +13,7 @@
  */
 
 import { LIMITS, STATUS, checkEnv, etaFrom, fail, json, newId, newToken, safeText } from './_shared.js';
+import { scanProvenance } from '../../src/verify/provenance.js';
 
 const sha256 = async (text) => {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -31,7 +32,9 @@ const EXT = {
 export async function onRequestPost({ request, env }) {
   const missing = checkEnv(env);
   if (missing.length) {
-    return fail(`서버에 저장소가 연결되지 않았습니다: ${missing.join(', ')}`, 503);
+    // 방문자에게는 내부 이름을 보이지 않습니다. 자세한 것은 로그로만 남깁니다.
+    console.error('[ultari] 접수 저장소 바인딩 누락:', missing.join(', '));
+    return fail('지금은 접수를 받을 수 없습니다. 잠시 뒤에 다시 시도해 주세요.', 503);
   }
 
   let form;
@@ -58,6 +61,24 @@ export async function onRequestPost({ request, env }) {
   const summary = safeText(form.get('summary'), LIMITS.maxNote);
   const fingerprint = safeText(form.get('fingerprint'), 80);
 
+  // 파일이 스스로 AI 생성물이라고 밝힌 경우는 여기서 돌려보냅니다.
+  // 화면에서도 막지만, 화면만 막으면 요청을 직접 보내는 것으로 지나갑니다.
+  let bytes;
+  try {
+    bytes = new Uint8Array(await photo.arrayBuffer());
+  } catch {
+    return fail('사진을 읽지 못했습니다.');
+  }
+  const prov = scanProvenance(bytes);
+  if (prov.declaresAi) {
+    return json({
+      ok: false,
+      code: 'declared-ai',
+      error: '이 파일은 스스로 AI 생성물이라고 기록하고 있어 상세 검사를 접수하지 않습니다.',
+      detail: prov.generator ? `기록된 생성기: ${prov.generator}` : null,
+    }, 422);
+  }
+
   const id = newId();
   const token = newToken();
   const tokenHash = await sha256(token);
@@ -77,7 +98,7 @@ export async function onRequestPost({ request, env }) {
   const ext = EXT[photo.type] || 'bin';
   const objectKey = `applications/${id}/original.${ext}`;
   try {
-    await env.ULTARI_FILES.put(objectKey, photo.stream(), {
+    await env.ULTARI_FILES.put(objectKey, bytes, {
       httpMetadata: { contentType: photo.type || 'application/octet-stream' },
       customMetadata: { applicationId: id },
     });

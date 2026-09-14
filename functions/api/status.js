@@ -24,7 +24,7 @@ function sameSecret(a, b) {
 
 export async function onRequestGet({ request, env }) {
   const missing = checkEnv(env);
-  if (missing.length) return fail('서버에 저장소가 연결되지 않았습니다.', 503);
+  if (missing.length) return fail('지금은 조회할 수 없습니다. 잠시 뒤에 다시 시도해 주세요.', 503);
 
   const url = new URL(request.url);
   const id = (url.searchParams.get('id') || '').trim().toUpperCase();

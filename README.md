@@ -59,6 +59,14 @@ Pages → 프로젝트 → Settings → Bindings에서 추가합니다. 셋 중 
 
 상태는 `received` → `reviewing` → `done`이고 `waiting`(추가 자료 대기)과 `rejected`도 있습니다.
 
+**AI 생성 기록이 있는 파일은 접수하지 않습니다.** C2PA에 `trainedAlgorithmicMedia`가 적혀 있으면
+화면에서 신청 폼을 내리고, `/api/apply`도 422 `declared-ai`로 돌려보냅니다. 두 곳이 같은
+`scanProvenance()`를 쓰므로 판단이 갈리지 않습니다. 화면만 막으면 요청을 직접 보내는 것으로
+지나갑니다.
+
+막는 것은 **파일이 스스로 선언한 경우뿐**입니다. `판정 불가`, `보류`, `카메라 쪽 0건`은 막지
+않습니다. 메신저를 거친 실제 사진도 그렇게 나오고, 그런 사진이야말로 사람 심사가 필요합니다.
+
 ```bash
 # 심사 착수
 curl -X POST https://ultari.pages.dev/api/admin   -H "x-ultari-admin: $ULTARI_ADMIN_KEY" -H "content-type: application/json"   -d '{"id":"ABCD-2345","status":"reviewing","note":"담당자 배정"}'
