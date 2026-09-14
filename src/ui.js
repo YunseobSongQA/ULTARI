@@ -17,6 +17,7 @@ import { analyzeOptics } from './verify/optics.js';
 import { analyzeCompression } from './verify/compression.js';
 import { analyzeRephoto } from './verify/rephoto.js';
 import { fingerprintFile, formatBytes } from './verify/fingerprint.js';
+import { readProvenance } from './verify/provenance.js';
 import { gradeResult, VERDICT, GATE } from './grade.js';
 import { scoreTraces, STATE_LABEL } from './score.js';
 import { REVIEW_QUEUE, CONTACT, MAIL, queueLine } from './queue.js';
@@ -278,6 +279,7 @@ function summaryLines(result, rows, print) {
 const STEPS = [
   '파일 지문 계산',
   '촬영 정보 읽기',
+  '출처 표식 읽기',
   '픽셀 준비',
   'EXIF 대 픽셀 정합성',
   '광학 흔적',
@@ -293,17 +295,19 @@ export async function verifyFile(file, onStep) {
   await step(1);
   const exif = await readExif(file);
   await step(2);
-  const pixels = await loadPixels(file);
+  const provenance = await readProvenance(file);
   await step(3);
-  const consistency = analyzeConsistency(pixels, exif);
+  const pixels = await loadPixels(file);
   await step(4);
-  const optics = analyzeOptics(pixels);
+  const consistency = analyzeConsistency(pixels, exif);
   await step(5);
-  const compression = analyzeCompression(pixels);
+  const optics = analyzeOptics(pixels);
   await step(6);
+  const compression = analyzeCompression(pixels);
+  await step(7);
   const rephoto = analyzeRephoto(pixels, optics);
 
-  const bundle = { exif, consistency, optics, compression, rephoto, pixels, print };
+  const bundle = { exif, consistency, optics, compression, rephoto, pixels, print, provenance };
   return { ...bundle, result: gradeResult(bundle) };
 }
 
@@ -312,6 +316,9 @@ export async function verifyFile(file, onStep) {
 function stampFor(result) {
   if (result.verdict === VERDICT.PASS) {
     return `<span class="cert-stamp"><span class="g">3</span><span>등급</span></span>`;
+  }
+  if (result.verdict === VERDICT.DECLARED_AI) {
+    return `<span class="cert-stamp cert-stamp--hold">AI 생성 기록</span>`;
   }
   if (result.verdict === VERDICT.HOLD) return `<span class="cert-stamp cert-stamp--hold">보류</span>`;
   return `<span class="cert-stamp cert-stamp--insufficient">판정 불가</span>`;
@@ -359,8 +366,42 @@ function splitBar(trace, ai) {
     </div>`;
 }
 
+/** 파일이 스스로 밝힌 출처. 추정이 아니므로 맨 위에 크게 답니다. */
+function renderProvenance(prov) {
+  if (!prov?.present) return '';
+
+  const facts = [
+    prov.sourceLabel && ['선언된 출처', `${prov.sourceLabel} (${prov.sourceType})`],
+    prov.generator && ['생성기', prov.generator],
+    prov.signer && ['서명', prov.signer],
+    prov.createdAt && ['기록된 시각', prov.createdAt.replace('T', ' ').replace('Z', ' UTC')],
+    prov.watermarked && ['워터마크', '보이지 않는 워터마크를 넣었다고 기록돼 있습니다'],
+  ].filter(Boolean);
+
+  return `
+    <div class="prov${prov.declaresAi ? ' prov--ai' : ' prov--camera'}">
+      <p class="prov-top">
+        <span class="prov-tag">${prov.declaresAi ? 'AI 생성 기록' : '출처 기록'}</span>
+        <span class="prov-src">${escapeHtml(prov.via)} 표식에서 읽음</span>
+      </p>
+      <h3 class="prov-head">${prov.declaresAi
+        ? '이 파일은 스스로 AI 생성물이라고 기록하고 있습니다'
+        : '이 파일에 서명된 출처 기록이 있습니다'}</h3>
+      ${prov.sourceDetail ? `<p class="prov-detail">${escapeHtml(prov.sourceDetail)}</p>` : ''}
+      <dl class="prov-facts">
+        ${facts.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}
+      </dl>
+      <p class="prov-note">
+        이 값은 픽셀을 재서 추정한 것이 아니라 파일 안에 적힌 것을 그대로 읽은 것입니다.
+        ${prov.declaresAi
+          ? '다만 이 표식은 지울 수 있습니다. 화면을 캡처하거나 다시 저장하면 사라지므로, 표식이 없다고 해서 AI가 아니라는 뜻은 되지 않습니다.'
+          : '표식은 위조와 삭제가 모두 가능하므로, 이것만으로 진위가 확정되지는 않습니다.'}
+      </p>
+    </div>`;
+}
+
 function renderScorePanel(bundle) {
-  const { trace, ai, categories } = scoreTraces(bundle);
+  const { trace, ai, categories, declared } = scoreTraces(bundle);
   const { result, pixels } = bundle;
 
   const bars = categories.map((c) => {
@@ -424,13 +465,16 @@ function renderScorePanel(bundle) {
       </div>
       ${splitBar(trace, ai)}
       <p class="score-caveat">
-        이 수치는 학습된 분류기의 판단이 아닙니다. 아래 여섯 항목에 사람이 정한 배점을 곱해
-        더한 값이고, 배점을 바꾸면 숫자도 바뀝니다. 재는 것은 “카메라 촬영 흔적이 남아 있는가”이며,
-        흔적이 지워진 실제 사진(메신저를 거친 사진, 스크린샷, PNG 내보내기)도 흔적 0에 가깝게 나옵니다.
+        ${declared
+          ? '이 수치는 배점을 계산한 값이 아닙니다. 파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다.'
+          : `이 수치는 학습된 분류기의 판단이 아닙니다. 아래 여섯 항목에 사람이 정한 배점을 곱해
+             더한 값이고, 배점을 바꾸면 숫자도 바뀝니다. 재는 것은 “카메라 촬영 흔적이 남아 있는가”이며,
+             흔적이 지워진 실제 사진(메신저를 거친 사진, 스크린샷, PNG 내보내기)도 흔적 0에 가깝게 나옵니다.`}
       </p>
 
-      <p class="panel-title score-sub">항목별 배점</p>
-      <div class="cats">${bars}</div>
+      ${declared ? '' : `
+        <p class="panel-title score-sub">항목별 배점</p>
+        <div class="cats">${bars}</div>`}
 
       <p class="panel-title score-sub">인증 마크 발급선</p>
       <ul class="gates">
@@ -443,14 +487,17 @@ function renderScorePanel(bundle) {
           </li>`).join('')}
       </ul>
       <p class="gate-verdict${eligible ? ' is-ok' : ''}">
-        ${eligible
-          ? '네 줄을 모두 충족해 인증 마크를 발급했습니다.'
-          : '한 줄이라도 어긋나면 발급하지 않습니다. 위에서 ✕ 표시된 항목이 막고 있는 조건입니다.'}
+        ${declared
+          ? '파일에 AI 생성 기록이 있어, 아래 조건과 무관하게 인증 마크를 발급하지 않습니다.'
+          : eligible
+            ? '네 줄을 모두 충족해 인증 마크를 발급했습니다.'
+            : '한 줄이라도 어긋나면 발급하지 않습니다. 위에서 ✕ 표시된 항목이 막고 있는 조건입니다.'}
       </p>
-      <p class="score-caveat">
-        마크 발급은 위 네 조건으로 결정합니다. 환산 수치(${trace}%)는 판단 근거가 아니라 표시용입니다 —
-        같은 수치라도 모순 1건이 있으면 발급하지 않습니다.
-      </p>
+      ${declared ? '' : `
+        <p class="score-caveat">
+          마크 발급은 위 네 조건으로 결정합니다. 환산 수치(${trace}%)는 판단 근거가 아니라 표시용입니다 —
+          같은 수치라도 모순 1건이 있으면 발급하지 않습니다.
+        </p>`}
     </div>`;
 }
 
@@ -460,7 +507,9 @@ function renderResult(bundle, mode) {
   const summary = summaryLines(result, rows, print);
   const isPass = result.verdict === VERDICT.PASS;
 
-  const certClass = isPass ? '' : result.verdict === VERDICT.HOLD ? ' cert--hold' : ' cert--insufficient';
+  const certClass = isPass ? ''
+    : (result.verdict === VERDICT.HOLD || result.verdict === VERDICT.DECLARED_AI)
+      ? ' cert--hold' : ' cert--insufficient';
 
   const fingerprint = print.sha256
     ? `원본 파일 지문 <span class="hash">${escapeHtml(print.short)}…</span> · 이 기기에서만 계산됐고 어디로도 전송되지 않았습니다`
@@ -523,6 +572,9 @@ function renderResult(bundle, mode) {
     : '';
 
   return `
+    ${renderProvenance(bundle.provenance)}
+    ${renderScorePanel(bundle)}
+
     <section class="cert${certClass}">
       <div class="cert-top">
         <span class="cert-mark">${CERT_MARK}</span>
@@ -535,7 +587,6 @@ function renderResult(bundle, mode) {
       <div class="btn-row">${actions.join('')}</div>
     </section>
 
-    ${renderScorePanel(bundle)}
     ${markPanel}
     ${reasonList('자동 검증이 멈춘 이유', result.blockers)}
     ${reasonList('서로 맞지 않는 측정값', result.contradictions)}

@@ -1,12 +1,13 @@
 /**
- * grade.js — 측정 결과를 세 가지 판정 중 하나로 옮깁니다.
+ * grade.js — 측정 결과를 네 가지 판정 중 하나로 옮깁니다.
  *
- * 결과는 셋뿐입니다.
- *   통과      3등급 발급
- *   판정 불가 자동 검증에 필요한 정보가 없음
- *   보류      측정값끼리 서로 맞지 않음
+ *   AI 생성 기록  파일이 스스로 AI 생성물이라고 밝힘 (읽은 값, 추정 아님)
+ *   통과          3등급 발급
+ *   판정 불가     자동 검증에 필요한 정보가 없음
+ *   보류          측정값끼리 서로 맞지 않음
  *
- * "AI"라는 단어는 이 파일 어디에도 나오지 않고, 화면에도 나가지 않습니다.
+ * 픽셀을 재서 "AI로 보인다"고 말하는 일은 여전히 하지 않습니다. AI라고 적는
+ * 경우는 단 하나, 파일 자신이 C2PA 규격으로 그렇게 선언해 둔 때뿐입니다.
  * 자동 검증이 떨어뜨리는 사진의 대부분은 실제로 사람이 찍은 사진입니다.
  * 메신저를 한 번만 거쳐도 EXIF가 통째로 사라지고, 요즘 휴대폰은 촬영 순간
  * 강한 보정을 넣어 노이즈의 물리를 지웁니다. 오탐의 대가는 창작자를 모욕하는
@@ -19,6 +20,7 @@ export const VERDICT = {
   PASS: 'pass',
   INSUFFICIENT: 'insufficient',
   HOLD: 'hold',
+  DECLARED_AI: 'declared-ai',
 };
 
 /* 합격선. GATE로 내보내 결과 화면에 그대로 적습니다. */
@@ -54,10 +56,16 @@ export const STATEMENT = {
     '보정을 강하게 건 실제 사진에서도 자주 나오는 결과입니다.',
     '사람 심사로 넘기면 기계가 보지 못하는 것까지 봅니다.',
   ],
+  [VERDICT.DECLARED_AI]: [
+    '이것은 픽셀을 재서 내린 추정이 아닙니다. 파일에 그렇게 적혀 있습니다.',
+    '생성한 쪽이 규격(C2PA)에 따라 남긴 서명된 기록입니다.',
+    '인증 마크는 발급하지 않습니다.',
+  ],
 };
 
 export const HEADLINE = {
   [VERDICT.PASS]: '3등급 발급',
+  [VERDICT.DECLARED_AI]: '이 파일은 스스로 AI 생성물이라고 기록하고 있습니다',
   [VERDICT.INSUFFICIENT]: '자동 검증에 필요한 정보가 부족합니다 — 원본 파일로 다시 시도해 주세요',
   [VERDICT.HOLD]: '자동 검증에서 모순이 발견됐습니다 — 사람 심사로 넘길 수 있습니다',
 };
@@ -207,7 +215,10 @@ export function gradeResult(input) {
   const hints = collectHints(input);
 
   let verdict;
-  if (blockers.length > 0) {
+  if (input.provenance?.declaresAi) {
+    // 파일이 스스로 밝힌 것은 재서 얻은 추정보다 앞섭니다.
+    verdict = VERDICT.DECLARED_AI;
+  } else if (blockers.length > 0) {
     verdict = VERDICT.INSUFFICIENT;
   } else if (contradictions.length > 0 || softSignals.length >= T.softSignalsForHold) {
     verdict = VERDICT.HOLD;
@@ -217,6 +228,9 @@ export function gradeResult(input) {
 
   // 어떤 결과에서도 다음 행동이 있어야 합니다. 막다른 길을 만들지 않습니다.
   const next = {
+    [VERDICT.DECLARED_AI]: [
+      { kind: 'retry', label: '다른 사진 검증' },
+    ],
     [VERDICT.PASS]: [
       { kind: 'review2', label: '2등급 심사 신청' },
       { kind: 'retry', label: '다른 사진 검증' },

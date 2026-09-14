@@ -121,6 +121,20 @@ const ITEMS = [
  *   trace 촬영 흔적 0~100 · ai 100 - trace
  */
 export function scoreTraces(bundle) {
+  // 파일이 스스로 AI 생성물이라고 밝혔다면 배점을 따질 일이 아닙니다.
+  // 읽은 값이 재서 얻은 추정을 덮습니다.
+  if (bundle.provenance?.declaresAi) {
+    return {
+      trace: 0,
+      ai: 100,
+      declared: true,
+      categories: ITEMS.map(({ key, label }) => ({
+        key, label, weight: WEIGHTS[key], state: 'against', earned: 0,
+        note: '파일에 AI 생성 기록이 있어 촬영 흔적을 세지 않습니다',
+      })),
+    };
+  }
+
   const categories = ITEMS.map(({ key, label, run }) => {
     const weight = WEIGHTS[key];
     const { state, note } = run(bundle);
@@ -130,5 +144,5 @@ export function scoreTraces(bundle) {
   const earned = categories.reduce((sum, c) => sum + c.earned, 0);
   const trace = Math.round(earned);
 
-  return { trace, ai: 100 - trace, categories };
+  return { trace, ai: 100 - trace, declared: false, categories };
 }
