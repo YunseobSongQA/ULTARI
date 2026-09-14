@@ -587,9 +587,12 @@ function renderResult(bundle, mode) {
     <div class="panel" data-apply>
       <p class="panel-title">상세 검사 신청</p>
       <p class="apply-lead">
-        여기부터는 사람이 봅니다. 화면을 다시 찍은 것은 아닌지, 그림자와 반사가 서로 맞는지,
-        같은 카메라에서 나온 다른 컷이 있는지.
+        상세 검사는 <strong>간단 검사를 먼저 자동으로 돌린 다음</strong>, 그 결과를 사람 심사로 넘깁니다.
+        방금 이 사진으로 간단 검사가 끝났고, 사람이 보는 것은 그 뒤부터입니다 —
+        화면을 다시 찍은 것은 아닌지, 그림자와 반사가 서로 맞는지, 같은 카메라에서 나온 다른 컷이 있는지.
       </p>
+
+      ${quickSummaryCard(bundle)}
 
       <div class="apply-warn">
         <p><strong>이 버튼을 누르면 사진 원본이 서버로 올라갑니다.</strong></p>
@@ -709,6 +712,35 @@ function renderError(message, detail) {
         <a class="btn btn--ghost" href="/how">무엇을 측정하는지 보기</a>
       </div>
     </section>`;
+}
+
+/**
+ * 상세 검사 화면 위에 붙는 간단 검사 요약.
+ * 신청 폼이 맨 위로 올라오면서, 무엇이 이미 측정됐는지 모르는 채로
+ * 버튼을 누르게 됐습니다. 그 자리에 결과를 한 칸으로 보여 줍니다.
+ */
+function quickSummaryCard(bundle) {
+  const { result } = bundle;
+  const { trace, ai } = scoreTraces(bundle);
+  const signals = [...aiSignals(bundle), ...synthesisSignals(bundle)];
+  const tally = { camera: 0, unknown: 0, ai: 0 };
+  signals.forEach((r) => { tally[r.side] += 1; });
+
+  const verdict = result.verdict === VERDICT.PASS ? '3등급 발급'
+    : result.verdict === VERDICT.HOLD ? '보류'
+      : result.verdict === VERDICT.DECLARED_AI ? 'AI 생성 기록' : '판정 불가';
+
+  return `
+    <div class="quickcard">
+      <p class="quickcard-top">간단 검사 결과 <span class="dim">이미 끝났습니다</span></p>
+      <ul class="quickcard-rows">
+        <li><span>자동 판정</span><b>${escapeHtml(verdict)}</b></li>
+        <li><span>촬영 흔적</span><b>${trace}%</b> <span class="dim">AI 생성 환산 ${ai}%</span></li>
+        <li><span>판별 근거</span><b>카메라 쪽 ${tally.camera}건</b>
+          <span class="dim">AI 쪽 ${tally.ai} · 판단 보류 ${tally.unknown}</span></li>
+      </ul>
+      <p class="quickcard-note">이 측정값이 신청서에 함께 들어갑니다. 사람 심사는 여기서 출발합니다.</p>
+    </div>`;
 }
 
 /* ── 상세 검사 접수 ──────────────────────────────────── */

@@ -773,3 +773,19 @@ main.main--tool { padding-block: 44px 80px; }
 .mine-list .btn { margin-left: auto; }
 .dim { color: var(--ink-3); }
 .fold--lookup { margin-top: 26px; }
+
+/* 신청 폼이 맨 위로 올라오면서, 무엇이 이미 측정됐는지 한 칸으로 보여 줍니다. */
+.quickcard {
+  border: 1px solid var(--rule-strong); background: var(--surface);
+  padding: 16px 18px; margin-bottom: 20px;
+}
+.quickcard-top { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-2); }
+.quickcard-rows { list-style: none; margin: 0; padding: 0; }
+.quickcard-rows li {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 6px 0; font-size: 13.5px; color: var(--ink-2);
+}
+.quickcard-rows li + li { border-top: 1px solid var(--rule); }
+.quickcard-rows li > span:first-child { flex: none; min-width: 74px; color: var(--ink-3); font-size: 12.5px; }
+.quickcard-rows b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.quickcard-note { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-3); }
