@@ -660,3 +660,18 @@ main.main--tool { padding-block: 44px 80px; }
 }
 .tally-read.is-none { border-left-color: var(--warn); }
 .tally-read strong { color: var(--ink); font-weight: 600; }
+
+/* 검사 중에는 몇 퍼센트까지 왔는지가 가장 궁금합니다. 그걸 제일 크게 답니다. */
+.progress-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+.progress-pct {
+  font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -0.02em;
+  color: var(--measure); font-variant-numeric: tabular-nums;
+}
+.progress-pct small { font-size: 17px; font-weight: 500; margin-left: 1px; }
+.progress-now { font-size: 14px; color: var(--ink-2); }
+.progress .bar { height: 6px; }
+.progress .run-steps { margin: 18px 0 0; }
+.progress .run-status { margin-top: 12px; }

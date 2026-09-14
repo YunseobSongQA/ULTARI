@@ -664,6 +664,7 @@ export function mountVerifier(root) {
   const progress = root.querySelector('[data-progress]');
   const progressLabel = root.querySelector('[data-progress-label]');
   const progressBar = root.querySelector('[data-progress-bar]');
+  const progressPct = root.querySelector('[data-progress-pct]');
   const output = root.querySelector('[data-output]');
   const readyBox = root.querySelector('[data-ready]');
   const readyNote = root.querySelector('[data-ready-note]');
@@ -716,18 +717,24 @@ export function mountVerifier(root) {
     }).join('');
   };
 
+  const setPct = (value) => {
+    const pct = Math.max(0, Math.min(100, Math.round(value)));
+    progressBar.style.width = `${pct}%`;
+    if (progressPct) progressPct.innerHTML = `${pct}<small>%</small>`;
+  };
+
   const showProgress = (index, label) => {
     progress.hidden = false;
     drawSteps(index);
     progressLabel.textContent = `${label}…`;
-    progressBar.style.width = `${Math.round(((index + 1) / STEPS.length) * 100)}%`;
+    setPct(((index + 1) / STEPS.length) * 100);
   };
 
   const runNote = root.querySelector('.run-note');
 
   const finishProgress = (elapsedMs) => {
     drawSteps(STEPS.length, true);
-    progressBar.style.width = '100%';
+    setPct(100);
     progressLabel.textContent = `검사 완료 · ${STEPS.length}단계 · ${(elapsedMs / 1000).toFixed(1)}초`;
     if (runNote) runNote.textContent = '이 기기에서만 계산했습니다. 어디로도 전송하지 않았습니다.';
   };
@@ -744,7 +751,7 @@ export function mountVerifier(root) {
     output.innerHTML = '';
     progress.hidden = true;
     if (stepList) stepList.innerHTML = '';
-    progressBar.style.width = '0%';
+    setPct(0);
 
     previewUrl = URL.createObjectURL(file);
     fileLine.innerHTML = `
@@ -771,7 +778,7 @@ export function mountVerifier(root) {
     const startedAt = performance.now();
     drawSteps(0);
     progress.hidden = false;
-    progressBar.style.width = '0%';
+    setPct(0);
     progressLabel.textContent = '시작하는 중…';
     if (runNote) runNote.textContent = '이 기기에서 계산 중입니다. 업로드가 아닙니다.';
 

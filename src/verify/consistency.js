@@ -34,6 +34,11 @@ const T = {
   darkSigmaFloor: 1.0,
   // 밝기와 노이즈가 뒤집힌 정도 (스피어만 상관)
   invertedCorr: -0.7,
+  // 이보다 매끈한 구간은 센서 반응이 아니라 평탄하게 밀린 면으로 봅니다.
+  // 스튜디오 배경지, 보정한 피부, 날아간 하늘이 여기 걸립니다. 실측으로
+  // 증명사진 한 장에서 가장 밝은 구간이 패치 3189개에 sigma 0.07이었고,
+  // 그 구간 하나가 상관을 -0.74까지 끌어내려 실제 사진이 모순으로 찍혔습니다.
+  smoothedSigmaFloor: 0.15,
   // 구간별 노이즈가 이 정도로 균일하면 센서 출력으로 보기 어렵습니다.
   flatSpread: 0.1,
   flatSigmaCeiling: 1.6,
@@ -145,14 +150,19 @@ export function analyzeConsistency(pixels, exif) {
   }
   const xs = [];
   const ys = [];
+  let smoothedBins = 0;
   buckets.forEach((bucket, i) => {
     measured.binCount[i] = bucket.length;
     if (bucket.length < MIN_PATCHES_PER_BIN) return;
     const value = percentile(bucket, 0.3);
     measured.binSigma[i] = value;
+    // 평탄하게 밀린 구간은 표시는 하되 기울기 계산에서는 뺍니다.
+    // 재지 못한 것을 0으로 세면 없는 기울기가 생깁니다.
+    if (value < T.smoothedSigmaFloor) { smoothedBins += 1; return; }
     xs.push(i);
     ys.push(value);
   });
+  measured.smoothedBins = smoothedBins;
 
   if (xs.length >= 4) {
     measured.slopeCorrelation = spearman(xs, ys);

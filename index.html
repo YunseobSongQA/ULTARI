@@ -80,10 +80,13 @@
             </div>
           </div>
           <div class="progress" data-progress hidden>
-            <ol class="run-steps" data-steps></ol>
+            <div class="progress-head">
+              <span class="progress-pct" data-progress-pct>0<small>%</small></span>
+              <span class="progress-now" data-progress-label></span>
+            </div>
             <div class="bar"><i data-progress-bar></i></div>
+            <ol class="run-steps" data-steps></ol>
             <p class="run-status">
-              <span data-progress-label></span>
               <span class="run-note">이 기기에서 계산 중입니다. 업로드가 아닙니다.</span>
             </p>
           </div>
