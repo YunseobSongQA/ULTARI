@@ -243,17 +243,117 @@ function readDqt(bytes) {
   return null;
 }
 
-function quantSource(bytes) {
-  const table = readDqt(bytes);
-  if (!table) return { present: false };
+/** SOF에 적힌 성분별 샘플링 비. 카메라는 대개 4:2:0이나 4:2:2를 씁니다. */
+function subsampling(bytes) {
+  let i = 2;
+  while (i + 4 <= bytes.length) {
+    if (bytes[i] !== 0xff) { i += 1; continue; }
+    const m = bytes[i + 1];
+    if (m === 0xd8 || m === 0x01 || (m >= 0xd0 && m <= 0xd7)) { i += 2; continue; }
+    if (m === 0xda || m === 0xd9) break;
+    const len = (bytes[i + 2] << 8) | bytes[i + 3];
+    if (m === 0xc0 || m === 0xc1 || m === 0xc2) {
+      const n = bytes[i + 9];
+      if (n < 3) return '흑백';
+      const hv = bytes[i + 11];
+      const h = hv >> 4;
+      const v = hv & 15;
+      if (h === 1 && v === 1) return '4:4:4';
+      if (h === 2 && v === 1) return '4:2:2';
+      if (h === 2 && v === 2) return '4:2:0';
+      return `${h}x${v}`;
+    }
+    i += 2 + len;
+  }
+  return null;
+}
 
-  for (let q = 1; q <= 100; q++) {
-    const ref = annexKAt(q);
-    if (ref.every((v, k) => v === table[k])) {
-      return { present: true, standard: true, quality: q };
+/**
+ * PNG 인코더 지문.
+ * 카메라는 PNG를 만들지 않습니다. 그래서 PNG라는 사실 자체가 이미 정보이고,
+ * 어떤 프로그램이 썼는지는 IDAT를 끊은 크기와 zlib 머리, 보조 청크 구성으로 갈립니다.
+ *   PIL(파이썬)  IDAT를 정확히 65536으로 끊고 보조 청크를 거의 넣지 않습니다.
+ *   운영체제 캡처 pHYs·sRGB·iCCP 같은 청크를 함께 씁니다.
+ */
+function pngFingerprint(bytes) {
+  let i = 8;
+  const idat = [];
+  const ancillary = [];
+  let zlibHead = null;
+
+  while (i + 8 <= bytes.length) {
+    const len = (bytes[i] << 24 | bytes[i + 1] << 16 | bytes[i + 2] << 8 | bytes[i + 3]) >>> 0;
+    const type = String.fromCharCode(bytes[i + 4], bytes[i + 5], bytes[i + 6], bytes[i + 7]);
+    if (type === 'IEND') break;
+    if (len > bytes.length) break;
+    if (type === 'IDAT') {
+      if (!idat.length) zlibHead = (bytes[i + 8] << 8) | bytes[i + 9];
+      idat.push(len);
+    } else if (type !== 'IHDR') {
+      ancillary.push(type);
+    }
+    i += 12 + len;
+  }
+  if (!idat.length) return null;
+
+  const blocky = idat.length > 1 && idat.slice(0, -1).every((v) => v === 65536);
+  const decorated = ancillary.some((t) => ['pHYs', 'sRGB', 'gAMA', 'iCCP', 'cHRM'].includes(t));
+
+  return {
+    blocky,
+    decorated,
+    zlibHead,
+    ancillary,
+    tool: blocky && !decorated ? 'library' : decorated ? 'os' : 'unknown',
+  };
+}
+
+function encoderFingerprint(bytes) {
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
+  const isPng = bytes[0] === 0x89 && bytes[1] === 0x50;
+
+  if (isJpeg) {
+    const table = readDqt(bytes);
+    const chroma = subsampling(bytes);
+    if (!table) return { kind: 'jpeg', chroma, quant: 'unknown' };
+    for (let q = 1; q <= 100; q++) {
+      if (annexKAt(q).every((v, k) => v === table[k])) {
+        return { kind: 'jpeg', chroma, quant: 'standard', quality: q };
+      }
+    }
+    return { kind: 'jpeg', chroma, quant: 'custom' };
+  }
+
+  if (isPng) return { kind: 'png', png: pngFingerprint(bytes) };
+  return { kind: 'other' };
+}
+
+/* ── 4. 하이라이트 클리핑 ────────────────────────────────
+   실제 장면에는 센서가 감당하지 못하는 밝기가 있습니다. 창문, 하늘, 금속
+   반사에서 화소가 255에 붙습니다. 생성물은 그럴 물리적 이유가 없어
+   순백에 거의 닿지 않습니다. 다만 어두운 실내 사진도 닿지 않으므로,
+   있으면 카메라 쪽 근거로 세고 없으면 아무 말도 하지 않습니다. */
+function clipping(tiles) {
+  let hi = 0;
+  let lo = 0;
+  let total = 0;
+  for (const t of tiles) {
+    const d = t.image.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i] === 255 && d[i + 1] === 255 && d[i + 2] === 255) hi += 1;
+      else if (d[i] === 0 && d[i + 1] === 0 && d[i + 2] === 0) lo += 1;
+      total += 1;
     }
   }
-  return { present: true, standard: false };
+  if (!total) return { measurable: false };
+  const white = hi / total;
+  return {
+    measurable: true,
+    white,
+    black: lo / total,
+    // 실측: GPT 생성물 0.0001%, 소니 원본 0.0171%. 그 사이에 선을 둡니다.
+    present: white >= 0.00005,
+  };
 }
 
 /**
@@ -264,12 +364,14 @@ export async function analyzeSynthesis(pixels, file) {
   const cfa = cfaTrace(pixels.tiles);
   const spectrum = spectralSlope(pixels.tiles);
 
-  let quant = { present: false };
+  const clip = clipping(pixels.tiles);
+
+  let encoder = { kind: 'other' };
   try {
-    quant = quantSource(new Uint8Array(await file.arrayBuffer()));
+    encoder = encoderFingerprint(new Uint8Array(await file.arrayBuffer()));
   } catch {
-    /* 읽지 못하면 없는 것으로 둡니다. */
+    /* 읽지 못하면 알 수 없는 것으로 둡니다. */
   }
 
-  return { cfa, spectrum, quant };
+  return { cfa, spectrum, encoder, clip };
 }

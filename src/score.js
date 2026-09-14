@@ -289,19 +289,49 @@ export function synthesisSignals(b) {
   const rows = [];
 
   {
-    const q = syn.quant;
-    const side = !q.present ? 'unknown' : q.standard ? 'ai' : 'camera';
+    const e = syn.encoder;
+    let side = 'unknown';
+    let got = '알 수 없음';
+    let note = '';
+
+    if (e.kind === 'jpeg') {
+      const chroma = e.chroma ? ` · ${e.chroma}` : '';
+      if (e.quant === 'custom') {
+        side = 'camera';
+        got = `비표준 양자화표 — 제조사 고유${chroma}`;
+        note = '카메라 제조사가 자기 표를 쓴 흔적입니다. 라이브러리로 다시 저장하면 사라집니다';
+      } else if (e.quant === 'standard') {
+        side = 'ai';
+        got = `표준 라이브러리 표 (품질 ${e.quality})${chroma}`;
+        note = 'libjpeg·PIL이 그대로 쓰는 표입니다. 카메라에서 바로 나온 파일이 아닙니다';
+      } else {
+        got = `양자화표를 읽지 못함${chroma}`;
+        note = 'JPEG이지만 표를 꺼내지 못했습니다';
+      }
+    } else if (e.kind === 'png') {
+      const f = e.png;
+      side = f && f.tool === 'library' ? 'ai' : 'unknown';
+      got = !f ? 'PNG — 구조를 읽지 못함'
+        : f.tool === 'library' ? 'PNG — 라이브러리 저장 서명'
+          : f.tool === 'os' ? 'PNG — 운영체제·편집기 저장' : 'PNG — 판별 불가';
+      note = f && f.tool === 'library'
+        ? 'IDAT를 정확히 65536으로 끊고 보조 청크를 넣지 않았습니다. 파이썬 계열(PIL)이 저장할 때의 모양이고, 생성 모델의 기본 출력 경로입니다'
+        : '카메라는 PNG를 만들지 않습니다. 캡처·편집·생성 중 하나를 거친 파일입니다';
+    }
+
+    rows.push({ label: '저장 형식 지문', basis: '카메라가 직접 저장한 모양이어야 함', got, side, note });
+  }
+
+  {
+    const c = syn.clip;
+    const side = !c?.measurable ? 'unknown' : c.present ? 'camera' : 'unknown';
     rows.push({
-      label: '저장 프로그램 지문',
-      basis: 'JPEG 양자화 테이블이 제조사 고유여야 함',
-      got: !q.present ? 'JPEG 아님 — 테이블 없음'
-        : q.standard ? `표준 라이브러리 테이블 (품질 ${q.quality})` : '비표준 테이블 — 제조사 고유',
+      label: '하이라이트 클리핑',
+      basis: '센서가 감당 못한 밝기가 255에 붙어야 함',
+      got: !c?.measurable ? '측정 불가' : `순백 화소 ${(c.white * 100).toFixed(4)}%`,
       side,
-      note: !q.present
-        ? 'PNG 등 무손실 파일에는 이 표가 없습니다. 생성 모델의 기본 출력도 PNG입니다'
-        : q.standard
-          ? 'libjpeg·PIL 같은 라이브러리가 그대로 쓰는 표입니다. 카메라에서 바로 나온 파일이 아닙니다'
-          : '카메라 제조사가 자기 표를 쓴 흔적입니다. 라이브러리로 다시 저장하면 사라집니다',
+      note: '창문·하늘·금속 반사에서 센서는 한계를 넘겨 순백으로 탑니다. 생성물은 그럴 이유가 없어 '
+        + '거의 닿지 않습니다. 다만 어두운 실내 사진도 닿지 않으므로, 없다고 해서 생성물은 아닙니다',
     });
   }
 
