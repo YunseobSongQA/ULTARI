@@ -426,6 +426,22 @@ function renderScorePanel(bundle) {
   const tally = { camera: 0, unknown: 0, ai: 0 };
   signals.forEach((r) => { tally[r.side] += 1; });
 
+  // 근거가 나온 기준은 펼쳐 두고, 잴 수 없었던 기준은 접어 둡니다.
+  const found = signals.filter((r) => r.side !== 'unknown');
+  const quiet = signals.filter((r) => r.side === 'unknown');
+
+  const sigRow = (r) => `
+    <li class="sig-row sig-row--${r.side}${r.decisive ? ' is-decisive' : ''}">
+      <div class="sig-top">
+        <span class="sig-name">${escapeHtml(r.label)}</span>
+        ${r.decisive ? '<span class="sig-decisive">결정적</span>' : ''}
+        <span class="sig-side">${escapeHtml(SIDE[r.side])}</span>
+        <span class="sig-got">${escapeHtml(r.got)}</span>
+      </div>
+      <p class="sig-basis">기준 — ${escapeHtml(r.basis)}</p>
+      <p class="sig-note">${escapeHtml(r.note)}</p>
+    </li>`;
+
   const eligible = result.verdict === VERDICT.PASS;
   const mp = pixels.megapixels;
   const blockers = [
@@ -458,34 +474,42 @@ function renderScorePanel(bundle) {
              배점을 바꾸면 숫자도 바뀝니다.`}
       </p>
 
-      <p class="panel-title score-sub">
-        AI 판별 기준 <span class="tally">카메라 쪽 ${tally.camera} · 판단 보류 ${tally.unknown} · AI 쪽 ${tally.ai}</span>
+      <p class="panel-title score-sub">AI 판별 기준</p>
+
+      <p class="sig-lead">
+        아래 <strong>${signals.length}가지</strong> 기준으로 검사했고,
+        그중 <strong>${found.length}가지</strong>에서 근거가 나왔습니다.
       </p>
+      <p class="sig-list">${signals.map((r) => escapeHtml(r.label)).join(' · ')}</p>
+
+      <div class="sigbar" role="img"
+           aria-label="카메라 쪽 ${tally.camera}건, AI 쪽 ${tally.ai}건, 판단 보류 ${tally.unknown}건">
+        ${tally.camera ? `<span class="sigbar-seg sigbar-seg--camera" style="flex:${tally.camera}"></span>` : ''}
+        ${tally.ai ? `<span class="sigbar-seg sigbar-seg--ai" style="flex:${tally.ai}"></span>` : ''}
+        ${tally.unknown ? `<span class="sigbar-seg sigbar-seg--none" style="flex:${tally.unknown}"></span>` : ''}
+      </div>
+      <ul class="sigkey">
+        <li><i class="k k--camera"></i>카메라 쪽 <b>${tally.camera}</b></li>
+        <li><i class="k k--ai"></i>AI 쪽 <b>${tally.ai}</b></li>
+        <li><i class="k k--none"></i>판단 보류 <b>${tally.unknown}</b></li>
+      </ul>
+
       <p class="tally-read${tally.camera === 0 ? ' is-none' : ''}">
         ${tally.camera === 0
           ? `카메라를 거친 흔적이 <strong>한 건도</strong> 잡히지 않았습니다.
-             ${signals.length}가지를 따로 봤고 그중 카메라 쪽으로 기운 것이 없습니다.
              다만 흔적이 지워진 실제 사진에서도 같은 결과가 나옵니다 — AI라는 단정이 아닙니다.`
           : `카메라를 거친 흔적이 <strong>${tally.camera}건</strong> 잡혔습니다.
              ${tally.ai > 0 ? `다만 ${tally.ai}건은 반대 방향입니다.` : ''}`}
       </p>
-      <ul class="sig">
-        ${signals.map((r) => `
-          <li class="sig-row sig-row--${r.side}${r.decisive ? ' is-decisive' : ''}">
-            <div class="sig-top">
-              <span class="sig-name">${escapeHtml(r.label)}</span>
-              ${r.decisive ? '<span class="sig-decisive">결정적</span>' : ''}
-              <span class="sig-side">${escapeHtml(SIDE[r.side])}</span>
-              <span class="sig-got">${escapeHtml(r.got)}</span>
-            </div>
-            <p class="sig-basis">기준 — ${escapeHtml(r.basis)}</p>
-            <p class="sig-note">${escapeHtml(r.note)}</p>
-          </li>`).join('')}
-      </ul>
 
-      ${declared ? '' : `
-        <p class="panel-title score-sub">항목별 배점</p>
-        <div class="cats">${bars}</div>`}
+      ${found.length ? `<ul class="sig">${found.map(sigRow).join('')}</ul>` : ''}
+      ${quiet.length
+        ? fold('판단이 서지 않은 기준', `${quiet.length}가지 · 이 사진에서는 잴 수 없었습니다`,
+          `<ul class="sig sig--quiet">${quiet.map(sigRow).join('')}</ul>`)
+        : ''}
+
+      ${declared ? '' : fold('환산 수치는 어떻게 나왔나', '여섯 항목의 배점',
+        `<div class="cats">${bars}</div>`)}
 
       <p class="panel-title score-sub">인증 마크</p>
       <p class="gate-verdict${eligible ? ' is-ok' : ''}">

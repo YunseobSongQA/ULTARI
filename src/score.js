@@ -277,7 +277,7 @@ export function aiSignals(b) {
     const flat = rephoto.flags.flatFocus;
     const moire = rephoto.flags.moire;
     rows.push({
-      label: '초점 · 평면성',
+      label: '초점 분포',
       basis: '거리에 따라 선명도가 달라져야 함',
       got: moire ? '모아레 검출' : flat ? '화면 전체가 균일' : optics.focus.discontinuous ? '구역별로 끊김' : '연속적',
       side: flat || optics.focus.discontinuous ? 'ai' : moire ? 'unknown' : 'camera',
