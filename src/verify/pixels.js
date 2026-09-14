@@ -69,9 +69,26 @@ export async function loadPixels(file) {
   } catch (err) {
     throw new Error('DECODE_FAILED');
   }
+  try {
+    return pixelsFromSource(bitmap, bitmap.width, bitmap.height);
+  } finally {
+    bitmap.close?.();
+  }
+}
 
-  const width = bitmap.width;
-  const height = bitmap.height;
+/**
+ * 그릴 수 있는 것이면 무엇이든 같은 표현으로 만듭니다.
+ * ImageBitmap, <video>, canvas 모두 drawImage의 원본이 될 수 있어서,
+ * 영상 프레임도 사진과 똑같은 측정을 거칩니다 — 측정 코드를 두 벌 만들지
+ * 않으려고 이렇게 갈라 두었습니다.
+ *
+ * @param {CanvasImageSource} source
+ * @param {number} width 원본 가로 (video는 videoWidth)
+ * @param {number} height 원본 세로
+ */
+export function pixelsFromSource(source, width, height) {
+  const bitmap = source;
+  if (!width || !height) throw new Error('DECODE_FAILED');
 
   // 축소본
   const scale = Math.min(1, MEDIUM_MAX / Math.max(width, height));
@@ -117,8 +134,6 @@ export async function loadPixels(file) {
       });
     }
   }
-
-  bitmap.close?.();
 
   return {
     width,
