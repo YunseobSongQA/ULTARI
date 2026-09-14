@@ -530,7 +530,7 @@ function renderScorePanel(bundle) {
     </div>`;
 }
 
-function renderResult(bundle, mode) {
+function renderResult(bundle, mode, openForm = false) {
   const { result, print } = bundle;
   const rows = buildRows(bundle);
   const summary = summaryLines(result, rows, print);
@@ -588,8 +588,9 @@ function renderResult(bundle, mode) {
       </div>
     </div>`;
 
+  // 신청서는 눌러서 엽니다. 묻지도 않고 폼을 펼쳐 두면 읽을 것이 폼에 밀립니다.
   const deepPanel = `
-    <div class="panel" data-apply>
+    <div class="panel" data-apply${openForm ? '' : ' hidden'}>
       <p class="panel-title">신청서</p>
       <p class="apply-lead">
         상세 검사는 <strong>간단 검사를 먼저 자동으로 돌린 다음</strong>, 그 결과를 사람 심사로 넘깁니다.
@@ -697,8 +698,8 @@ function renderResult(bundle, mode) {
 
     <div class="end-actions">
       ${elig.ok ? `
-        <button class="btn" type="button" data-action="${mode === 'quick' ? 'swap-mode' : 'apply-top'}">
-          ${mode === 'quick' ? '상세 검사 신청하기' : '위 신청서로 돌아가기'}
+        <button class="btn" type="button" data-action="${mode === 'quick' ? 'swap-mode' : 'apply-open'}">
+          상세 검사 신청하기
         </button>` : ''}
       <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
       <p class="btn-note">${elig.ok
@@ -799,14 +800,13 @@ function renderEligibility(bundle, elig) {
         간단 검사 판정 <b>${escapeHtml(verdict)}</b> ·
         촬영 흔적 <b>${trace}%</b> <span class="dim">AI 생성 환산 ${ai}%</span>
       </p>
-      ${elig.ok
-        ? '<p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>'
-        : ''}
+      ${elig.ok ? `
+        <p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>
+        <p class="elig-note">아래 버튼을 누르면 신청서가 열립니다. 사진은 신청서 안의 전송 버튼을 누를 때 올라갑니다.</p>` : ''}
 
       <div class="top-actions">
-        <button class="btn btn--mini btn--ghost" type="button" data-action="swap-mode">
-          ${elig.ok ? '신청하지 않고 결과만 보기' : '간단 검사 결과만 보기'}
-        </button>
+        ${elig.ok ? `
+          <button class="btn btn--mini" type="button" data-action="apply-open">상세 검사 신청</button>` : ''}
         <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
       </div>
     </section>`;
@@ -814,11 +814,25 @@ function renderEligibility(bundle, elig) {
 
 /* ── 상세 검사 접수 ──────────────────────────────────── */
 
+/**
+ * 진행 단계. 신청한 사람이 지금 어디에 있는지만 보여 줍니다.
+ * 사진은 다시 보여 주지 않습니다 — 서버도 조회에 사진을 돌려주지 않으므로
+ * 조회 열쇠가 새도 사진까지 새지 않습니다(functions/api/status.js).
+ */
+const RAIL = ['신청', '심사 중', '결과 발표'];
+
+const renderRail = (at) => `
+  <ol class="status-rail">
+    ${RAIL.map((label, i) => `
+      <li class="${i <= at ? 'is-on' : ''}"><span class="dot"></span>${label}</li>`).join('')}
+  </ol>`;
+
 /** 접수증. 조회 열쇠는 여기서 한 번만 보여 줍니다. */
 function renderReceipt(r) {
   return `
     <div class="receipt">
-      <p class="receipt-top">접수됐습니다</p>
+      <p class="receipt-top">신청이 접수됐습니다</p>
+      ${renderRail(0)}
       <dl class="receipt-keys">
         <div><dt>접수번호</dt><dd class="big">${escapeHtml(r.id)}</dd></div>
         <div><dt>조회 열쇠</dt><dd class="mono">${escapeHtml(r.token)}</dd></div>
@@ -839,8 +853,9 @@ function renderReceipt(r) {
 }
 
 function renderStatus(st) {
-  const steps = ['received', 'reviewing', 'done'];
-  const at = steps.indexOf(st.status === 'rejected' ? 'done' : st.status);
+  // waiting(추가 자료 대기)은 심사 중의 한 상태입니다. 레일은 세 칸으로 둡니다.
+  const at = st.status === 'received' ? 0
+    : st.status === 'done' || st.status === 'rejected' ? 2 : 1;
   return `
     <div class="status-box${st.finished ? ' is-done' : ''}">
       <p class="status-top">
@@ -848,10 +863,7 @@ function renderStatus(st) {
         <span class="status-tag">${escapeHtml(st.statusLabel)}</span>
         <span class="dim">${st.grade}등급 신청</span>
       </p>
-      <ol class="status-rail">
-        ${['접수', '심사 중', '완료'].map((label, i) => `
-          <li class="${i <= at ? 'is-on' : ''}"><span class="dot"></span>${label}</li>`).join('')}
-      </ol>
+      ${renderRail(at)}
       <dl class="receipt-keys">
         <div><dt>예상 완료</dt><dd>${escapeHtml(formatDate(st.etaDate))}</dd></div>
         <div><dt>접수일</dt><dd>${escapeHtml(formatDate(st.createdAt))}</dd></div>
@@ -909,12 +921,24 @@ export function mountVerifier(root) {
   };
 
   /** 같은 사진을 다른 검사 방식으로 다시 봅니다. 측정은 다시 하지 않습니다. */
+  /** 신청서를 펼치고 그 자리로 옮겨 줍니다. 이미 펼쳐져 있으면 옮기기만 합니다. */
+  const openApplyForm = () => {
+    const panel = output.querySelector('[data-apply]');
+    if (!panel) return;
+    panel.hidden = false;
+    if (current) current.applyOpen = true;
+    panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    output.querySelector('[data-apply-contact]')?.focus({ preventScroll: true });
+  };
+
   const swapMode = async () => {
     if (!current || busy) return;
     current.mode = current.mode === 'quick' ? 'deep' : 'quick';
+    // 간단 검사 화면에서 "상세 검사 신청하기"를 눌러 온 것이므로 폼을 펼쳐 둡니다.
+    if (current.mode === 'deep') current.applyOpen = true;
     const tag = fileLine.querySelector('.mode-tag');
     if (tag) tag.textContent = MODE_LABEL[current.mode];
-    output.innerHTML = renderResult(current.bundle, current.mode);
+    output.innerHTML = renderResult(current.bundle, current.mode, current.applyOpen === true);
     paintIcons(output);
     if (current.mode === 'deep') paintEta();
     if (current.bundle.result.grade) await refreshMarkPreview();
@@ -1273,11 +1297,7 @@ export function mountVerifier(root) {
     const act = el.dataset.action;
     if (act === 'start') { e.preventDefault(); start(); }
     if (act === 'swap-mode') { e.preventDefault(); swapMode(); }
-    if (act === 'apply-top') {
-      e.preventDefault();
-      output.querySelector('[data-apply]')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      output.querySelector('[data-apply-contact]')?.focus({ preventScroll: true });
-    }
+    if (act === 'apply-open') { e.preventDefault(); openApplyForm(); }
     if (act === 'apply-send') { e.preventDefault(); sendApplication(el); }
     if (act === 'apply-summary') { e.preventDefault(); toggleSummary(); }
     if (act === 'copy-receipt') { e.preventDefault(); copyReceipt(el); }

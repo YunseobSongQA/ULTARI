@@ -35,11 +35,12 @@ export const newId = () => `${randomChars(ID_ALPHABET, 4)}-${randomChars(ID_ALPH
 export const newToken = () =>
   randomChars('abcdefghijklmnopqrstuvwxyz0123456789', 32);
 
+/* 화면의 진행 레일(신청 → 심사 중 → 결과 발표)과 같은 말을 씁니다. */
 export const STATUS = {
-  received: { label: '접수됨', done: false },
+  received: { label: '신청 접수', done: false },
   reviewing: { label: '심사 중', done: false },
   waiting: { label: '추가 자료 대기', done: false },
-  done: { label: '심사 완료', done: true },
+  done: { label: '결과 발표', done: true },
   rejected: { label: '반려', done: true },
 };
 
