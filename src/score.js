@@ -187,7 +187,7 @@ export function aiSignals(b) {
     decisive: Boolean(prov?.declaresAi),
     note: prov?.present
       ? (prov.via === 'C2PA' ? 'C2PA 서명을 읽었습니다' : '파일 메타데이터를 읽었습니다')
-      : 'C2PA 서명과 메타데이터를 훑었으나 없습니다 — 저장·캡처로 지워지므로 없다고 AI가 아닌 것은 아닙니다',
+      : 'C2PA 서명과 메타데이터에 없습니다. 표식은 저장·캡처로 지워집니다',
   });
 
   rows.push({
@@ -197,7 +197,7 @@ export function aiSignals(b) {
     side: exif.hasCameraId ? 'camera' : 'ai',
     note: exif.hasCameraId
       ? '생성물에는 촬영 기기가 적히지 않습니다'
-      : '메신저를 거친 실제 사진도 이렇게 됩니다. 이 줄 하나로는 정하지 않습니다',
+      : '메신저를 거친 실제 사진도 이렇게 됩니다',
   });
 
   {
@@ -340,7 +340,7 @@ export function synthesisSignals(b) {
       got: !c?.measurable ? '측정 불가' : `순백 화소 ${(c.white * 100).toFixed(4)}%`,
       side,
       note: '창문·하늘·금속 반사에서 센서는 한계를 넘겨 순백으로 탑니다. 생성물은 그럴 이유가 없어 '
-        + '거의 닿지 않습니다. 다만 어두운 실내 사진도 닿지 않으므로, 없다고 해서 생성물은 아닙니다',
+        + '거의 닿지 않습니다. 어두운 실내 사진도 닿지 않습니다',
     });
   }
 

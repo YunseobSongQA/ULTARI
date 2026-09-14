@@ -394,7 +394,7 @@ function renderProvenanceFacts(prov) {
       </dl>
       <p class="prov-note">
         ${prov.declaresAi
-          ? '이 표식은 지울 수 있습니다. 화면을 캡처하거나 다시 저장하면 사라지므로, 표식이 없다고 해서 AI가 아니라는 뜻은 되지 않습니다.'
+          ? '이 표식은 캡처하거나 다시 저장하면 사라집니다.'
           : '표식은 위조와 삭제가 모두 가능하므로, 이것만으로 진위가 확정되지는 않습니다.'}
       </p>
     </div>`;
@@ -497,7 +497,7 @@ function renderScorePanel(bundle) {
       <p class="tally-read${tally.camera === 0 ? ' is-none' : ''}">
         ${tally.camera === 0
           ? `카메라를 거친 흔적이 <strong>한 건도</strong> 잡히지 않았습니다.
-             다만 흔적이 지워진 실제 사진에서도 같은 결과가 나옵니다 — AI라는 단정이 아닙니다.`
+             메신저를 거친 사진과 스크린샷에서도 같은 결과가 나옵니다.`
           : `카메라를 거친 흔적이 <strong>${tally.camera}건</strong> 잡혔습니다.
              ${tally.ai > 0 ? `다만 ${tally.ai}건은 반대 방향입니다.` : ''}`}
       </p>
