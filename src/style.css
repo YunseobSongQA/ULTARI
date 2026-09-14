@@ -679,3 +679,97 @@ main.main--tool { padding-block: 44px 80px; }
 /* 결과가 길어서 위에서도 빠져나갈 수 있어야 합니다. 아래 것과 같은 동작입니다. */
 .top-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .btn--mini { font-size: 13px; padding: 7px 13px; }
+
+/* ── 상세 검사 접수 ──────────────────────────────────── */
+
+.apply-lead { font-size: 15px; margin-bottom: 14px; }
+
+/* 사진이 올라간다는 사실은 버튼 누르기 전에 보여야 합니다. */
+.apply-warn {
+  border-left: 3px solid var(--warn); background: #FDF7F4;
+  padding: 14px 16px; margin-bottom: 20px;
+}
+.apply-warn p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
+.apply-warn p + p { margin-top: 6px; }
+.apply-warn strong { color: var(--ink); }
+
+.apply-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 620px) { .apply-grid { grid-template-columns: 1fr; } }
+
+.fld { display: block; margin-bottom: 14px; }
+.fld-label { display: block; font-size: 12.5px; color: var(--ink-2); margin-bottom: 5px; }
+.fld-label em { font-style: normal; color: var(--ink-3); margin-left: 5px; }
+.fld input, .fld select, .fld textarea {
+  width: 100%; font: inherit; font-size: 14.5px; color: var(--ink);
+  background: var(--raised); border: 1px solid var(--rule-strong);
+  padding: 9px 11px; border-radius: 0;
+}
+.fld textarea { resize: vertical; line-height: 1.6; }
+.fld input:focus-visible, .fld select:focus-visible, .fld textarea:focus-visible {
+  outline: 2px solid var(--measure); outline-offset: 1px;
+}
+
+.apply-eta { font-size: 13.5px; color: var(--ink-2); margin: 4px 0 0; }
+
+.apply-bar { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+.apply-pct {
+  font-size: 22px; font-weight: 600; color: var(--measure);
+  font-variant-numeric: tabular-nums; flex: none; min-width: 4ch;
+}
+.apply-pct small { font-size: 13px; margin-left: 1px; }
+.apply-bar .bar { flex: 1; height: 6px; background: var(--rule); }
+.apply-bar .bar i { display: block; height: 100%; width: 0; background: var(--measure); transition: width 140ms ease; }
+
+.apply-msg { margin: 14px 0 0; font-size: 14px; color: var(--measure); }
+.apply-msg.is-bad { color: var(--warn); }
+
+/* 접수증 — 조회 열쇠는 한 번만 보여 줍니다. */
+.receipt { border: 1px solid var(--measure); background: var(--raised); padding: 22px 24px; margin-top: 20px; }
+.receipt-top { margin: 0 0 14px; font-size: 17px; font-weight: 600; color: var(--measure); }
+.receipt-keys { margin: 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.receipt-keys > div {
+  display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap;
+  background: var(--raised); padding: 9px 12px;
+}
+.receipt-keys dt { flex: none; min-width: 76px; font-size: 12.5px; color: var(--ink-3); }
+.receipt-keys dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.receipt-keys dd.big { font-size: 19px; font-weight: 600; letter-spacing: 0.04em; }
+.receipt-keys dd.mono { font-family: var(--mono); font-size: 13px; }
+.receipt-note {
+  margin: 14px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-3);
+  border-left: 2px solid var(--rule-strong); padding-left: 14px;
+}
+
+/* 현황 */
+.status-box { border: 1px solid var(--rule-strong); background: var(--raised); padding: 20px 22px; margin-top: 16px; }
+.status-box.is-done { border-color: var(--measure); }
+.status-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
+.status-id { font-size: 17px; font-weight: 600; letter-spacing: 0.04em; }
+.status-tag { font-size: 12px; border: 1px solid var(--measure); color: var(--measure); padding: 1px 7px; }
+.status-box.is-done .status-tag { background: var(--measure); color: var(--paper); }
+
+.status-rail { list-style: none; margin: 0 0 18px; padding: 0; display: flex; gap: 0; }
+.status-rail li {
+  flex: 1; font-size: 12.5px; color: var(--ink-3);
+  display: flex; flex-direction: column; gap: 7px; position: relative;
+}
+.status-rail .dot { width: 11px; height: 11px; border: 1px solid var(--rule-strong); background: var(--raised); }
+.status-rail li.is-on { color: var(--ink); }
+.status-rail li.is-on .dot { background: var(--measure); border-color: var(--measure); }
+.status-rail li:not(:last-child)::after {
+  content: ""; position: absolute; left: 11px; top: 5px; right: 8px; height: 1px; background: var(--rule);
+}
+.status-result { margin: 16px 0 0; font-size: 14.5px; }
+.status-hist { list-style: none; margin: 14px 0 0; padding: 0; font-size: 12.5px; color: var(--ink-2); }
+.status-hist li { padding: 3px 0; }
+
+.mine-title { font-size: 12.5px; color: var(--ink-2); margin: 18px 0 8px; }
+.mine-list { list-style: none; margin: 0; padding: 0; }
+.mine-list li {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 9px 0; border-top: 1px solid var(--rule); font-size: 13.5px;
+}
+.mine-id { font-weight: 600; letter-spacing: 0.04em; }
+.mine-list .btn { margin-left: auto; }
+.dim { color: var(--ink-3); }
+.fold--lookup { margin-top: 26px; }

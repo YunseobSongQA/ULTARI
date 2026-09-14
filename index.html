@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ULTARI — 카메라로 찍은 사진인지 30초 만에 확인합니다</title>
-  <meta name="description" content="사진 파일에 남은 촬영 흔적을 브라우저 안에서 측정해 등급을 발급하고 인증 마크를 새겨 드립니다. 사진은 서버로 전송되지 않습니다.">
+  <meta name="description" content="사진 파일에 남은 촬영 흔적을 브라우저 안에서 측정해 등급을 발급하고 인증 마크를 새겨 드립니다. 간단 검사는 브라우저를 벗어나지 않습니다.">
   <meta name="color-scheme" content="light">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -33,7 +33,7 @@
         <h1>사람이 들인 시간을<br>인증합니다</h1>
       </div>
       <p class="hero-sub">새벽에 나가 기다리고 셔터를 누른 시간은 파일에 흔적으로 남습니다. ULTARI는 그 흔적을 재서 <strong>사진 한 장에 들어간 사람의 몫</strong>을 증명해 드립니다. 사진을 올려 보시면 30초 만에 나옵니다.</p>
-      <p class="local-badge"><span data-icon="lock"></span>사진은 이 브라우저를 벗어나지 않습니다. 업로드 주소 자체가 없습니다.</p>
+      <p class="local-badge"><span data-icon="lock"></span>간단 검사는 이 브라우저 안에서 끝납니다. 사진이 전송되는 것은 상세 검사를 직접 신청하실 때뿐입니다.</p>
 
       <section data-verifier>
         <div class="lanes" data-lanes>
@@ -93,6 +93,27 @@
         </div>
 
         <div data-output></div>
+
+        <details class="fold fold--lookup" data-lookup>
+          <summary>상세 검사 현황 조회<span class="hint">접수번호와 조회 열쇠로</span></summary>
+          <div class="fold-body">
+            <div class="apply-grid">
+              <label class="fld">
+                <span class="fld-label">접수번호</span>
+                <input type="text" data-lookup-id placeholder="ABCD-2345" maxlength="9" autocomplete="off">
+              </label>
+              <label class="fld">
+                <span class="fld-label">조회 열쇠</span>
+                <input type="text" data-lookup-token placeholder="32자" maxlength="32" autocomplete="off">
+              </label>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn--mini" type="button" data-action="lookup">현황 조회</button>
+            </div>
+            <div class="mine" data-mine></div>
+            <div data-lookup-out></div>
+          </div>
+        </details>
       </section>
 
       <div class="folds">
@@ -189,7 +210,7 @@
           <a href="/privacy">개인정보 처리방침</a>
           <a href="/terms">이용약관</a>
       </nav>
-      <p class="foot-note">ULTARI는 사진에 남은 촬영 흔적을 브라우저 안에서 측정하고 등급을 발급합니다. 사진은 서버로 전송되지 않습니다. AI 이미지를 탐지하지 않고, AI 학습을 막지 않습니다.</p>
+      <p class="foot-note">ULTARI는 사진에 남은 촬영 흔적을 브라우저 안에서 측정하고 등급을 발급합니다. 간단 검사는 브라우저를 벗어나지 않습니다. 사진이 서버로 가는 것은 상세 검사를 직접 신청하실 때뿐입니다. AI 이미지를 탐지하지 않고, AI 학습을 막지 않습니다.</p>
     </div>
   </footer>
   <script type="module" src="/src/ui.js"></script>

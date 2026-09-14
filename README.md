@@ -10,10 +10,15 @@
 
 ## 타협 불가 원칙
 
-**업로드된 이미지는 서버로 전송되지 않습니다.** 업로드 엔드포인트가 없고, 서버가 없고,
-데이터베이스가 없습니다. 소스 전체에 `fetch`, `XMLHttpRequest`, `WebSocket`, `form action`이
-하나도 없습니다. 확인하려면 개발자 도구의 네트워크 탭을 켜고 검증해 보십시오.
-외부로 나가는 요청은 Pretendard 글꼴(jsDelivr) 하나뿐이고, 이 사실은 `/privacy`에 적어 두었습니다.
+**간단 검사에서 이미지는 서버로 전송되지 않습니다.** 검사 코드(`src/verify/*`, `grade.js`,
+`score.js`, `watermark.js`)에 `fetch`, `XMLHttpRequest`, `WebSocket`, `form action`이 하나도
+없습니다. 확인하려면 개발자 도구의 네트워크 탭을 켜고 간단 검사를 해 보십시오.
+
+**상세 검사는 다릅니다.** 사람이 사진을 보려면 파일이 사람에게 가야 합니다. 그래서 상세 검사
+신청 버튼을 누를 때 사진 원본이 서버로 올라갑니다. 네트워크를 쓰는 코드는 `src/review.js`
+하나뿐이고, 그 버튼 뒤에서만 호출됩니다. 무엇을 받고 언제 지우는지는 `/privacy` 9항에 있습니다.
+
+이 경계를 흐리지 마십시오. "사진은 전송되지 않는다"를 무조건적으로 다시 적으면 거짓이 됩니다.
 
 ---
 
@@ -28,6 +33,49 @@ npm run preview
 
 `vite.config.js`의 `cleanUrls` 플러그인이 개발/프리뷰 서버에서 `/how` → `how.html`을 처리합니다.
 Cloudflare Pages는 같은 규칙을 기본으로 제공합니다.
+
+## 상세 검사 접수 — 서버 설정
+
+상세 검사만 서버를 씁니다. Cloudflare Pages Functions(`functions/api/*`)와 바인딩 두 개,
+관리 키 하나가 필요합니다. **대시보드에서 직접 만들어 연결해야 합니다.**
+
+| 종류 | 바인딩 이름 | 쓰임 |
+|---|---|---|
+| KV 네임스페이스 | `ULTARI_APPS` | 접수 기록, 대기 색인 |
+| R2 버킷 | `ULTARI_FILES` | 사진 원본 |
+| 환경 변수 (시크릿) | `ULTARI_ADMIN_KEY` | 심사자가 상태를 옮길 때 쓰는 키 |
+
+Pages → 프로젝트 → Settings → Bindings에서 추가합니다. 셋 중 하나라도 없으면 접수 API가
+503과 함께 무엇이 빠졌는지 알려 주고, 조회 폼은 그대로 실패합니다. 간단 검사는 영향받지 않습니다.
+
+### 경로
+
+| 메서드 | 경로 | 하는 일 |
+|---|---|---|
+| POST | `/api/apply` | 사진 + 연락처 + 상황을 받아 접수번호와 조회 열쇠를 발급 |
+| GET | `/api/status?id=&token=` | 접수번호와 열쇠가 둘 다 맞으면 현황 반환 |
+| GET | `/api/admin` | 대기 건수만 반환 (공개) |
+| POST | `/api/admin` | 상태 변경. `x-ultari-admin` 헤더에 관리 키 필요 |
+
+상태는 `received` → `reviewing` → `done`이고 `waiting`(추가 자료 대기)과 `rejected`도 있습니다.
+
+```bash
+# 심사 착수
+curl -X POST https://ultari.pages.dev/api/admin   -H "x-ultari-admin: $ULTARI_ADMIN_KEY" -H "content-type: application/json"   -d '{"id":"ABCD-2345","status":"reviewing","note":"담당자 배정"}'
+
+# 완료
+curl -X POST https://ultari.pages.dev/api/admin   -H "x-ultari-admin: $ULTARI_ADMIN_KEY" -H "content-type: application/json"   -d '{"id":"ABCD-2345","status":"done","result":"2등급 발급"}'
+```
+
+조회 열쇠는 접수 응답에 한 번만 나가고 서버에는 SHA-256 해시만 남습니다. 재발급이 불가능한
+것은 의도된 것이고, 접수번호가 새어도 남의 신청을 열 수 없게 하기 위한 것입니다.
+
+### 로컬에서 돌려 보기
+
+```bash
+npm run build
+npx wrangler pages dev dist --kv ULTARI_APPS --r2 ULTARI_FILES --binding ULTARI_ADMIN_KEY=dev
+```
 
 ## 배포 (Cloudflare Pages)
 
@@ -52,9 +100,9 @@ export const REVIEW_QUEUE = { updatedAt: '2026-09-11', grade2: 0, grade1: 0, arc
 
 - `CONTACT`는 자리표시자입니다. 실제 주소로 바꾸십시오. 심사 접수, 아카이브 접수, 피드백이
   모두 이 주소 하나를 씁니다.
-- `REVIEW_QUEUE`의 숫자는 **실제 접수 건수**입니다. 서버가 없으므로 접수함을 확인하고 손으로
-  갱신합니다. 0건이면 0건이라고 씁니다. 진위를 파는 서비스가 대기열을 부풀리면 그 순간
-  팔 물건이 없어집니다.
+- `REVIEW_QUEUE`의 숫자는 `/api/admin` 호출이 실패했을 때 쓰는 대체값입니다. 실제 대기
+  건수는 서버에서 옵니다. 0건이면 0건이라고 씁니다. 진위를 파는 서비스가 대기열을 부풀리면
+  그 순간 팔 물건이 없어집니다.
 
 ---
 
@@ -200,8 +248,8 @@ ImageData로 올리면 96MB가 필요합니다), 후자는 대기 건수와 접�
 
 - 광고 자리는 `.ad-slot`으로 레이아웃에만 잡혀 있습니다. **스크립트는 넣지 않았습니다.**
   승인 전에 넣으면 의미가 없습니다.
-- `/privacy`와 `/terms`가 있고, 개인정보 처리방침에 이미지가 전송되지 않는다는 사실을
-  명시했습니다.
+- `/privacy`와 `/terms`가 있고, 간단 검사에서 이미지가 전송되지 않는다는 사실과 상세 검사에서
+  무엇을 받아 언제 지우는지를 나눠 적었습니다.
 - `/articles/`에 글 3편이 있고, `/archive`와 `/roadmap`도 읽을 내용이 있는 페이지입니다.
   도구 하나만 있는 사이트는 “가치가 낮은 콘텐츠”로 거절될 가능성이 높습니다.
   **글이 더 쌓이기 전에는 신청하지 않는 편이 낫습니다.**

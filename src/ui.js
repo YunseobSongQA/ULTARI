@@ -1,13 +1,14 @@
 /**
  * ui.js — 검증 도구 화면.
  *
- * 파일은 읽기만 하고 어디로도 보내지 않습니다.
- * 이 파일에 fetch, XMLHttpRequest, WebSocket, form action은 없습니다.
- * 확인하려면 브라우저 개발자 도구의 네트워크 탭을 켜고 검증해 보십시오.
+ * 간단 검사는 파일을 읽기만 하고 어디로도 보내지 않습니다. 검사 코드에는
+ * fetch, XMLHttpRequest, WebSocket, form action이 없습니다. 네트워크를 쓰는
+ * 코드는 review.js 하나뿐이고, 사용자가 상세 검사 신청 버튼을 누른 뒤에만
+ * 호출됩니다. 개발자 도구의 네트워크 탭을 켜고 확인해 보십시오.
  *
  * 투입구는 둘입니다.
- *   간단 검사 — 기계가 30초에 끝냅니다. 최대 3등급.
- *   상세 검사 — 같은 측정을 하고, 그 결과를 사람 심사로 넘깁니다. 최대 1등급.
+ *   간단 검사 — 기계가 30초에 끝냅니다. 브라우저 안에서 끝납니다. 최대 3등급.
+ *   상세 검사 — 같은 측정을 한 뒤 사진을 사람 심사로 올립니다. 최대 1등급.
  */
 
 import { loadPixels } from './verify/pixels.js';
@@ -27,6 +28,10 @@ import {
   POSITIONS, DEFAULT_POSITION,
 } from './watermark.js';
 import { paintIcons } from './site.js';
+import {
+  submitApplication, fetchStatus, fetchQueue, listApplications,
+  rememberApplication, formatDate, MAX_UPLOAD,
+} from './review.js';
 
 /* 증서에 찍히는 울타리 마크 — public/favicon.svg와 같은 도형 */
 const CERT_MARK = `<svg viewBox="1 4 30 24.6" width="38" height="31" fill="currentColor" aria-hidden="true"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg>`;
@@ -563,24 +568,51 @@ function renderResult(bundle, mode) {
     </div>` : '';
 
   const deepPanel = mode === 'deep' ? `
-    <div class="panel">
-      <p class="panel-title">상세 검사 접수</p>
-      <p style="font-size:15px;margin-bottom:6px">
+    <div class="panel" data-apply>
+      <p class="panel-title">상세 검사 신청</p>
+      <p class="apply-lead">
         여기부터는 사람이 봅니다. 화면을 다시 찍은 것은 아닌지, 그림자와 반사가 서로 맞는지,
-        같은 카메라에서 나온 다른 컷이 있는지. 2등급은 며칠, 센서 지문까지 대조하는 1등급은 몇 주 걸립니다.
+        같은 카메라에서 나온 다른 컷이 있는지.
       </p>
-      <p style="font-size:13.5px;color:var(--ink-3);margin-bottom:16px">
-        2등급 ${escapeHtml(queueLine(REVIEW_QUEUE.grade2))} 1등급 ${escapeHtml(queueLine(REVIEW_QUEUE.grade1))}
-        접수처 ${escapeHtml(CONTACT)}
-      </p>
-      <p class="panel-title" style="margin-bottom:8px">보낼 내용 — 이미지는 들어가지 않습니다</p>
-      <pre class="copybox" data-submission>${escapeHtml(summary.join('\n'))}</pre>
-      <div class="btn-row">
-        <a class="btn" href="${MAIL.deepReview(summary)}">메일로 신청서 열기</a>
-        <button class="btn btn--ghost" type="button" data-action="copy">신청서 복사</button>
-        <button class="btn btn--ghost" type="button" data-action="reset">다른 사진</button>
+
+      <div class="apply-warn">
+        <p><strong>이 버튼을 누르면 사진 원본이 서버로 올라갑니다.</strong></p>
+        <p>간단 검사는 브라우저 안에서 끝나지만, 사람이 보려면 파일이 사람에게 가야 합니다.
+           무엇을 보관하고 언제 지우는지는 <a href="/privacy">개인정보 처리방침</a>에 적어 두었습니다.</p>
       </div>
-      <p class="btn-note">원본 파일은 담당자와 연락이 닿은 뒤 직접 전달하시면 됩니다. 지금 보내지 않습니다.</p>
+
+      <div class="apply-grid">
+        <label class="fld">
+          <span class="fld-label">신청 등급</span>
+          <select data-apply-grade>
+            <option value="2">2등급 — 사람이 사진을 봅니다</option>
+            <option value="1">1등급 — 센서 지문까지 대조합니다</option>
+          </select>
+        </label>
+        <label class="fld">
+          <span class="fld-label">연락받을 곳 <em>필수</em></span>
+          <input type="text" data-apply-contact placeholder="메일 주소 또는 전화번호" maxlength="200" autocomplete="email">
+        </label>
+      </div>
+      <label class="fld">
+        <span class="fld-label">촬영 상황 <em>있으면 심사가 빨라집니다</em></span>
+        <textarea data-apply-note rows="3" maxlength="2000"
+          placeholder="언제 어디서 무엇을 찍었는지, 어떤 장비를 쓰셨는지, 같은 촬영의 다른 컷이 있는지"></textarea>
+      </label>
+
+      <p class="apply-eta" data-apply-eta></p>
+
+      <div class="btn-row">
+        <button class="btn" type="button" data-action="apply-send">신청하고 사진 올리기</button>
+        <button class="btn btn--ghost" type="button" data-action="apply-summary">보낼 측정 요약 보기</button>
+      </div>
+      <div class="apply-bar" data-apply-bar hidden>
+        <span class="apply-pct" data-apply-pct>0<small>%</small></span>
+        <div class="bar"><i data-apply-fill></i></div>
+      </div>
+      <p class="apply-msg" data-apply-msg hidden></p>
+      <pre class="copybox" data-submission hidden>${escapeHtml(summary.join(String.fromCharCode(10)))}</pre>
+      <div data-apply-done></div>
     </div>` : '';
 
   const hints = result.hints.length
@@ -658,6 +690,57 @@ function renderError(message, detail) {
     </section>`;
 }
 
+/* ── 상세 검사 접수 ──────────────────────────────────── */
+
+/** 접수증. 조회 열쇠는 여기서 한 번만 보여 줍니다. */
+function renderReceipt(r) {
+  return `
+    <div class="receipt">
+      <p class="receipt-top">접수됐습니다</p>
+      <dl class="receipt-keys">
+        <div><dt>접수번호</dt><dd class="big">${escapeHtml(r.id)}</dd></div>
+        <div><dt>조회 열쇠</dt><dd class="mono">${escapeHtml(r.token)}</dd></div>
+        <div><dt>예상 완료</dt><dd>${escapeHtml(formatDate(r.etaDate))} <span class="dim">· 영업일 ${r.etaDays}일</span></dd></div>
+        <div><dt>앞선 대기</dt><dd>${r.queueAhead}건</dd></div>
+      </dl>
+      <p class="receipt-note">
+        조회 열쇠는 <strong>지금 이 화면에만</strong> 나옵니다. 서버에는 열쇠의 해시만 남겨서
+        다시 발급해 드릴 수 없습니다. 이 브라우저에도 적어 두었지만, 따로 옮겨 두시는 편이 안전합니다.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn--mini" type="button" data-action="copy-receipt"
+          data-id="${escapeHtml(r.id)}" data-token="${escapeHtml(r.token)}">접수번호와 열쇠 복사</button>
+        <button class="btn btn--mini btn--ghost" type="button" data-action="check-status"
+          data-id="${escapeHtml(r.id)}" data-token="${escapeHtml(r.token)}">현황 보기</button>
+      </div>
+    </div>`;
+}
+
+function renderStatus(st) {
+  const steps = ['received', 'reviewing', 'done'];
+  const at = steps.indexOf(st.status === 'rejected' ? 'done' : st.status);
+  return `
+    <div class="status-box${st.finished ? ' is-done' : ''}">
+      <p class="status-top">
+        <span class="status-id">${escapeHtml(st.id)}</span>
+        <span class="status-tag">${escapeHtml(st.statusLabel)}</span>
+        <span class="dim">${st.grade}등급 신청</span>
+      </p>
+      <ol class="status-rail">
+        ${['접수', '심사 중', '완료'].map((label, i) => `
+          <li class="${i <= at ? 'is-on' : ''}"><span class="dot"></span>${label}</li>`).join('')}
+      </ol>
+      <dl class="receipt-keys">
+        <div><dt>예상 완료</dt><dd>${escapeHtml(formatDate(st.etaDate))}</dd></div>
+        <div><dt>접수일</dt><dd>${escapeHtml(formatDate(st.createdAt))}</dd></div>
+        <div><dt>마지막 변경</dt><dd>${escapeHtml(formatDate(st.updatedAt))}</dd></div>
+      </dl>
+      ${st.result ? `<p class="status-result">${escapeHtml(st.result)}</p>` : ''}
+      ${st.history?.length ? `<ul class="status-hist">${st.history.map((h) =>
+        `<li><span class="dim">${escapeHtml(formatDate(h.at))}</span> ${escapeHtml(h.label)}${h.note ? ` — ${escapeHtml(h.note)}` : ''}</li>`).join('')}</ul>` : ''}
+    </div>`;
+}
+
 /* ── 조립 ────────────────────────────────────────────── */
 
 const MODE_LABEL = { quick: '간단 검사', deep: '상세 검사' };
@@ -711,6 +794,7 @@ export function mountVerifier(root) {
     if (tag) tag.textContent = MODE_LABEL[current.mode];
     output.innerHTML = renderResult(current.bundle, current.mode);
     paintIcons(output);
+    if (current.mode === 'deep') paintEta();
     if (current.bundle.result.grade) await refreshMarkPreview();
     output.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
@@ -795,6 +879,7 @@ export function mountVerifier(root) {
       finishProgress(performance.now() - startedAt);
       output.innerHTML = renderResult(bundle, mode);
       paintIcons(output);
+      if (mode === 'deep') paintEta();
       if (bundle.result.grade) await refreshMarkPreview();
     } catch (err) {
       progress.hidden = true;
@@ -929,6 +1014,135 @@ export function mountVerifier(root) {
     setTimeout(() => { button.textContent = '신청서 복사'; }, 2200);
   };
 
+  /* ── 상세 검사 접수 동작 ─────────────────────────── */
+
+  const applyEl = (sel) => output.querySelector(sel);
+
+  const toggleSummary = () => {
+    const box = applyEl('[data-submission]');
+    if (box) box.hidden = !box.hidden;
+  };
+
+  /** 예상 완료일은 실제 대기 건수에서 나옵니다. 없는 속도를 적지 않습니다. */
+  const paintEta = async () => {
+    const line = applyEl('[data-apply-eta]');
+    if (!line) return;
+    line.textContent = '대기 건수를 확인하는 중…';
+    const open = await fetchQueue();
+    const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
+    const base = grade === 1 ? 15 : 4;
+    if (open == null) {
+      line.textContent = `영업일 ${base}일 정도 걸립니다. 대기 건수는 확인하지 못했습니다.`;
+      return;
+    }
+    const days = base + Math.floor(open / 5) * base;
+    line.textContent = `현재 대기 ${open}건 · ${grade}등급 예상 소요 영업일 ${days}일. 접수하면 정확한 완료 예정일이 나옵니다.`;
+  };
+
+  const sendApplication = async (button) => {
+    if (!current) return;
+    const msg = applyEl('[data-apply-msg]');
+    const bar = applyEl('[data-apply-bar]');
+    const fill = applyEl('[data-apply-fill]');
+    const pct = applyEl('[data-apply-pct]');
+    const contact = applyEl('[data-apply-contact]')?.value?.trim() || '';
+    const note = applyEl('[data-apply-note]')?.value?.trim() || '';
+    const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
+
+    const say = (text, bad = false) => {
+      if (!msg) return;
+      msg.hidden = false;
+      msg.textContent = text;
+      msg.classList.toggle('is-bad', bad);
+    };
+
+    if (contact.length < 5) { say('연락받을 메일 주소나 전화번호를 적어 주세요.', true); return; }
+    if (current.file.size > MAX_UPLOAD) {
+      say(`사진이 ${Math.round(MAX_UPLOAD / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 신청해 주세요.`, true);
+      return;
+    }
+
+    button.disabled = true;
+    bar.hidden = false;
+    say('사진을 올리고 있습니다. 이 창을 닫지 마세요.');
+
+    try {
+      const r = await submitApplication({
+        file: current.file,
+        grade,
+        contact,
+        note,
+        summary: summaryLines(current.bundle.result, buildRows(current.bundle), current.bundle.print).join(String.fromCharCode(10)),
+        fingerprint: current.bundle.print?.short || '',
+        onProgress: (v) => {
+          const n = Math.round(v);
+          fill.style.width = `${n}%`;
+          pct.innerHTML = `${n}<small>%</small>`;
+        },
+      });
+      rememberApplication({ id: r.id, token: r.token, grade: r.grade, createdAt: r.createdAt, etaDate: r.etaDate });
+      say('접수됐습니다.');
+      applyEl('[data-apply-done]').innerHTML = renderReceipt(r);
+      paintMine();
+      applyEl('[data-apply-done]').scrollIntoView({ block: 'center', behavior: 'smooth' });
+    } catch (err) {
+      button.disabled = false;
+      bar.hidden = true;
+      say(err.message || '접수에 실패했습니다.', true);
+    }
+  };
+
+  const copyReceipt = async (el) => {
+    const text = `ULTARI 상세 검사 접수번호 ${el.dataset.id} / 조회 열쇠 ${el.dataset.token}`;
+    const label = el.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      el.textContent = '복사했습니다';
+    } catch {
+      el.textContent = '복사하지 못했습니다';
+    }
+    setTimeout(() => { el.textContent = label; }, 2200);
+  };
+
+  const showStatus = async (id, token) => {
+    const target = root.querySelector('[data-lookup-out]');
+    if (!target) return;
+    root.querySelector('[data-lookup]')?.setAttribute('open', '');
+    target.innerHTML = '<p class="apply-msg">조회하는 중…</p>';
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    try {
+      target.innerHTML = renderStatus(await fetchStatus(id, token));
+    } catch (err) {
+      target.innerHTML = `<p class="apply-msg is-bad">${escapeHtml(err.message)}</p>`;
+    }
+  };
+
+  const lookupFromForm = () => {
+    const id = root.querySelector('[data-lookup-id]')?.value?.trim().toUpperCase() || '';
+    const token = root.querySelector('[data-lookup-token]')?.value?.trim() || '';
+    showStatus(id, token);
+  };
+
+  /** 이 브라우저에 적어 둔 접수는 열쇠를 다시 치지 않아도 됩니다. */
+  const paintMine = () => {
+    const box = root.querySelector('[data-mine]');
+    if (!box) return;
+    const mine = listApplications();
+    box.innerHTML = mine.length ? `
+      <p class="mine-title">이 브라우저에 남아 있는 접수 ${mine.length}건</p>
+      <ul class="mine-list">${mine.map((a) => `
+        <li>
+          <span class="mine-id">${escapeHtml(a.id)}</span>
+          <span class="dim">${a.grade}등급 · 예상 ${escapeHtml(formatDate(a.etaDate))}</span>
+          <button class="btn btn--mini btn--ghost" type="button" data-action="check-status"
+            data-id="${escapeHtml(a.id)}" data-token="${escapeHtml(a.token)}">조회</button>
+        </li>`).join('')}</ul>` : '';
+  };
+
+  root.addEventListener('change', (e) => {
+    if (e.target.matches('[data-apply-grade]')) paintEta();
+  });
+
   root.addEventListener('click', (e) => {
     const pos = e.target.closest('.seg-btn');
     if (pos) { e.preventDefault(); choosePosition(pos); return; }
@@ -937,6 +1151,11 @@ export function mountVerifier(root) {
     const act = el.dataset.action;
     if (act === 'start') { e.preventDefault(); start(); }
     if (act === 'swap-mode') { e.preventDefault(); swapMode(); }
+    if (act === 'apply-send') { e.preventDefault(); sendApplication(el); }
+    if (act === 'apply-summary') { e.preventDefault(); toggleSummary(); }
+    if (act === 'copy-receipt') { e.preventDefault(); copyReceipt(el); }
+    if (act === 'check-status') { e.preventDefault(); showStatus(el.dataset.id, el.dataset.token); }
+    if (act === 'lookup') { e.preventDefault(); lookupFromForm(); }
     if (act === 'reset') { e.preventDefault(); reset(); }
     if (act === 'dl-photo') { e.preventDefault(); downloadMarked(el); }
     if (act === 'dl-mark') { e.preventDefault(); downloadMarkOnly(el); }
@@ -944,6 +1163,7 @@ export function mountVerifier(root) {
   });
 
   paintIcons(root);
+  paintMine();
 }
 
 mountVerifier(document.querySelector('[data-verifier]'));
