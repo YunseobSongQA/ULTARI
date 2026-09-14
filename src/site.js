@@ -17,6 +17,9 @@ export const ICONS = {
   lock: icon('<rect x="4" y="10.5" width="16" height="9.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>'),
   download: icon('<path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/>'),
   archive: icon('<rect x="3" y="4" width="18" height="4"/><path d="M5 8v12h14V8"/><path d="M10 12h4"/>'),
+  // 상태 표시용. 색만으로 구분하지 않도록 라벨과 함께 씁니다.
+  check: icon('<path d="M4.5 12.5l4.8 4.8L19.5 7"/>'),
+  cross: icon('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>'),
 };
 
 export function paintIcons(scope = document) {

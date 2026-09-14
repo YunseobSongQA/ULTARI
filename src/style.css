@@ -774,18 +774,47 @@ main.main--tool { padding-block: 44px 80px; }
 .dim { color: var(--ink-3); }
 .fold--lookup { margin-top: 26px; }
 
-/* 신청 폼이 맨 위로 올라오면서, 무엇이 이미 측정됐는지 한 칸으로 보여 줍니다. */
-.quickcard {
-  border: 1px solid var(--rule-strong); background: var(--surface);
-  padding: 16px 18px; margin-bottom: 20px;
+/* ── 상세 검사 신십 자객 ────────────────────── */
+/* 폼을 먼지 보여 주면 다 적은 뒤에 안 된다는 말을 듣게 됩니다. */
+.elig {
+  border: 1px solid var(--rule-strong);
+  border-left: 3px solid var(--measure);
+  background: var(--raised);
+  padding: 22px 24px;
+  margin-bottom: 18px;
 }
-.quickcard-top { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-2); }
-.quickcard-rows { list-style: none; margin: 0; padding: 0; }
-.quickcard-rows li {
-  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  padding: 6px 0; font-size: 13.5px; color: var(--ink-2);
+.elig--no { border-left-color: var(--warn); }
+.elig-kicker { margin: 0 0 6px; font-size: 12.5px; color: var(--ink-3); }
+.elig-head { font-size: 21px; margin: 0 0 16px; }
+
+.elig-checks { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.elig-checks li {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: 13.5px;
 }
-.quickcard-rows li + li { border-top: 1px solid var(--rule); }
-.quickcard-rows li > span:first-child { flex: none; min-width: 74px; color: var(--ink-3); font-size: 12.5px; }
-.quickcard-rows b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
-.quickcard-note { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-3); }
+/* 색만으로 구분하지 않습니다. 기호와 라벨이 함께 있습니다. */
+.elig-mark { flex: none; line-height: 0; color: var(--measure); }
+.elig-mark svg { width: 17px; height: 17px; }
+.elig-checks li.is-no .elig-mark { color: var(--warn); }
+.elig-label { flex: none; min-width: 90px; font-weight: 600; }
+.elig-checks li.is-no .elig-label { color: var(--warn); }
+.elig-detail { flex: 1 1 240px; color: var(--ink-2); }
+
+.elig-quick { margin: 14px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.elig-quick b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.elig-note { margin: 8px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-3); }
+.elig .top-actions { margin: 18px 0 0; }
+
+/* 신청서 아래로 간단 검사 결과가 이어진다는 표시. */
+.section-head { margin: 36px 0 14px; padding-top: 18px; border-top: 1px solid var(--rule-strong); }
+.section-head h2 { font-size: 17px; }
+.section-head p { margin: 5px 0 0; font-size: 13px; color: var(--ink-3); }
+
+@media (max-width: 620px) {
+  .elig { padding: 20px 18px; }
+  .elig-head { font-size: 19px; }
+  /* 한 줄만 넘치면 줄마다 정렬이 달라집니다. 좁을 때는 모두 두 줄로 씁니다. */
+  .elig-label { min-width: 0; }
+  .elig-checks li { row-gap: 2px; }
+  .elig-detail { flex-basis: 100%; padding-left: 27px; }
+}

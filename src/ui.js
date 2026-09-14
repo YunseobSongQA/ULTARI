@@ -536,6 +536,7 @@ function renderResult(bundle, mode) {
   const summary = summaryLines(result, rows, print);
   const isPass = result.verdict === VERDICT.PASS;
   const isDeclared = result.verdict === VERDICT.DECLARED_AI;
+  const elig = eligibility(bundle);
 
   const certClass = isPass ? ''
     : (result.verdict === VERDICT.HOLD || result.verdict === VERDICT.DECLARED_AI)
@@ -567,32 +568,34 @@ function renderResult(bundle, mode) {
       <p class="btn-note">브라우저의 기본 다운로드 폴더에 저장됩니다. 파일을 만드는 것도 저장하는 것도 이 기기에서만 일어납니다.</p>
     </div>` : '';
 
-  const applyBlocked = isDeclared ? `
+  // 자격이 없으면 폼 대신 왜 안 되는지를 놓습니다. 상태는 이미 위에서 말했고,
+  // 여기서는 그래서 무엇을 하면 되는지만 적습니다.
+  const blockedPanel = `
     <div class="panel" data-apply>
-      <p class="panel-title">상세 검사 신청</p>
+      <p class="panel-title">신청할 수 없는 이유</p>
       <div class="apply-warn">
-        <p><strong>이 사진은 상세 검사를 신청하실 수 없습니다.</strong></p>
-        <p>파일이 스스로 AI 생성물이라고 기록하고 있습니다${bundle.provenance?.generator
-          ? ` (기록된 생성기: ${escapeHtml(bundle.provenance.generator)})` : ''}.
-          이 기록은 생성한 쪽이 규격(C2PA)에 따라 서명해 남긴 것이라 사람이 다시 볼 여지가 없습니다.</p>
-        <p>측정값 때문이 아니라 파일에 적힌 것 때문입니다. 촬영한 사진이 맞다면
-          카메라나 갤러리에서 바로 꺼낸 원본으로 다시 시도해 주세요.</p>
+        ${elig.declared ? `
+          <p><strong>파일이 스스로 AI 생성물이라고 기록하고 있습니다.</strong>${bundle.provenance?.generator
+            ? ` 기록된 생성기는 ${escapeHtml(bundle.provenance.generator)}입니다.` : ''}
+            이 기록은 생성한 쪽이 규격(C2PA)에 따라 서명해 남긴 것이라 사람이 다시 볼 여지가 없습니다.</p>
+          <p>측정값 때문이 아니라 파일에 적힌 것 때문입니다. 촬영한 사진이 맞다면
+            카메라나 갤러리에서 바로 꺼낸 원본으로 다시 시도해 주세요.</p>` : ''}
+        ${elig.oversize ? `
+          <p><strong>파일이 접수 상한 ${UPLOAD_MB}MB를 넘습니다.</strong>
+            이 사진은 ${escapeHtml(formatBytes(bundle.print?.bytes) || '크기 미상')}입니다.</p>
+          <p>줄여서 올리시면 원본이 아니어서 심사할 수 없습니다. 원본 그대로 맡기셔야 한다면
+            <a href="mailto:${CONTACT}">${CONTACT}</a>로 연락해 주십시오.</p>` : ''}
       </div>
-      <div class="btn-row">
-        <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
-      </div>
-    </div>` : '';
+    </div>`;
 
-  const deepPanel = mode === 'deep' && !isDeclared ? `
+  const deepPanel = `
     <div class="panel" data-apply>
-      <p class="panel-title">상세 검사 신청</p>
+      <p class="panel-title">신청서</p>
       <p class="apply-lead">
         상세 검사는 <strong>간단 검사를 먼저 자동으로 돌린 다음</strong>, 그 결과를 사람 심사로 넘깁니다.
-        방금 이 사진으로 간단 검사가 끝났고, 사람이 보는 것은 그 뒤부터입니다 —
-        화면을 다시 찍은 것은 아닌지, 그림자와 반사가 서로 맞는지, 같은 카메라에서 나온 다른 컷이 있는지.
+        사람이 보는 것은 간단 검사가 끝난 뒤부터입니다 — 화면을 다시 찍은 것은 아닌지,
+        그림자와 반사가 서로 맞는지, 같은 카메라에서 나온 다른 컷이 있는지.
       </p>
-
-      ${quickSummaryCard(bundle)}
 
       <div class="apply-warn">
         <p><strong>이 버튼을 누르면 사진 원본이 서버로 올라갑니다.</strong></p>
@@ -632,7 +635,7 @@ function renderResult(bundle, mode) {
       <p class="apply-msg" data-apply-msg hidden></p>
       <pre class="copybox" data-submission hidden>${escapeHtml(summary.join(String.fromCharCode(10)))}</pre>
       <div data-apply-done></div>
-    </div>` : '';
+    </div>`;
 
   const hints = result.hints.length
     ? fold('함께 읽어 두실 것', `${result.hints.length}가지`, `
@@ -641,16 +644,27 @@ function renderResult(bundle, mode) {
         </ul>`)
     : '';
 
-  return `
-    ${mode === 'deep' ? applyBlocked + deepPanel : ''}
+  /* 상세 검사 화면의 순서 — 자격 상태 → 안내와 신청서 → 간단 검사 결과.
+     신청할 수 있는지를 먼저 알려 주고, 폼을 채우게 하고, 근거를 그 아래에 둡니다. */
+  const deepHead = `
+    ${renderEligibility(bundle, elig)}
+    ${elig.ok ? deepPanel : blockedPanel}
+    <div class="section-head">
+      <h2>간단 검사 결과</h2>
+      <p>${elig.ok
+        ? '방금 이 기기에서 계산한 값입니다. 신청하시면 이 측정값이 신청서와 함께 올라갑니다.'
+        : '방금 이 기기에서 계산한 값입니다. 접수되지 않으므로 어디로도 올라가지 않습니다.'}</p>
+    </div>`;
 
+  const quickHead = `
     <div class="top-actions">
-      ${isDeclared ? '' : `
-        <button class="btn btn--mini" type="button" data-action="swap-mode">
-          ${mode === 'quick' ? '상세 검사 신청하기' : '간단 검사 결과로 돌아가기'}
-        </button>`}
+      ${elig.ok ? `
+        <button class="btn btn--mini" type="button" data-action="swap-mode">상세 검사 신청하기</button>` : ''}
       <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
-    </div>
+    </div>`;
+
+  return `
+    ${mode === 'deep' ? deepHead : quickHead}
 
     <section class="cert${certClass}">
       <div class="cert-top">
@@ -682,14 +696,16 @@ function renderResult(bundle, mode) {
     </div>
 
     <div class="end-actions">
-      ${isDeclared ? '' : `
-        <button class="btn" type="button" data-action="swap-mode">
-          ${mode === 'quick' ? '상세 검사 신청하기' : '간단 검사 결과로 돌아가기'}
-        </button>`}
+      ${elig.ok ? `
+        <button class="btn" type="button" data-action="${mode === 'quick' ? 'swap-mode' : 'apply-top'}">
+          ${mode === 'quick' ? '상세 검사 신청하기' : '위 신청서로 돌아가기'}
+        </button>` : ''}
       <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
-      <p class="btn-note">${isDeclared
-        ? '이 파일은 AI 생성 기록이 있어 상세 검사를 신청할 수 없습니다.'
-        : '검사를 다시 돌리지 않습니다. 이미 계산한 측정값을 그대로 씁니다.'}</p>
+      <p class="btn-note">${elig.ok
+        ? '검사를 다시 돌리지 않습니다. 이미 계산한 측정값을 그대로 씁니다.'
+        : elig.declared
+          ? '이 파일은 AI 생성 기록이 있어 상세 검사를 신청할 수 없습니다.'
+          : `이 파일은 ${UPLOAD_MB}MB를 넘어 화면에서 접수할 수 없습니다.`}</p>
     </div>`;
 }
 
@@ -714,33 +730,86 @@ function renderError(message, detail) {
     </section>`;
 }
 
+const UPLOAD_MB = Math.round(MAX_UPLOAD / 1024 / 1024);
+
 /**
- * 상세 검사 화면 위에 붙는 간단 검사 요약.
- * 신청 폼이 맨 위로 올라오면서, 무엇이 이미 측정됐는지 모르는 채로
- * 버튼을 누르게 됐습니다. 그 자리에 결과를 한 칸으로 보여 줍니다.
+ * 상세 검사를 신청할 수 있는 상태인지 판정합니다.
+ *
+ * 같은 조건을 서버도 다시 봅니다(functions/api/apply.js). 화면에서만 막으면
+ * 요청을 직접 보내는 것으로 지나갈 수 있고, 그러면 막았다고 말할 수 없습니다.
  */
-function quickSummaryCard(bundle) {
+function eligibility(bundle) {
+  const prov = bundle.provenance;
+  const bytes = bundle.print?.bytes ?? 0;
+  const declared = Boolean(prov?.declaresAi);
+  const oversize = bytes > MAX_UPLOAD;
+
+  const checks = [
+    {
+      ok: true,
+      label: '간단 검사',
+      detail: `${STEPS.length}단계 측정을 마쳤습니다`,
+    },
+    {
+      ok: !declared,
+      label: 'AI 생성 기록',
+      detail: declared
+        ? `파일이 스스로 AI 생성물이라고 적고 있습니다${prov?.generator ? ` — ${prov.generator}` : ''}`
+        : '파일에 AI 생성 선언이 없습니다',
+    },
+    {
+      ok: !oversize,
+      label: '파일 크기',
+      detail: `${formatBytes(bytes) || '크기 미상'} · 접수 상한 ${UPLOAD_MB}MB`,
+    },
+  ];
+
+  return { ok: !declared && !oversize, declared, oversize, checks };
+}
+
+/**
+ * 신청 자격 상태 — 상세 검사 화면의 첫 칸.
+ *
+ * 폼을 먼저 보여 주면 다 채운 뒤에 안 된다는 말을 듣게 됩니다. 그래서
+ * 되는지 안 되는지와 그 근거를 폼보다 위에 둡니다.
+ */
+function renderEligibility(bundle, elig) {
   const { result } = bundle;
   const { trace, ai } = scoreTraces(bundle);
-  const signals = [...aiSignals(bundle), ...synthesisSignals(bundle)];
-  const tally = { camera: 0, unknown: 0, ai: 0 };
-  signals.forEach((r) => { tally[r.side] += 1; });
 
   const verdict = result.verdict === VERDICT.PASS ? '3등급 발급'
     : result.verdict === VERDICT.HOLD ? '보류'
       : result.verdict === VERDICT.DECLARED_AI ? 'AI 생성 기록' : '판정 불가';
 
   return `
-    <div class="quickcard">
-      <p class="quickcard-top">간단 검사 결과 <span class="dim">이미 끝났습니다</span></p>
-      <ul class="quickcard-rows">
-        <li><span>자동 판정</span><b>${escapeHtml(verdict)}</b></li>
-        <li><span>촬영 흔적</span><b>${trace}%</b> <span class="dim">AI 생성 환산 ${ai}%</span></li>
-        <li><span>판별 근거</span><b>카메라 쪽 ${tally.camera}건</b>
-          <span class="dim">AI 쪽 ${tally.ai} · 판단 보류 ${tally.unknown}</span></li>
+    <section class="elig${elig.ok ? '' : ' elig--no'}">
+      <p class="elig-kicker">상세 검사 신청</p>
+      <h2 class="elig-head">${elig.ok ? '신청하실 수 있습니다' : '이 사진으로는 신청하실 수 없습니다'}</h2>
+
+      <ul class="elig-checks">
+        ${elig.checks.map((c) => `
+          <li class="${c.ok ? 'is-ok' : 'is-no'}">
+            <span class="elig-mark" data-icon="${c.ok ? 'check' : 'cross'}"></span>
+            <span class="elig-label">${escapeHtml(c.label)}</span>
+            <span class="elig-detail">${escapeHtml(c.detail)}</span>
+          </li>`).join('')}
       </ul>
-      <p class="quickcard-note">이 측정값이 신청서에 함께 들어갑니다. 사람 심사는 여기서 출발합니다.</p>
-    </div>`;
+
+      <p class="elig-quick">
+        간단 검사 판정 <b>${escapeHtml(verdict)}</b> ·
+        촬영 흔적 <b>${trace}%</b> <span class="dim">AI 생성 환산 ${ai}%</span>
+      </p>
+      ${elig.ok
+        ? '<p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>'
+        : ''}
+
+      <div class="top-actions">
+        <button class="btn btn--mini btn--ghost" type="button" data-action="swap-mode">
+          ${elig.ok ? '신청하지 않고 결과만 보기' : '간단 검사 결과만 보기'}
+        </button>
+        <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 사진 검사하기</button>
+      </div>
+    </section>`;
 }
 
 /* ── 상세 검사 접수 ──────────────────────────────────── */
@@ -1204,6 +1273,11 @@ export function mountVerifier(root) {
     const act = el.dataset.action;
     if (act === 'start') { e.preventDefault(); start(); }
     if (act === 'swap-mode') { e.preventDefault(); swapMode(); }
+    if (act === 'apply-top') {
+      e.preventDefault();
+      output.querySelector('[data-apply]')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      output.querySelector('[data-apply-contact]')?.focus({ preventScroll: true });
+    }
     if (act === 'apply-send') { e.preventDefault(); sendApplication(el); }
     if (act === 'apply-summary') { e.preventDefault(); toggleSummary(); }
     if (act === 'copy-receipt') { e.preventDefault(); copyReceipt(el); }
