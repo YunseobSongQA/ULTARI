@@ -22,6 +22,7 @@ import { readProvenance } from './verify/provenance.js';
 import { analyzeSynthesis } from './verify/synthesis.js';
 import { gradeResult, VERDICT, GATE } from './grade.js';
 import { scoreTraces, STATE_LABEL, aiSignals, synthesisSignals, SIDE } from './score.js';
+
 import { REVIEW_QUEUE, CONTACT, MAIL, queueLine } from './queue.js';
 import {
   renderMarkedImage, renderMarkOnly, markedFilename, markOnlyFilename,
@@ -29,6 +30,15 @@ import {
 } from './watermark.js';
 import { paintIcons } from './site.js';
 import { CHECK_LABEL, CHECK_STATES } from './review-criteria.js';
+import { escapeHtml, stripTags, fold } from './html.js';
+import { readContainer } from './verify/container.js';
+import { analyzeFrames } from './verify/frames.js';
+import { analyzeSound } from './verify/sound.js';
+import { gradeMedia, mediaScore } from './media.js';
+import {
+  MEDIA_STEPS, mediaKeyLines, mediaRows, mediaSummaryLines,
+  renderMediaFacts, renderMediaScore,
+} from './media-ui.js';
 import { renderCertificate, certificateFilename } from './certificate.js';
 import {
   submitApplication, fetchStatus, fetchStatusByContact, fetchQueue, listApplications,
@@ -50,12 +60,6 @@ const STATE = {
 const nf = (value, digits = 2) =>
   value == null || !Number.isFinite(value) ? '—' : value.toFixed(digits);
 
-const escapeHtml = (value) =>
-  String(value).replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
-
-const stripTags = (html) => String(html).replace(/<[^>]+>/g, '');
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
 
 /* ── 측정 결과 → 표 ──────────────────────────────────── */
@@ -296,6 +300,69 @@ const STEPS = [
   '생성물 흔적',
 ];
 
+/**
+ * 무엇으로 온 파일인지 가립니다.
+ *
+ * MIME 형식을 먼저 믿고, 비어 있거나 엉뚱하면 확장자를 봅니다. 브라우저가
+ * MOV에 빈 형식을 주는 경우가 있어서 확장자 갈래가 필요합니다.
+ */
+export function detectKind(file) {
+  const type = (file.type || '').toLowerCase();
+  if (type.startsWith('image/')) return 'image';
+  if (type.startsWith('video/')) return 'video';
+  if (type.startsWith('audio/')) return 'audio';
+
+  const ext = (file.name || '').toLowerCase().split('.').pop();
+  if (/^(jpg|jpeg|png|webp|heic|heif|tif|tiff|gif|bmp|avif)$/.test(ext)) return 'image';
+  if (/^(mp4|mov|m4v|webm|mkv|avi|3gp|mts|m2ts)$/.test(ext)) return 'video';
+  if (/^(mp3|m4a|wav|flac|aac|ogg|opus|oga|aiff|aif|wma)$/.test(ext)) return 'audio';
+  return 'unknown';
+}
+
+export const STEPS_FOR = (kind) => (kind === 'image' ? STEPS : MEDIA_STEPS[kind] || STEPS);
+
+/**
+ * 영상·음악 검사. 사진과 같은 순서로 진행을 알리고 같은 모양의 bundle을
+ * 돌려줍니다 — 결과 화면과 접수, 인증서가 매체를 가리지 않게 하려는 것입니다.
+ */
+export async function verifyMedia(file, kind, onStep) {
+  const labels = MEDIA_STEPS[kind];
+  const step = async (index) => { onStep?.(index, labels[index]); await nextFrame(); };
+
+  await step(0);
+  const print = await fingerprintFile(file);
+  await step(1);
+  const container = await readContainer(file);
+  await step(2);                               // 출처 표식은 컨테이너에서 함께 읽었습니다
+
+  let frames = null;
+  let sound = null;
+  if (kind === 'video') {
+    await step(3);
+    frames = await analyzeFrames(file, (i) => onStep?.(3, `프레임 ${i + 1} 측정`));
+    await step(4);
+    await step(5);
+    await step(6);
+  } else {
+    await step(3);
+    sound = await analyzeSound(file, container.facts?.sampleRate || null);
+    await step(4);
+    await step(5);
+    await step(6);
+  }
+
+  const bundle = { kind, print, container, frames, sound };
+  return { ...bundle, result: gradeMedia(bundle) };
+}
+
+/** 어떤 파일이든 받아 매체에 맞는 검사로 보냅니다. */
+export async function verifyAny(file, onStep) {
+  const kind = detectKind(file);
+  if (kind === 'video' || kind === 'audio') return verifyMedia(file, kind, onStep);
+  if (kind === 'unknown') throw new Error('UNSUPPORTED_KIND');
+  return verifyFile(file, onStep);
+}
+
 export async function verifyFile(file, onStep) {
   const step = async (index) => { onStep?.(index, STEPS[index]); await nextFrame(); };
 
@@ -318,7 +385,7 @@ export async function verifyFile(file, onStep) {
   await step(8);
   const synthesis = await analyzeSynthesis(pixels, file);
 
-  const bundle = { exif, consistency, optics, compression, rephoto, pixels, print, provenance, synthesis };
+  const bundle = { kind: 'image', exif, consistency, optics, compression, rephoto, pixels, print, provenance, synthesis };
   return { ...bundle, result: gradeResult(bundle) };
 }
 
@@ -343,13 +410,6 @@ function reasonList(title, items) {
         ${items.map((i) => `<div><dt>${escapeHtml(i.title)}</dt><dd>${escapeHtml(i.detail)}</dd></div>`).join('')}
       </dl>
     </div>`;
-}
-
-function fold(summary, hint, body, open = false) {
-  return `<details class="fold"${open ? ' open' : ''}>
-      <summary>${escapeHtml(summary)}${hint ? `<span class="hint">${escapeHtml(hint)}</span>` : ''}</summary>
-      <div class="fold-body">${body}</div>
-    </details>`;
 }
 
 const NO_GUARANTEE = `
@@ -534,8 +594,11 @@ function renderScorePanel(bundle) {
 
 function renderResult(bundle, mode, openForm = false) {
   const { result, print } = bundle;
-  const rows = buildRows(bundle);
-  const summary = summaryLines(result, rows, print);
+  const isImage = bundle.kind !== 'video' && bundle.kind !== 'audio';
+  const rows = isImage ? buildRows(bundle) : mediaRows(bundle);
+  const summary = isImage
+    ? summaryLines(result, rows, print)
+    : mediaSummaryLines(bundle);
   const isPass = result.verdict === VERDICT.PASS;
   const isDeclared = result.verdict === VERDICT.DECLARED_AI;
   const elig = eligibility(bundle);
@@ -548,8 +611,27 @@ function renderResult(bundle, mode, openForm = false) {
     ? `원본 파일 지문 <span class="hash">${escapeHtml(print.short)}…</span> · 이 기기에서만 계산됐고 어디로도 전송되지 않았습니다`
     : '파일 지문을 계산하지 못했습니다 — 브라우저가 보안 컨텍스트가 아닙니다';
 
+  /* 영상과 음악에는 마크를 새겨 드릴 수 없습니다. 브라우저에서 영상을 다시
+     인코딩할 수 없고, 소리에 그림을 얹는 것은 의미가 없습니다. 대신 마크만
+     투명 PNG로 드리고 인증서로 사실을 적어 드립니다. */
+  const markOnlyPanel = isPass && !isImage ? `
+    <div class="panel wm-panel" data-watermark>
+      <p class="panel-title">인증 마크 — 내려받기</p>
+      <p class="wm-lead">
+        ${bundle.kind === 'audio' ? '소리' : '영상'}에는 마크를 직접 새겨 드리지 않습니다.
+        ${bundle.kind === 'audio'
+          ? '소리 파일에 그림을 얹을 자리가 없습니다.'
+          : '브라우저에서 영상을 다시 인코딩하면 화질이 떨어지고, 그러면 지문도 달라집니다.'}
+        마크만 투명 PNG로 받아 표지나 자막에 직접 얹어 주십시오.
+      </p>
+      <div class="btn-row">
+        <button class="btn" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
+      </div>
+      <p class="btn-note">이 기기에서 만듭니다. 파일은 어디로도 가지 않습니다.</p>
+    </div>` : '';
+
   // 통과하면 마크 패널을 바로 펼칩니다. 버튼 뒤에 숨기면 결과물이 있는 줄도 모릅니다.
-  const markPanel = isPass ? `
+  const markPanel = isPass && isImage ? `
     <div class="panel wm-panel" data-watermark>
       <p class="panel-title">인증 마크 — 내려받기</p>
       <p class="wm-lead">사진에 마크를 새겨 받거나, 마크만 따로 받아 직접 배치하실 수 있습니다.</p>
@@ -577,8 +659,9 @@ function renderResult(bundle, mode, openForm = false) {
       <p class="panel-title">신청할 수 없는 이유</p>
       <div class="apply-warn">
         ${elig.declared ? `
-          <p><strong>파일이 스스로 AI 생성물이라고 기록하고 있습니다.</strong>${bundle.provenance?.generator
-            ? ` 기록된 생성기는 ${escapeHtml(bundle.provenance.generator)}입니다.` : ''}
+          <p><strong>파일이 스스로 AI 생성물이라고 기록하고 있습니다.</strong>${
+            bundle.provenance?.generator || bundle.container?.generator
+              ? ` 기록된 생성기는 ${escapeHtml(bundle.provenance?.generator || bundle.container.generator)}입니다.` : ''}
             이 기록은 생성한 쪽이 규격(C2PA)에 따라 서명해 남긴 것이라 사람이 다시 볼 여지가 없습니다.</p>
           <p>측정값 때문이 아니라 파일에 적힌 것 때문입니다. 촬영한 사진이 맞다면
             카메라나 갤러리에서 바로 꺼낸 원본으로 다시 시도해 주세요.</p>` : ''}
@@ -691,14 +774,15 @@ function renderResult(bundle, mode, openForm = false) {
       </div>
       ${isPass ? '' : `<h2>${escapeHtml(result.headline)}</h2>`}
       <p class="statement">${result.statement.map((l) => `<span>${escapeHtml(l)}</span>`).join('')}</p>
-      ${renderProvenanceFacts(bundle.provenance)}
-      ${isDeclared ? '' : renderKeyLines(keyLines(bundle))}
+      ${isImage ? renderProvenanceFacts(bundle.provenance) : renderMediaFacts(bundle)}
+      ${isDeclared ? '' : renderKeyLines(isImage ? keyLines(bundle) : mediaKeyLines(bundle))}
       <p class="fingerprint-line">${fingerprint}</p>
     </section>
 
-    ${renderScorePanel(bundle)}
+    ${isImage ? renderScorePanel(bundle) : renderMediaScore(bundle)}
 
     ${markPanel}
+    ${markOnlyPanel}
 
     <div class="folds">
       ${reasonFold('자동 검증이 멈춘 이유', result.blockers)}
@@ -751,6 +835,13 @@ function renderError(message, detail) {
 const UPLOAD_MB = Math.round(MAX_UPLOAD / 1024 / 1024);
 
 /**
+ * 매체에 맞는 환산 수치. 사진용 scoreTraces는 EXIF를 읽으므로 영상·음악
+ * bundle에 대면 터집니다 — 실제로 그렇게 깨졌고, 그래서 갈래를 한 곳에 둡니다.
+ */
+const traceOf = (bundle) =>
+  (bundle.kind === 'video' || bundle.kind === 'audio' ? mediaScore(bundle) : scoreTraces(bundle));
+
+/**
  * 상세 검사를 신청할 수 있는 상태인지 판정합니다.
  *
  * 같은 조건을 서버도 다시 봅니다(functions/api/apply.js). 화면에서만 막으면
@@ -759,20 +850,22 @@ const UPLOAD_MB = Math.round(MAX_UPLOAD / 1024 / 1024);
 function eligibility(bundle) {
   const prov = bundle.provenance;
   const bytes = bundle.print?.bytes ?? 0;
-  const declared = Boolean(prov?.declaresAi);
+  // 사진은 provenance, 영상·음악은 container가 선언을 읽습니다.
+  const declared = Boolean(prov?.declaresAi || bundle.container?.declaresAi);
+  const generator = prov?.generator || bundle.container?.generator || null;
   const oversize = bytes > MAX_UPLOAD;
 
   const checks = [
     {
       ok: true,
       label: '간단 검사',
-      detail: `${STEPS.length}단계 측정을 마쳤습니다`,
+      detail: `${STEPS_FOR(bundle.kind).length}단계 측정을 마쳤습니다`,
     },
     {
       ok: !declared,
       label: 'AI 생성 기록',
       detail: declared
-        ? `파일이 스스로 AI 생성물이라고 적고 있습니다${prov?.generator ? ` — ${prov.generator}` : ''}`
+        ? `파일이 스스로 AI 생성물이라고 적고 있습니다${generator ? ` — ${generator}` : ''}`
         : '파일에 AI 생성 선언이 없습니다',
     },
     {
@@ -793,7 +886,7 @@ function eligibility(bundle) {
  */
 function renderEligibility(bundle, elig) {
   const { result } = bundle;
-  const { trace, ai } = scoreTraces(bundle);
+  const { trace, ai } = traceOf(bundle);
 
   const verdict = result.verdict === VERDICT.PASS ? '3등급 발급'
     : result.verdict === VERDICT.HOLD ? '보류'
@@ -957,6 +1050,7 @@ function renderStatus(st) {
 /* ── 조립 ────────────────────────────────────────────── */
 
 const MODE_LABEL = { quick: '간단 검사', deep: '상세 검사' };
+const KIND_LABEL = { image: '사진', video: '영상', audio: '음악·소리', unknown: '알 수 없는 형식' };
 
 export function mountVerifier(root) {
   if (!root) return;
@@ -977,6 +1071,8 @@ export function mountVerifier(root) {
   let current = null;      // { file, mode, bundle } — 측정이 끝난 것
   let pending = null;      // { file, mode } — 받아 두고 시작을 기다리는 것
   let busy = false;
+  /* 지금 돌리는 검사의 단계 이름. 매체마다 하는 일이 달라서 목록이 다릅니다. */
+  let steps = STEPS;
 
   const revoke = () => {
     if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
@@ -1027,7 +1123,7 @@ export function mountVerifier(root) {
   const stepList = root.querySelector('[data-steps]');
 
   const drawSteps = (activeIndex, allDone = false) => {
-    stepList.innerHTML = STEPS.map((label, i) => {
+    stepList.innerHTML = steps.map((label, i) => {
       const state = allDone || i < activeIndex ? 'is-done' : i === activeIndex ? 'is-active' : '';
       return `<li class="${state}"><span class="dot"></span><span>${escapeHtml(label)}</span></li>`;
     }).join('');
@@ -1043,15 +1139,15 @@ export function mountVerifier(root) {
     progress.hidden = false;
     drawSteps(index);
     progressLabel.textContent = `${label}…`;
-    setPct(((index + 1) / STEPS.length) * 100);
+    setPct(((index + 1) / steps.length) * 100);
   };
 
   const runNote = root.querySelector('.run-note');
 
   const finishProgress = (elapsedMs) => {
-    drawSteps(STEPS.length, true);
+    drawSteps(steps.length, true);
     setPct(100);
-    progressLabel.textContent = `검사 완료 · ${STEPS.length}단계 · ${(elapsedMs / 1000).toFixed(1)}초`;
+    progressLabel.textContent = `검사 완료 · ${steps.length}단계 · ${(elapsedMs / 1000).toFixed(1)}초`;
     if (runNote) runNote.textContent = '이 기기에서만 계산했습니다. 어디로도 전송하지 않았습니다.';
   };
 
@@ -1069,15 +1165,29 @@ export function mountVerifier(root) {
     if (stepList) stepList.innerHTML = '';
     setPct(0);
 
+    const kind = detectKind(file);
+    steps = STEPS_FOR(kind);
     previewUrl = URL.createObjectURL(file);
+
+    /* 미리보기는 매체에 맞게 붙입니다. 영상은 첫 화면, 소리는 파형 대신
+       재생기를 둡니다 — 소리는 들어 봐야 무엇인지 압니다. */
+    const preview = kind === 'video'
+      ? `<video src="${previewUrl}" muted playsinline preload="metadata"></video>`
+      : kind === 'audio'
+        ? '<span class="file-icon" data-icon="layers"></span>'
+        : `<img src="${previewUrl}" alt="">`;
+
     fileLine.innerHTML = `
-      <img src="${previewUrl}" alt="">
+      ${preview}
       <div class="meta">
-        <div class="name">${escapeHtml(file.name || '이름 없는 파일')}<span class="mode-tag">${MODE_LABEL[mode]}</span></div>
+        <div class="name">${escapeHtml(file.name || '이름 없는 파일')}<span class="mode-tag">${MODE_LABEL[mode]}</span><span class="kind-tag">${KIND_LABEL[kind] || '알 수 없는 형식'}</span></div>
         <div>${escapeHtml(file.type || '형식 미상')} · ${escapeHtml(formatBytes(file.size) || '')}</div>
+        ${kind === 'audio' ? `<audio controls src="${previewUrl}" style="margin-top:6px;max-width:280px"></audio>` : ''}
         <div style="color:var(--ink-3)">이 미리보기는 브라우저 메모리에만 있습니다.</div>
       </div>`;
-    readyNote.textContent = `${MODE_LABEL[mode]}로 ${STEPS.length}단계를 잰 뒤 판정합니다.`;
+    readyNote.textContent = kind === 'unknown'
+      ? '이 형식은 검사하지 못합니다. 사진, 영상, 소리 파일을 올려 주십시오.'
+      : `${KIND_LABEL[kind]} · ${MODE_LABEL[mode]}로 ${steps.length}단계를 잰 뒤 판정합니다.`;
     readyBox.hidden = false;
     paintIcons(runArea);
     runArea.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -1099,7 +1209,7 @@ export function mountVerifier(root) {
     if (runNote) runNote.textContent = '이 기기에서 계산 중입니다. 업로드가 아닙니다.';
 
     try {
-      const bundle = await verifyFile(file, showProgress);
+      const bundle = await verifyAny(file, showProgress);
       current = { file, mode, bundle, position: DEFAULT_POSITION };
       finishProgress(performance.now() - startedAt);
       output.innerHTML = renderResult(bundle, mode);
@@ -1108,11 +1218,20 @@ export function mountVerifier(root) {
       if (bundle.result.grade) await refreshMarkPreview();
     } catch (err) {
       progress.hidden = true;
-      output.innerHTML = err && err.message === 'DECODE_FAILED'
-        ? renderError('이 파일은 브라우저가 열지 못했습니다',
-          'RAW(.cr3, .nef, .arw 등)와 일부 HEIC는 브라우저가 직접 디코딩하지 못합니다. 카메라나 편집 프로그램에서 화질을 낮추지 않고 JPEG로 내보낸 파일로 시도해 주세요.')
-        : renderError('검증 도중 문제가 생겼습니다',
-          '파일을 읽는 중에 예상하지 못한 오류가 났습니다. 다른 파일로 시도해 보시고, 계속 같은 문제가 나면 어떤 파일이었는지 알려 주십시오.');
+      // 무엇이 깨졌는지 남깁니다. 삼켜 버리면 원인을 찾을 수 없습니다.
+      console.error('[ultari] 검증 실패', err);
+      const why = err && err.message;
+      output.innerHTML = why === 'UNSUPPORTED_KIND'
+        ? renderError('이 형식은 검사하지 못합니다',
+          '사진(JPEG·PNG·HEIC), 영상(MP4·MOV·WebM), 소리(MP3·M4A·WAV·FLAC)를 받습니다. 문서나 압축 파일은 받지 않습니다.')
+        : why === 'AUDIO_UNSUPPORTED'
+          ? renderError('이 브라우저는 소리를 디코딩하지 못합니다',
+            'Web Audio를 지원하는 최신 브라우저에서 다시 시도해 주십시오.')
+          : why === 'DECODE_FAILED'
+            ? renderError('이 파일은 브라우저가 열지 못했습니다',
+              'RAW(.cr3, .nef, .arw 등), 일부 HEIC, 그리고 브라우저가 코덱을 갖지 않은 영상(ProRes, HEVC 일부)은 직접 디코딩하지 못합니다. MP4(H.264)나 화질을 낮추지 않은 JPEG로 내보낸 파일로 시도해 주세요.')
+            : renderError('검증 도중 문제가 생겼습니다',
+              '파일을 읽는 중에 예상하지 못한 오류가 났습니다. 다른 파일로 시도해 보시고, 계속 같은 문제가 나면 어떤 파일이었는지 알려 주십시오.');
     } finally {
       busy = false;
     }
@@ -1194,11 +1313,15 @@ export function mountVerifier(root) {
     button.disabled = true;
     button.textContent = '만드는 중…';
     try {
-      const only = await renderMarkOnly({
-        width: current.bundle.pixels.width,
-        height: current.bundle.pixels.height,
-        ...markOptions(),
-      });
+      /* 마크만 담은 PNG의 크기. 사진은 원본 화소, 영상은 프레임 크기,
+         소리는 얹을 그림이 없으니 표지에 쓰기 좋은 정사각형으로 만듭니다. */
+      const b = current.bundle;
+      const size = b.kind === 'video'
+        ? { width: b.frames.width, height: b.frames.height }
+        : b.kind === 'audio'
+          ? { width: 1400, height: 1400 }
+          : { width: b.pixels.width, height: b.pixels.height };
+      const only = await renderMarkOnly({ ...size, ...markOptions() });
       saveBlob(only.url, markOnlyFilename(current.bundle.result.grade));
       setTimeout(() => URL.revokeObjectURL(only.url), 20000);
       button.textContent = label;

@@ -32,8 +32,15 @@
       <div class="hero">
         <h1>사람이 들인 시간을<br>인증합니다</h1>
       </div>
-      <p class="hero-sub">새벽에 나가 기다리고 셔터를 누른 시간은 파일에 흔적으로 남습니다. ULTARI는 그 흔적을 재서 <strong>사진 한 장에 들어간 사람의 몫</strong>을 증명해 드립니다. 사진을 올려 보시면 30초 만에 나옵니다.</p>
-      <p class="local-badge"><span data-icon="lock"></span>간단 검사는 이 브라우저 안에서 끝납니다. 사진이 전송되는 것은 상세 검사를 직접 신청하실 때뿐입니다.</p>
+      <p class="hero-sub">새벽에 나가 기다린 시간, 마이크 앞에서 다시 부른 시간은 파일에 흔적으로 남습니다. ULTARI는 그 흔적을 재서 <strong>작업물 하나에 들어간 사람의 몫</strong>을 증명해 드립니다. 올려 보시면 바로 나옵니다.</p>
+
+      <ul class="kinds">
+        <li><span class="kind-mark" data-icon="frame"></span><b>사진</b><span>JPEG · PNG · HEIC</span></li>
+        <li><span class="kind-mark" data-icon="film"></span><b>영상</b><span>MP4 · MOV · WebM</span></li>
+        <li><span class="kind-mark" data-icon="wave"></span><b>음악·소리</b><span>MP3 · M4A · WAV · FLAC</span></li>
+      </ul>
+
+      <p class="local-badge"><span data-icon="lock"></span>간단 검사는 이 브라우저 안에서 끝납니다. 파일이 전송되는 것은 상세 검사를 직접 신청하실 때뿐입니다.</p>
 
       <section data-verifier>
         <div data-lanes>
@@ -43,11 +50,11 @@
             <span class="lane-tag"><span class="dot"></span>간단 검사</span>
             <h2>지금 바로 나옵니다</h2>
             <p class="lane-meta"><span>30초</span><span class="sep">·</span><span>기계가 판정</span><span class="sep">·</span><span>최대 3등급</span></p>
-            <p class="lane-desc">촬영 정보, 노이즈, 렌즈 흔적, 압축 이력을 재서 그 자리에서 판정합니다. 통과하면 인증 마크를 새겨 내려받을 수 있습니다.</p>
-            <input id="ultari-quick" class="file-input" type="file" accept="image/*" data-mode="quick">
+            <p class="lane-desc">사진은 촬영 정보와 노이즈·렌즈 흔적을, 영상은 프레임의 광학 흔적과 압축 이력을, 소리는 대역과 노이즈 플로어를 잽니다. 통과하면 인증 마크를 내려받을 수 있습니다.</p>
+            <input id="ultari-quick" class="file-input" type="file" accept="image/*,video/*,audio/*" data-mode="quick">
             <label class="drop" data-dropzone="quick" for="ultari-quick">
               <span data-icon="frame"></span>
-              <span class="drop-main">사진 고르기</span>
+              <span class="drop-main">사진 · 영상 · 음악 고르기</span>
               <span class="drop-sub">여기에 끌어다 놓아도 됩니다</span>
             </label>
           </section>
@@ -56,11 +63,11 @@
             <span class="lane-tag"><span class="dot"></span>상세 검사</span>
             <h2>사람이 직접 봅니다</h2>
             <p class="lane-meta"><span>며칠~몇 주</span><span class="sep">·</span><span>기계 + 사람</span><span class="sep">·</span><span>최대 1등급</span></p>
-            <p class="lane-desc">같은 측정을 한 뒤 사람 심사로 넘깁니다. 화면을 다시 찍은 것은 아닌지, 센서 지문이 맞는지까지 봅니다. 손이 많이 가서 오래 걸립니다.</p>
-            <input id="ultari-deep" class="file-input" type="file" accept="image/*" data-mode="deep">
+            <p class="lane-desc">같은 측정을 한 뒤 사람 심사로 넘깁니다. 화면을 다시 찍거나 녹음한 것은 아닌지, 기기 지문이 맞는지까지 봅니다. 손이 많이 가서 오래 걸립니다.</p>
+            <input id="ultari-deep" class="file-input" type="file" accept="image/*,video/*,audio/*" data-mode="deep">
             <label class="drop" data-dropzone="deep" for="ultari-deep">
               <span data-icon="layers"></span>
-              <span class="drop-main">사진 고르기</span>
+              <span class="drop-main">사진 · 영상 · 음악 고르기</span>
               <span class="drop-sub">측정 결과가 신청서로 만들어집니다</span>
             </label>
           </section>
@@ -127,8 +134,9 @@
         <p class="folds-title">더 알고 싶으시면</p>
 
         <details class="fold">
-          <summary>무엇을 재는가<span class="hint">여섯 가지</span></summary>
+          <summary>무엇을 재는가<span class="hint">매체마다 다릅니다</span></summary>
           <div class="fold-body">
+            <p class="fold-lead">사진</p>
             <dl class="def-list">
               <div><dt>촬영 정보</dt><dd>제조사, 모델, 렌즈, 조리개, 셔터, ISO, 촬영 시각. 고칠 수 있는 텍스트라 그 자체로는 증거가 아닙니다. 대조할 주장으로 씁니다. GPS는 존재 여부만 보고 좌표는 읽지 않습니다.</dd></div>
               <div><dt>ISO 대 노이즈</dt><dd>어두운 영역의 노이즈 크기를 재서 기록된 ISO와 맞는지 봅니다.</dd></div>
@@ -136,6 +144,22 @@
               <div><dt>렌즈 흔적</dt><dd>비네팅과 색수차. 유리를 지난 빛에만 생깁니다.</dd></div>
               <div><dt>압축 이력</dt><dd>JPEG 8×8 격자를 읽어 몇 번 저장됐는지 추정합니다.</dd></div>
               <div><dt>화면 재촬영 신호</dt><dd>모아레와 평면성. 기계가 확정할 수 없어 사람 심사로 넘깁니다.</dd></div>
+            </dl>
+
+            <p class="fold-lead">영상</p>
+            <dl class="def-list">
+              <div><dt>컨테이너 기록</dt><dd>MOV·MP4 상자에 적힌 기기, 촬영 시각, 촬영 메타 트랙(노출·자이로). 아이폰 원본에서는 다섯 가지가 나오고 메신저를 거치면 전부 사라집니다 — 실제 파일로 재서 확인한 값입니다.</dd></div>
+              <div><dt>프레임의 광학 흔적</dt><dd>프레임을 다섯 장 떼어 사진과 같은 자로 비네팅과 색수차를 잽니다. 렌즈를 거치지 않은 그림에는 남지 않습니다.</dd></div>
+              <div><dt>압축 이력</dt><dd>변환 도구 기록과 겹친 압축 격자. 다시 만든 파일의 흔적입니다.</dd></div>
+              <div><dt>재지 않는 것</dt><dd>베이어 흔적과 모아레는 영상에서 쓰지 않습니다. 크로마 서브샘플링이 베이어 잔차를 지우고, 모아레 검출기는 아이폰 원본에서도 잡혀 오탐했습니다.</dd></div>
+            </dl>
+
+            <p class="fold-lead">음악·소리</p>
+            <dl class="def-list">
+              <div><dt>태그 기록</dt><dd>WAV의 방송용 덩어리(bext), 녹음기 메타데이터(iXML), 기기 이름. 녹음기는 적고 생성 도구는 적지 않습니다.</dd></div>
+              <div><dt>대역 한계</dt><dd>어느 주파수에서 에너지가 끊기는가. 실측 14.0~20.1kHz로 갈립니다. 여러 번 압축될수록 일찍 끊깁니다.</dd></div>
+              <div><dt>노이즈 플로어</dt><dd>조용한 구간에 남은 방과 마이크의 소리. 곡 앞뒤의 무음은 빼고 잽니다.</dd></div>
+              <div><dt>다이내믹과 스테레오</dt><dd>크레스트 팩터와 두 채널의 상관. 눌린 마스터와 가짜 스테레오를 가립니다.</dd></div>
             </dl>
             <p style="margin-top:18px;font-size:14px"><a href="/how">계산 방법까지 전부 공개한 페이지</a></p>
           </div>
@@ -217,7 +241,7 @@
           <a href="/privacy">개인정보 처리방침</a>
           <a href="/terms">이용약관</a>
       </nav>
-      <p class="foot-note">ULTARI는 사진에 남은 촬영 흔적을 브라우저 안에서 측정하고 등급을 발급합니다. 간단 검사는 브라우저를 벗어나지 않습니다. 사진이 서버로 가는 것은 상세 검사를 직접 신청하실 때뿐입니다. AI 이미지를 탐지하지 않고, AI 학습을 막지 않습니다.</p>
+      <p class="foot-note">ULTARI는 사진·영상·음악에 남은 촬영과 녹음의 흔적을 브라우저 안에서 측정하고 등급을 발급합니다. 간단 검사는 브라우저를 벗어나지 않습니다. 파일이 서버로 가는 것은 상세 검사를 직접 신청하실 때뿐입니다. AI 생성물을 탐지한다고 말하지 않고, AI 학습을 막지 않습니다.</p>
     </div>
   </footer>
   <script type="module" src="/src/ui.js"></script>

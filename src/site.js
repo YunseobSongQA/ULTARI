@@ -20,6 +20,9 @@ export const ICONS = {
   // 상태 표시용. 색만으로 구분하지 않도록 라벨과 함께 씁니다.
   check: icon('<path d="M4.5 12.5l4.8 4.8L19.5 7"/>'),
   cross: icon('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>'),
+  // 매체 표시 — 필름과 파형
+  film: icon('<rect x="3" y="5" width="18" height="14"/><path d="M3 9h4M3 15h4M17 9h4M17 15h4M8 5v14M16 5v14"/>'),
+  wave: icon('<path d="M3 12h2M7 7v10M11 4v16M15 8v8M19 11h2"/>'),
 };
 
 export function paintIcons(scope = document) {
