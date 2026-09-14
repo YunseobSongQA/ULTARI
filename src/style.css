@@ -991,3 +991,140 @@ main.main--tool { padding-block: 32px 80px; }
   .elig-checks li { row-gap: 2px; }
   .elig-detail { flex-basis: 100%; padding-left: 27px; }
 }
+
+/* ── 랜딩 ───────────────────────────────────────────── */
+/* 첫 화면은 이름과 마크만. 아래로 내리면 매체마다 한 화면씩 나오고
+   각 화면에서 검증 도구로 바로 갑니다. 스냅은 proximity로 둡니다 —
+   mandatory는 휠과 키보드로 읽는 사람을 가둡니다. */
+
+.body--landing { background: var(--paper); }
+
+.site-head--landing { position: sticky; top: 0; z-index: 20; background: rgba(245,244,241,0.86); backdrop-filter: blur(8px); }
+
+.landing {
+  padding: 0;
+  scroll-snap-type: y proximity;
+  overflow-x: clip;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing { scroll-snap-type: none; }
+}
+
+.stage {
+  position: relative;
+  min-height: 100svh;
+  display: flex; align-items: center;
+  scroll-snap-align: start;
+  scroll-margin-top: 0;
+  border-top: 1px solid var(--rule);
+}
+.stage:first-child { border-top: none; }
+.stage--id { min-height: calc(100svh - 64px); }
+.stage-inner { width: 100%; padding-block: 90px; }
+
+/* 첫 화면 */
+.stage--id .stage-inner { padding-block: 40px 120px; }
+.id-mark { color: var(--ink); margin: 26px 0 22px; }
+.id-mark svg { width: 104px; height: 85px; display: block; }
+.id-word {
+  font-size: 68px; font-weight: 600; letter-spacing: 0.1em;
+  line-height: 1; margin: 0;
+}
+.id-claim {
+  font-size: 34px; font-weight: 600; letter-spacing: -0.03em;
+  line-height: 1.28; margin: 30px 0 0; color: var(--ink);
+}
+.id-value {
+  font-size: 17px; line-height: 1.7; color: var(--ink-2);
+  margin: 22px 0 0; max-width: 46ch;
+}
+
+.stage-en {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.18em;
+  color: var(--ink-3); margin: 0;
+}
+
+/* 아래로 내려가라는 표시 */
+.stage-next {
+  position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%);
+  display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--ink-3); border-bottom: none;
+}
+.stage-next:hover { color: var(--ink); border-bottom: none; }
+.stage-next svg { animation: nudge 2.4s ease-in-out infinite; }
+@keyframes nudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-next svg { animation: none; }
+}
+
+/* 매체마다 한 화면 */
+.stage-mark { display: block; color: var(--measure); margin: 22px 0 16px; line-height: 0; }
+.stage-mark svg { width: 46px; height: 46px; }
+.stage--kind h2 {
+  font-size: 52px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin: 0;
+}
+.stage-claim {
+  font-size: 21px; color: var(--ink-2); margin: 18px 0 0; max-width: 40ch; line-height: 1.55;
+}
+.stage-facts {
+  margin: 34px 0 0; display: grid; gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--rule); border: 1px solid var(--rule);
+  max-width: 720px;
+}
+.stage-facts > div { background: var(--paper); padding: 15px 17px; }
+.stage-facts dt { font-size: 12.5px; color: var(--ink-3); }
+.stage-facts dd { margin: 5px 0 0; font-size: 14.5px; color: var(--ink); }
+
+.stage-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 34px; }
+.stage-row .stage-go { margin-top: 0; }
+
+.stage-go {
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-top: 34px; padding: 14px 22px;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 500; border-bottom: none;
+}
+.stage-go:hover { background: #000; border-bottom: none; color: var(--paper); }
+.stage-go svg { transition: transform 140ms ease; }
+.stage-go:hover svg { transform: translateX(3px); }
+.stage-go--quiet {
+  background: transparent; color: var(--ink);
+  border: 1px solid var(--rule-strong);
+}
+.stage-go--quiet:hover { background: transparent; color: var(--ink); border-color: var(--ink); }
+
+.stage-note { margin: 16px 0 0; font-size: 13px; color: var(--ink-3); }
+
+/* 마지막 — 하지 않는 것 */
+.stage--last h2 { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; margin: 18px 0 0; }
+.principle-list { list-style: none; margin: 30px 0 0; padding: 0; max-width: 62ch; }
+.principle-list li {
+  font-size: 15.5px; line-height: 1.7; color: var(--ink-2);
+  padding: 14px 0; border-top: 1px solid var(--rule);
+}
+.principle-list li:last-child { border-bottom: 1px solid var(--rule); }
+.principle-list b { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 620px) {
+  /* 좁은 화면에서도 한 번 밀 때 한 화면씩 넘어가게 둡니다.
+     min-height이므로 내용이 더 길면 화면이 늘어나고 잘리지 않습니다. */
+  .stage-inner { padding-block: 56px; }
+  .stage--id .stage-inner { padding-block: 30px 96px; }
+  .id-mark svg { width: 78px; height: 64px; }
+  .id-word { font-size: 46px; }
+  .id-claim { font-size: 27px; }
+  .id-value { font-size: 15.5px; }
+  .stage--kind h2 { font-size: 38px; }
+  .stage-claim { font-size: 18px; }
+  .stage--last h2 { font-size: 27px; }
+  .stage-facts { grid-template-columns: 1fr; }
+  .stage-go { width: 100%; justify-content: space-between; }
+}
+
+/* 랜딩에서 골라 온 투입구를 한 번 짚어 줍니다. */
+.lane--wanted { border-color: var(--measure); box-shadow: inset 0 0 0 1px var(--measure); }
+.lane--wanted .lane-tag .dot { background: var(--measure); }

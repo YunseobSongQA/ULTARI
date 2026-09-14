@@ -41,6 +41,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: page('index.html'),
+        verify: page('verify.html'),
         how: page('how.html'),
         grades: page('grades.html'),
         archive: page('archive.html'),

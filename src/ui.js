@@ -1680,7 +1680,42 @@ export function mountVerifier(root) {
   });
 
   /**
-   * 상단 메뉴의 "현황 조회"는 /#lookup으로 옵니다. <details>는 앵커로
+   * 랜딩에서 "사진 검증 →" 같은 버튼을 누르면 /verify?kind=photo 로 옵니다.
+   * 무엇을 고르려고 왔는지 알고 있으므로 파일 선택 창이 그 형식만 보게
+   * 좁혀 주고, 상세 검사로 왔으면 그쪽 투입구를 가리킵니다.
+   */
+  const ACCEPT = {
+    photo: 'image/*',
+    video: 'video/*',
+    music: 'audio/*',
+    audio: 'audio/*',
+  };
+
+  const applyIntent = () => {
+    const params = new URLSearchParams(window.location.search);
+    const kind = (params.get('kind') || '').toLowerCase();
+    const mode = (params.get('mode') || '').toLowerCase();
+    const accept = ACCEPT[kind];
+
+    if (accept) {
+      root.querySelectorAll('input[type="file"][data-mode]').forEach((input) => {
+        input.accept = accept;
+      });
+      const label = { photo: '사진', video: '영상', music: '음악·소리', audio: '음악·소리' }[kind];
+      root.querySelectorAll('.drop-main').forEach((el) => { el.textContent = `${label} 고르기`; });
+    }
+
+    const wanted = mode === 'deep' ? 'deep' : accept ? 'quick' : null;
+    if (!wanted) return;
+    const lane = root.querySelector(`.lane input[data-mode="${wanted}"]`)?.closest('.lane');
+    if (!lane) return;
+    lane.classList.add('lane--wanted');
+    lane.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  };
+  applyIntent();
+
+  /**
+   * 상단 메뉴의 "현황 조회"는 /verify#lookup으로 옵니다. <details>는 앵커로
    * 이동해도 저절로 열리지 않아서 직접 엽니다. 다른 페이지에서 눌러 온
    * 경우와 이 페이지에서 다시 누른 경우 둘 다 받습니다.
    */
