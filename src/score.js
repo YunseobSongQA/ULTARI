@@ -146,3 +146,135 @@ export function scoreTraces(bundle) {
 
   return { trace, ai: 100 - trace, declared: false, categories };
 }
+
+/* ── AI 판별 기준 ────────────────────────────────────────
+   화소 하한이나 "약한 신호 n건" 같은 집계는 측정이 가능한지를 말할 뿐
+   AI인지를 말하지 않습니다. 여기서는 카메라와 생성물이 실제로 갈리는
+   자리만 세웁니다. 각 줄은 카메라 쪽 / 판단 보류 / AI 쪽 중 하나입니다. */
+
+/** 생성 모델이 그대로 뱉는 규격 크기. 카메라 센서는 이런 값이 나오지 않습니다. */
+const GENERATED_SIZES = [
+  [1024, 1024], [1024, 1536], [1536, 1024], [1792, 1024], [1024, 1792],
+  [512, 512], [768, 768], [1280, 1280], [2048, 2048],
+  [832, 1216], [1216, 832], [896, 1152], [1152, 896],
+  [1344, 768], [768, 1344], [1456, 816], [816, 1456],
+];
+
+export const SIDE = { camera: '카메라 쪽', unknown: '판단 보류', ai: 'AI 쪽' };
+
+/**
+ * @param {object} b verifyFile이 모은 측정값
+ * @returns {object[]} 각 줄 { label, basis, got, side, note }
+ */
+export function aiSignals(b) {
+  const { exif, consistency, optics, compression, rephoto, pixels, provenance: prov } = b;
+  const rows = [];
+
+  rows.push({
+    label: 'AI 생성 표식',
+    basis: '파일에 생성 선언이 없어야 함',
+    got: prov?.declaresAi ? `있음${prov.generator ? ` · ${prov.generator}` : ''}` : '없음',
+    side: prov?.declaresAi ? 'ai' : 'unknown',
+    decisive: Boolean(prov?.declaresAi),
+    note: prov?.present
+      ? (prov.via === 'C2PA' ? 'C2PA 서명을 읽었습니다' : '파일 메타데이터를 읽었습니다')
+      : 'C2PA 서명과 메타데이터를 훑었으나 없습니다 — 저장·캡처로 지워지므로 없다고 AI가 아닌 것은 아닙니다',
+  });
+
+  rows.push({
+    label: '촬영 정보',
+    basis: '제조사·모델·렌즈·촬영 시각',
+    got: exif.hasCameraId ? '있음' : exif.present ? '일부만 남음' : '없음',
+    side: exif.hasCameraId ? 'camera' : 'ai',
+    note: exif.hasCameraId
+      ? '생성물에는 촬영 기기가 적히지 않습니다'
+      : '메신저를 거친 실제 사진도 이렇게 됩니다. 이 줄 하나로는 정하지 않습니다',
+  });
+
+  {
+    const { darkSigma } = consistency.measured;
+    const side = consistency.flags.isoNoiseMismatch ? 'ai'
+      : darkSigma == null || consistency.iso == null ? 'unknown' : 'camera';
+    rows.push({
+      label: '센서 노이즈',
+      basis: '기록된 ISO에 맞는 노이즈가 있어야 함',
+      got: darkSigma == null ? '측정 불가'
+        : `σ=${darkSigma.toFixed(2)}${consistency.iso != null ? ` / ISO ${consistency.iso}` : ' / ISO 기록 없음'}`,
+      side,
+      note: side === 'ai'
+        ? '기록된 ISO라면 있어야 할 노이즈가 없습니다'
+        : '생성 모델은 센서를 거치지 않아 ISO와 맞는 노이즈를 만들지 못합니다',
+    });
+  }
+
+  {
+    const { slopeCorrelation } = consistency.measured;
+    const bad = consistency.flags.noiseSignalInverted || consistency.flags.noiseSignalFlat;
+    const side = bad ? 'ai' : slopeCorrelation == null || slopeCorrelation <= 0 ? 'unknown' : 'camera';
+    rows.push({
+      label: '노이즈-신호 물리',
+      basis: '밝을수록 노이즈가 커져야 함 (포아송)',
+      got: slopeCorrelation == null ? '측정 불가'
+        : `구간 상관 ${slopeCorrelation > 0 ? '+' : ''}${slopeCorrelation.toFixed(2)}`,
+      side,
+      note: '빛이 알갱이로 도착해 생기는 곡선입니다. 생성물에는 이유가 없어 잘 나타나지 않습니다',
+    });
+  }
+
+  {
+    const found = [optics.vignetting.detected && '비네팅', optics.chromaticAberration.detected && '색수차']
+      .filter(Boolean);
+    const side = found.length === 2 ? 'camera' : found.length === 1 ? 'unknown' : 'ai';
+    rows.push({
+      label: '렌즈 광학 흔적',
+      basis: '비네팅과 색수차가 있어야 함',
+      got: found.length ? `${found.join(' · ')} 검출` : '둘 다 없음',
+      side,
+      note: '유리를 지난 빛에만 생기는 결함입니다. 다만 카메라 내 보정과 크롭으로도 지워집니다',
+    });
+  }
+
+  {
+    const lossless = compression.estimatedPasses == null;
+    const side = compression.flags.regionalBlockDeviation ? 'ai'
+      : lossless ? 'unknown' : 'camera';
+    rows.push({
+      label: '압축 이력',
+      basis: '카메라 JPEG의 8×8 격자가 있어야 함',
+      got: compression.flags.regionalBlockDeviation ? `구역별로 다름 (${compression.weakTiles}개)`
+        : lossless ? '격자 없음 — 무손실 저장' : `격자 검출 · ${compression.estimatedPasses}회`,
+      side,
+      note: lossless
+        ? '생성 모델은 보통 PNG로 무손실 저장합니다. 카메라 원본은 JPEG 격자를 남깁니다'
+        : '카메라가 저장할 때 남기는 격자입니다',
+    });
+  }
+
+  {
+    const [w, h] = [pixels.width, pixels.height];
+    const hit = GENERATED_SIZES.some(([a, c]) => (a === w && c === h) || (a === h && c === w));
+    rows.push({
+      label: '생성기 규격 해상도',
+      basis: '생성 모델의 표준 크기가 아니어야 함',
+      got: `${w}×${h}${hit ? ' — 규격 일치' : ''}`,
+      side: hit ? 'ai' : 'unknown',
+      note: hit
+        ? '생성 모델이 그대로 출력하는 크기입니다. 다만 사람이 이 크기로 자를 수도 있습니다'
+        : '생성 모델이 쓰는 규격 크기가 아닙니다. 리사이즈하면 이 신호는 사라집니다',
+    });
+  }
+
+  {
+    const flat = rephoto.flags.flatFocus;
+    const moire = rephoto.flags.moire;
+    rows.push({
+      label: '초점 · 평면성',
+      basis: '거리에 따라 선명도가 달라져야 함',
+      got: moire ? '모아레 검출' : flat ? '화면 전체가 균일' : optics.focus.discontinuous ? '구역별로 끊김' : '연속적',
+      side: flat || optics.focus.discontinuous ? 'ai' : moire ? 'unknown' : 'camera',
+      note: '실제 장면은 거리가 있어 선명도가 이어집니다. 평면을 찍거나 생성한 이미지는 균일합니다',
+    });
+  }
+
+  return rows;
+}

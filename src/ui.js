@@ -19,7 +19,7 @@ import { analyzeRephoto } from './verify/rephoto.js';
 import { fingerprintFile, formatBytes } from './verify/fingerprint.js';
 import { readProvenance } from './verify/provenance.js';
 import { gradeResult, VERDICT, GATE } from './grade.js';
-import { scoreTraces, STATE_LABEL } from './score.js';
+import { scoreTraces, STATE_LABEL, aiSignals, SIDE } from './score.js';
 import { REVIEW_QUEUE, CONTACT, MAIL, queueLine } from './queue.js';
 import {
   renderMarkedImage, renderMarkOnly, markedFilename, markOnlyFilename,
@@ -414,43 +414,23 @@ function renderScorePanel(bundle) {
       </div>`;
   }).join('');
 
-  /* 발급선. 숫자 합격선은 그대로 공개하되, 통과한 줄은 접어 둡니다.
-     AI인지 아닌지를 보러 온 사람에게 ✓ 다섯 줄은 읽을 것이 없습니다. */
-  const mp = pixels.megapixels;
+  /* AI 판별 기준. 화소 하한이나 "약한 신호 n건" 같은 집계는 여기 넣지 않습니다.
+     측정이 가능한지를 말할 뿐 AI인지를 말하지 않기 때문입니다.
+     접어 두지 않습니다 — 판별 근거는 눌러야 나오면 근거 구실을 못 합니다. */
   const prov = bundle.provenance;
-  const checkedBy = prov?.present
-    ? (prov.via === 'C2PA' ? 'C2PA 서명으로 확인' : '파일 메타데이터로 확인')
-    : 'C2PA 서명·메타데이터를 훑었으나 없음';
+  const signals = aiSignals(bundle);
+  const tally = { camera: 0, unknown: 0, ai: 0 };
+  signals.forEach((r) => { tally[r.side] += 1; });
 
-  const gates = [
-    {
-      ok: !prov?.declaresAi,
-      label: 'AI 생성 표식',
-      need: '없어야 함',
-      got: prov?.declaresAi
-        ? `있음${prov.generator ? ` · ${prov.generator}` : ''}`
-        : prov?.present ? '없음 (출처 기록은 있음)' : '없음',
-    },
-    { ok: mp >= GATE.minMegapixels, label: '화소', need: `${GATE.minMegapixels}MP 이상`, got: `${mp.toFixed(1)}MP` },
-    {
-      ok: result.blockers.every((b) => !['exif-absent', 'no-camera-id', 'no-capture-time'].includes(b.code)),
-      label: '촬영 정보', need: '제조사·모델 + 촬영 시각',
-      got: bundle.exif.hasCameraId ? '있음' : '없음',
-    },
-    { ok: result.contradictions.length === 0, label: '정합성 모순', need: '0건', got: `${result.contradictions.length}건` },
-    { ok: result.softSignals.length < GATE.softSignalsForHold, label: '약한 신호', need: `${GATE.softSignalsForHold}건 미만`, got: `${result.softSignals.length}건` },
-  ];
-
-  const gateRow = (g) => `
-    <li class="gate${g.ok ? ' is-ok' : ' is-no'}">
-      <span class="gate-mark" aria-hidden="true">${g.ok ? '✓' : '✕'}</span>
-      <span class="gate-label">${escapeHtml(g.label)}</span>
-      <span class="gate-need">${escapeHtml(g.need)}</span>
-      <span class="gate-got">${escapeHtml(g.got)}</span>
-    </li>`;
-
-  const failed = gates.filter((g) => !g.ok);
   const eligible = result.verdict === VERDICT.PASS;
+  const mp = pixels.megapixels;
+  const blockers = [
+    prov?.declaresAi && 'AI 생성 표식 있음',
+    !bundle.exif.hasCameraId && '촬영 정보 없음',
+    result.contradictions.length > 0 && `정합성 모순 ${result.contradictions.length}건`,
+    result.softSignals.length >= GATE.softSignalsForHold && `약한 신호 ${result.softSignals.length}건`,
+    mp < GATE.minMegapixels && `화소 ${mp.toFixed(1)}MP`,
+  ].filter(Boolean);
 
   return `
     <div class="panel score-panel">
@@ -471,42 +451,41 @@ function renderScorePanel(bundle) {
         ${declared
           ? '파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다. 배점을 계산한 값이 아닙니다.'
           : `학습된 분류기의 판단이 아닙니다. 아래 항목에 사람이 정한 배점을 곱해 더한 값이라
-             배점을 바꾸면 숫자도 바뀝니다. 재는 것은 “카메라 촬영 흔적이 남아 있는가”이며, 흔적이
-             지워진 실제 사진(메신저를 거친 사진, 스크린샷)도 낮게 나옵니다.`}
+             배점을 바꾸면 숫자도 바뀝니다.`}
       </p>
 
-      <p class="panel-title score-sub">AI 판별 근거</p>
+      <p class="panel-title score-sub">
+        AI 판별 기준 <span class="tally">카메라 쪽 ${tally.camera} · 판단 보류 ${tally.unknown} · AI 쪽 ${tally.ai}</span>
+      </p>
+      <ul class="sig">
+        ${signals.map((r) => `
+          <li class="sig-row sig-row--${r.side}${r.decisive ? ' is-decisive' : ''}">
+            <div class="sig-top">
+              <span class="sig-name">${escapeHtml(r.label)}</span>
+              ${r.decisive ? '<span class="sig-decisive">결정적</span>' : ''}
+              <span class="sig-side">${escapeHtml(SIDE[r.side])}</span>
+              <span class="sig-got">${escapeHtml(r.got)}</span>
+            </div>
+            <p class="sig-basis">기준 — ${escapeHtml(r.basis)}</p>
+            <p class="sig-note">${escapeHtml(r.note)}</p>
+          </li>`).join('')}
+      </ul>
 
-      <div class="evid${prov?.declaresAi ? ' evid--ai' : ''}">
-        <div class="evid-head">
-          <span class="evid-name">AI 생성 표식</span>
-          <span class="evid-tag">${prov?.declaresAi ? '결정적' : '해당 없음'}</span>
-          <span class="evid-val">${escapeHtml(prov?.declaresAi
-            ? `있음${prov.generator ? ` · ${prov.generator}` : ''}`
-            : '없음')}</span>
-        </div>
-        <p class="evid-note">${escapeHtml(checkedBy)}${prov?.declaresAi
-          ? ' · 파일이 스스로 밝힌 기록이라 아래 측정값보다 앞섭니다'
-          : ' · 표식은 저장·캡처로 지워지므로 없다고 해서 AI가 아니라는 뜻은 아닙니다'}</p>
-      </div>
-
-      ${declared
-        ? '<p class="score-caveat">표식이 결정적이므로 아래 여섯 항목은 세지 않았습니다.</p>'
-        : `<div class="cats">${bars}</div>`}
+      ${declared ? '' : `
+        <p class="panel-title score-sub">항목별 배점</p>
+        <div class="cats">${bars}</div>`}
 
       <p class="panel-title score-sub">인증 마크</p>
       <p class="gate-verdict${eligible ? ' is-ok' : ''}">
         ${eligible
-          ? '발급했습니다. 발급 조건 다섯 줄을 모두 충족합니다.'
-          : `발급하지 않습니다. 막은 조건 ${failed.length}건 —
-             ${failed.map((g) => `${escapeHtml(g.label)}(${escapeHtml(g.got)})`).join(', ')}`}
+          ? '발급했습니다. 발급 조건을 모두 충족합니다.'
+          : `발급하지 않습니다. 막은 조건 — ${escapeHtml(blockers.join(', '))}`}
       </p>
-      ${fold('발급 조건 전체 보기', '다섯 줄 · 합격선 포함', `
-        <ul class="gates">${gates.map(gateRow).join('')}</ul>
-        <p class="score-caveat" style="margin-top:16px">
-          다섯 줄을 모두 충족해야 발급합니다. 첫 줄은 파일에 적힌 기록이고 나머지 네 줄은
-          재서 얻은 값입니다. 환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.
-        </p>`)}
+      <p class="score-caveat">
+        발급 조건은 다섯입니다 — AI 생성 표식 없음 · 촬영 정보(제조사·모델 + 촬영 시각) 있음 ·
+        정합성 모순 0건 · 약한 신호 ${GATE.softSignalsForHold}건 미만 · 화소 ${GATE.minMegapixels}MP 이상.
+        환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.
+      </p>
     </div>`;
 }
 
