@@ -12,15 +12,18 @@
 import { paintIcons } from './site.js';
 import { formatDate } from './review.js';
 import { formatBytes } from './verify/fingerprint.js';
+import { AWARDABLE, REVIEW_CHECKS, needsSensor, tallyChecks } from './review-criteria.js';
 
 const KEY_STORE = 'ultari.admin.key.v1';
 
-const MOVES = [
-  { status: 'reviewing', label: '심사 착수' },
-  { status: 'waiting', label: '추가 자료 대기' },
-  { status: 'done', label: '결과 발표' },
-  { status: 'rejected', label: '반려' },
-];
+/* 되돌릴 상태의 이름. 서버가 보내 주는 statusLabel과 같은 말을 씁니다. */
+const STATUS_LABEL = {
+  received: '신청 접수',
+  reviewing: '심사 중',
+  waiting: '추가 자료 대기',
+  done: '결과 발표',
+  rejected: '반려',
+};
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -85,13 +88,44 @@ function mountConsole(scope) {
     paintIcons(list);
   };
 
+  const gradeOptions = (a) => {
+    const picked = typeof a.awarded === 'number' ? String(a.awarded) : (a.finished ? 'none' : '');
+    const opts = [['', '— 아직 정하지 않음'], ...AWARDABLE.map((g) => [String(g), `${g}등급`]), ['none', '등급 없음']];
+    return opts.map(([v, label]) =>
+      `<option value="${v}"${v === picked ? ' selected' : ''}>${label}</option>`).join('');
+  };
+
+  const judgeRow = (check, state) => `
+    <li class="judge-row">
+      <div class="judge-what">
+        <span class="judge-label">${escapeHtml(check.label)}</span>
+        <span class="judge-detail">${escapeHtml(check.detail)}</span>
+      </div>
+      <select data-check="${check.id}" class="judge-pick judge-pick--${state}">
+        <option value="unknown"${state === 'unknown' ? ' selected' : ''}>확인 못 함</option>
+        <option value="pass"${state === 'pass' ? ' selected' : ''}>확인됨</option>
+        <option value="fail"${state === 'fail' ? ' selected' : ''}>어긋남</option>
+      </select>
+    </li>`;
+
   const card = (a) => {
     const purged = Boolean(a.file?.purgedAt);
+    const checks = a.checks || {};
+    const tally = tallyChecks(checks);
+    const undo = Array.isArray(a.undo) ? a.undo : [];
+    const back = undo.length ? (STATUS_LABEL[undo[undo.length - 1].status] || undo[undo.length - 1].status) : null;
+    // 심사에 들어간 건은 판단 칸을 펼쳐 둡니다. 나머지는 접어 둡니다.
+    const openJudge = a.status === 'reviewing' || a.status === 'waiting';
+
     return `
-    <article class="panel adm-card${a.finished ? ' adm-card--done' : ''}" data-id="${escapeHtml(a.id)}">
+    <article class="panel adm-card${a.finished ? ' adm-card--done' : ''}"
+      data-id="${escapeHtml(a.id)}" data-status="${escapeHtml(a.status)}">
       <p class="adm-top">
         <span class="adm-id">${escapeHtml(a.id)}</span>
         <span class="status-tag">${escapeHtml(a.statusLabel)}</span>
+        ${typeof a.awarded === 'number'
+          ? `<span class="adm-award">${a.awarded}등급 발급</span>`
+          : a.finished ? '<span class="dim">등급 없음</span>' : ''}
         <span class="dim">${a.grade}등급 신청</span>
         <span class="dim">신청 ${escapeHtml(formatDate(a.createdAt))}</span>
         <span class="dim">예상 ${escapeHtml(formatDate(a.etaDate))} · 영업일 ${a.etaDays}일</span>
@@ -105,31 +139,56 @@ function mountConsole(scope) {
           <span class="dim">${escapeHtml(formatBytes(a.file?.size) || '')}${purged ? ' · 삭제됨' : ''}</span></dd></div>
         <div><dt>지문</dt><dd class="mono">${escapeHtml(a.fingerprint || '없음')}</dd></div>
         ${a.note ? `<div><dt>촬영 상황</dt><dd>${escapeHtml(a.note)}</dd></div>` : ''}
-        ${a.result ? `<div><dt>발표한 결과</dt><dd>${escapeHtml(a.result)}</dd></div>` : ''}
       </dl>
 
       ${a.summary ? `<details class="fold"><summary>간단 검사 측정 요약<span class="hint">신청자가 보낸 값</span></summary>
         <div class="fold-body"><pre class="copybox">${escapeHtml(a.summary)}</pre></div></details>` : ''}
 
+      <details class="fold adm-judge"${openJudge ? ' open' : ''}>
+        <summary>심사 판단<span class="hint">기준 ${REVIEW_CHECKS.length}개 · 확인 ${tally.pass} · 어긋남 ${tally.fail}</span></summary>
+        <div class="fold-body">
+          <ul class="judge-list">
+            ${REVIEW_CHECKS.map((c) => judgeRow(c, checks[c.id] || 'unknown')).join('')}
+          </ul>
+
+          <div class="apply-grid">
+            <label class="fld">
+              <span class="fld-label">발급 등급 <em>결과 발표에 쓰입니다</em></span>
+              <select data-awarded>${gradeOptions(a)}</select>
+            </label>
+            <label class="fld">
+              <span class="fld-label">이력 메모 <em>신청자에게 보이지 않습니다</em></span>
+              <input type="text" data-note maxlength="300" placeholder="무엇을 보고 그렇게 판단했는지">
+            </label>
+          </div>
+
+          <label class="fld">
+            <span class="fld-label">신청자에게 보일 결과문 <em>결과 발표·반려에 필요합니다</em></span>
+            <textarea data-result rows="3" maxlength="500"
+              placeholder="예: 원본 파일에서 촬영 정보와 픽셀이 서로 맞고, 화면 재촬영 흔적이 없었습니다. 센서 지문은 대조하지 못했습니다."
+              >${escapeHtml(a.result || '')}</textarea>
+          </label>
+
+          <p class="judge-warn" data-warn hidden></p>
+
+          <div class="btn-row">
+            <button class="btn btn--mini" type="button" data-action="finish">심사 완료 · 결과 발표</button>
+            <button class="btn btn--mini btn--ghost" type="button" data-action="save">판단만 저장</button>
+            <button class="btn btn--mini btn--ghost adm-danger" type="button" data-action="reject">반려</button>
+          </div>
+        </div>
+      </details>
+
       ${a.history?.length ? `<ul class="status-hist">${a.history.map((h) =>
         `<li><span class="dim">${escapeHtml(formatDate(h.at))}</span> ${escapeHtml(h.label || h.status)}${
+          typeof h.awarded === 'number' ? ` · ${h.awarded}등급` : ''}${
           h.note ? ` — ${escapeHtml(h.note)}` : ''}</li>`).join('')}</ul>` : ''}
-
-      <label class="fld adm-note">
-        <span class="fld-label">이력에 남길 메모 <em>선택</em></span>
-        <input type="text" data-note maxlength="300" placeholder="무엇을 보고 그렇게 판단했는지">
-      </label>
-      <label class="fld adm-note">
-        <span class="fld-label">신청자에게 보일 결과문 <em>결과 발표·반려에 쓰입니다</em></span>
-        <textarea data-result rows="2" maxlength="500"
-          placeholder="예: 3등급으로 확인했습니다. 화면 재촬영 흔적 없음.">${escapeHtml(a.result || '')}</textarea>
-      </label>
 
       <div class="btn-row adm-actions">
         ${purged ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="photo"><span data-icon="download"></span>사진 내려받기</button>'}
-        ${MOVES.filter((m) => m.status !== a.status).map((m) =>
-          `<button class="btn btn--mini${m.status === 'done' ? '' : ' btn--ghost'}" type="button"
-            data-action="move" data-status="${m.status}">${m.label}</button>`).join('')}
+        ${a.status === 'reviewing' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="reviewing">심사 착수</button>'}
+        ${a.status === 'waiting' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="waiting">추가 자료 대기</button>'}
+        ${back ? `<button class="btn btn--mini btn--ghost" type="button" data-action="revert">되돌리기 <span class="dim">→ ${escapeHtml(back)}</span></button>` : ''}
         ${purged ? '' : '<button class="btn btn--mini btn--ghost adm-danger" type="button" data-action="purge">사진·연락처 삭제</button>'}
       </div>
       <p class="adm-msg" data-msg hidden></p>
@@ -181,17 +240,62 @@ function mountConsole(scope) {
     }
   };
 
-  const move = async (el, id, status) => {
-    const result = el.querySelector('[data-result]')?.value.trim() ?? '';
-    const note = el.querySelector('[data-note]')?.value.trim() ?? '';
-    cardMsg(el, '옮기는 중…');
+  /** 카드에 적힌 판단을 모읍니다. "확인 못 함"은 보내지 않습니다. */
+  const collect = (el) => {
+    const checks = {};
+    el.querySelectorAll('[data-check]').forEach((sel) => {
+      if (sel.value !== 'unknown') checks[sel.dataset.check] = sel.value;
+    });
+    const picked = el.querySelector('[data-awarded]')?.value ?? '';
+    const body = {
+      checks,
+      result: el.querySelector('[data-result]')?.value.trim() ?? '',
+      note: el.querySelector('[data-note]')?.value.trim() ?? '',
+    };
+    // 고르지 않았으면 보내지 않습니다. 서버가 기존 값을 지우지 않게 합니다.
+    if (picked === 'none') body.awarded = null;
+    else if (picked !== '') body.awarded = Number(picked);
+    return { body, picked, checks };
+  };
+
+  const send = async (el, id, status, extra) => {
+    cardMsg(el, '저장하는 중…');
     try {
-      await post({ id, status, note, result });
+      await post({ id, status, ...extra });
       cardMsg(el, '');
       await load();
     } catch (err) {
       cardMsg(el, err.message, true);
     }
+  };
+
+  /** 상태만 옮기는 버튼도 적어 둔 판단을 함께 저장합니다. 타이핑을 버리지 않습니다. */
+  const move = (el, id, status) => send(el, id, status, collect(el).body);
+
+  /** 심사 완료 — 기준, 등급, 결과문, 상태를 한 번에 넘깁니다. */
+  const finish = (el, id, kind) => {
+    const { body, picked, checks } = collect(el);
+    if (!body.result) {
+      cardMsg(el, '신청자에게 보일 결과문을 적어 주세요. 결과를 알리는 상태입니다.', true);
+      el.querySelector('[data-result]')?.focus();
+      return;
+    }
+    if (kind === 'done' && picked === '') {
+      cardMsg(el, '발급 등급을 골라 주세요. "등급 없음"도 고를 수 있습니다.', true);
+      el.querySelector('[data-awarded]')?.focus();
+      return;
+    }
+    if (kind === 'done' && needsSensor(body.awarded, checks)
+      && !window.confirm('1등급은 센서 지문 대조가 확인돼야 합니다. 그래도 1등급으로 발급합니까?')) {
+      return;
+    }
+    send(el, id, kind, body);
+  };
+
+  /** 잘못 누른 것을 되짚습니다. 서버가 바꾸기 전 상태를 쌓아 두고 있습니다. */
+  const revert = (el, id) => {
+    if (!window.confirm(`${id}를 직전 상태로 되돌립니다.`)) return;
+    send(el, id, undefined, { action: 'revert' });
   };
 
   const purge = async (el, id) => {
@@ -205,6 +309,23 @@ function mountConsole(scope) {
       cardMsg(el, err.message, true);
     }
   };
+
+  /* 고른 값이 색으로 보이고, 1등급 조건은 누르기 전에 알려 줍니다. */
+  scope.addEventListener('change', (e) => {
+    const pick = e.target.closest('[data-check]');
+    if (pick) {
+      pick.className = `judge-pick judge-pick--${pick.value}`;
+    }
+    const cardEl = e.target.closest('.adm-card');
+    if (!cardEl) return;
+    const warn = cardEl.querySelector('[data-warn]');
+    if (!warn) return;
+    const { body, checks } = collect(cardEl);
+    const bad = needsSensor(body.awarded, checks);
+    warn.textContent = bad
+      ? '1등급은 센서 지문 대조가 확인돼야 합니다. 지금은 확인되지 않았습니다.' : '';
+    warn.hidden = !bad;
+  });
 
   gateForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -249,6 +370,10 @@ function mountConsole(scope) {
     const id = cardEl.dataset.id;
     if (act === 'photo') { e.preventDefault(); downloadPhoto(cardEl, id); }
     if (act === 'move') { e.preventDefault(); move(cardEl, id, el.dataset.status); }
+    if (act === 'save') { e.preventDefault(); move(cardEl, id, cardEl.dataset.status); }
+    if (act === 'finish') { e.preventDefault(); finish(cardEl, id, 'done'); }
+    if (act === 'reject') { e.preventDefault(); finish(cardEl, id, 'rejected'); }
+    if (act === 'revert') { e.preventDefault(); revert(cardEl, id); }
     if (act === 'purge') { e.preventDefault(); purge(cardEl, id); }
   });
 

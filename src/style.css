@@ -851,6 +851,51 @@ main.main--tool { padding-block: 44px 80px; }
 .adm-msg.is-bad { color: var(--warn); }
 .adm-gate .fld { max-width: 420px; }
 .adm-gate .btn-row { margin-top: 14px; }
+.adm-award {
+  font-size: 12.5px; font-weight: 600; color: var(--paper);
+  background: var(--measure); padding: 2px 8px;
+}
+
+/* 심사 판단 — 기준마다 한 줄, 고른 값이 색으로 보입니다. */
+.adm-judge { margin-top: 14px; }
+.judge-list { list-style: none; margin: 0 0 18px; padding: 0; border-top: 1px solid var(--rule); }
+.judge-row {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 9px 0; border-bottom: 1px solid var(--rule);
+}
+.judge-what { flex: 1 1 320px; min-width: 0; }
+.judge-label { display: block; font-size: 13.5px; font-weight: 600; }
+.judge-detail { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.55; }
+.judge-pick {
+  flex: none; width: 116px; font: inherit; font-size: 13px; border-radius: 0;
+  padding: 6px 8px; background: var(--raised);
+  border: 1px solid var(--rule-strong); color: var(--ink-3);
+}
+.judge-pick--pass { border-color: var(--measure); color: var(--measure); }
+.judge-pick--fail { border-color: var(--warn); color: var(--warn); }
+.judge-pick:focus-visible { outline: 2px solid var(--measure); outline-offset: 1px; }
+.judge-warn { margin: 0 0 14px; font-size: 13px; color: var(--warn); }
+
+@media (max-width: 620px) {
+  .judge-pick { width: 100%; }
+}
+
+/* 신청자가 보는 결과 — 등급과 그 근거. */
+.verdict { border: 1px solid var(--measure); background: var(--raised); padding: 16px 18px; margin-top: 16px; }
+.verdict-grade { margin: 0; font-size: 15px; color: var(--ink-2); }
+.verdict-grade b { font-size: 22px; font-weight: 600; color: var(--measure); margin-right: 4px; }
+.verdict-grade--none { color: var(--ink-3); }
+.verdict-top { margin: 14px 0 6px; font-size: 12.5px; color: var(--ink-3); }
+.verdict-checks { list-style: none; margin: 0; padding: 0; }
+.verdict-checks li {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 6px 0; border-top: 1px solid var(--rule); font-size: 13.5px;
+}
+.verdict-mark { flex: none; line-height: 0; color: var(--measure); }
+.verdict-mark svg { width: 16px; height: 16px; }
+.verdict-checks li.is-fail .verdict-mark { color: var(--warn); }
+.verdict-what { flex: 1 1 auto; }
+.verdict-checks li.is-fail .verdict-what { color: var(--warn); }
 
 @media (max-width: 620px) {
   .elig { padding: 20px 18px; }

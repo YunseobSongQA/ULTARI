@@ -28,6 +28,7 @@ import {
   POSITIONS, DEFAULT_POSITION,
 } from './watermark.js';
 import { paintIcons } from './site.js';
+import { CHECK_LABEL, CHECK_STATES } from './review-criteria.js';
 import {
   submitApplication, fetchStatus, fetchStatusByContact, fetchQueue, listApplications,
   rememberApplication, formatDate, MAX_UPLOAD, MIN_PASSWORD,
@@ -867,6 +868,33 @@ function renderReceipt(r) {
     </div>`;
 }
 
+/**
+ * 심사 결과 — 발급 등급과 사람이 본 기준.
+ * 등급만 알려 주고 근거를 말하지 않으면 그냥 숫자입니다.
+ */
+function renderDecision(st) {
+  const rows = Object.entries(st.checks || {})
+    .filter(([id, state]) => CHECK_LABEL[id] && CHECK_STATES[state]);
+  if (typeof st.awarded !== 'number' && !rows.length) return '';
+
+  return `
+    <div class="verdict">
+      ${typeof st.awarded === 'number'
+        ? `<p class="verdict-grade"><b>${st.awarded}등급</b> 발급</p>`
+        : '<p class="verdict-grade verdict-grade--none">등급 없음</p>'}
+      ${rows.length ? `
+        <p class="verdict-top">사람이 본 기준 ${rows.length}가지</p>
+        <ul class="verdict-checks">
+          ${rows.map(([id, state]) => `
+            <li class="is-${state}">
+              <span class="verdict-mark" data-icon="${state === 'pass' ? 'check' : 'cross'}"></span>
+              <span class="verdict-what">${escapeHtml(CHECK_LABEL[id])}</span>
+              <span class="dim">${escapeHtml(CHECK_STATES[state].label)}</span>
+            </li>`).join('')}
+        </ul>` : ''}
+    </div>`;
+}
+
 function renderStatus(st) {
   // waiting(추가 자료 대기)은 심사 중의 한 상태입니다. 레일은 세 칸으로 둡니다.
   const at = st.status === 'received' ? 0
@@ -884,6 +912,7 @@ function renderStatus(st) {
         <div><dt>접수일</dt><dd>${escapeHtml(formatDate(st.createdAt))}</dd></div>
         <div><dt>마지막 변경</dt><dd>${escapeHtml(formatDate(st.updatedAt))}</dd></div>
       </dl>
+      ${renderDecision(st)}
       ${st.result ? `<p class="status-result">${escapeHtml(st.result)}</p>` : ''}
       ${st.history?.length ? `<ul class="status-hist">${st.history.map((h) =>
         `<li><span class="dim">${escapeHtml(formatDate(h.at))}</span> ${escapeHtml(h.label)}${h.note ? ` — ${escapeHtml(h.note)}` : ''}</li>`).join('')}</ul>` : ''}
@@ -1287,6 +1316,7 @@ export function mountVerifier(root) {
       target.innerHTML = (items.length > 1
         ? `<p class="mine-title">맞는 접수 ${items.length}건</p>` : '')
         + items.map(renderStatus).join('');
+      paintIcons(target);
     } catch (err) {
       target.innerHTML = `<p class="apply-msg is-bad">${escapeHtml(err.message)}</p>`;
     }

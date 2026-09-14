@@ -35,6 +35,9 @@ const view = (record) => {
     etaDate: record.etaDate,
     fingerprint: record.fingerprint || null,
     result: record.result || null,
+    // 발급 등급과 기준별 판단. 근거를 말하지 않으면 등급은 그냥 숫자입니다.
+    awarded: record.awarded ?? null,
+    checks: record.checks || {},
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     history: (record.history || []).map((h) => ({

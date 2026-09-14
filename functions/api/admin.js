@@ -9,6 +9,29 @@
  */
 
 import { STATUS, checkEnv, fail, json, photoKey, safeText } from './_shared.js';
+import { sanitizeChecks, sanitizeGrade } from '../../src/review-criteria.js';
+
+/** 되돌리기용 snapshot. 바꾸기 전 상태를 쌓아 두고 하나씩 되짚습니다. */
+const snapshot = (r) => ({
+  status: r.status,
+  awarded: r.awarded ?? null,
+  checks: r.checks || {},
+  result: r.result || null,
+});
+
+/**
+ * 대기 색인 맞추기. 끝난 건은 빼야 뒷사람 예상일이 늘어나지 않고,
+ * 되돌려 다시 열린 건은 넣어야 예상일이 맞습니다.
+ */
+async function syncOpenIndex(env, id, done) {
+  const open = (await env.ULTARI_APPS.get('index:open', 'json')) || [];
+  const has = open.includes(id);
+  if (done && has) {
+    await env.ULTARI_APPS.put('index:open', JSON.stringify(open.filter((x) => x !== id)));
+  } else if (!done && !has) {
+    await env.ULTARI_APPS.put('index:open', JSON.stringify([...open, id]));
+  }
+}
 
 export async function onRequestPost({ request, env }) {
   const denied = denyAdmin(request, env);
@@ -37,24 +60,57 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true, id, purged: true, updatedAt: now });
   }
 
+  /* 되돌리기. 심사는 사람이 하는 일이라 잘못 누를 수 있습니다. */
+  if (body.action === 'revert') {
+    const stack = Array.isArray(record.undo) ? [...record.undo] : [];
+    if (!stack.length) return fail('되돌릴 이전 상태가 없습니다.', 409);
+
+    const prev = stack.pop();
+    const now = new Date().toISOString();
+    record.undo = stack;
+    record.status = prev.status;
+    record.awarded = prev.awarded ?? null;
+    record.checks = prev.checks || {};
+    record.result = prev.result || null;
+    record.updatedAt = now;
+    record.history = [...(record.history || []), {
+      at: now, status: record.status, note: '이전 상태로 되돌렸습니다.', revert: true,
+    }];
+
+    await env.ULTARI_APPS.put(`app:${id}`, JSON.stringify(record));
+    await syncOpenIndex(env, id, Boolean((STATUS[record.status] || {}).done));
+
+    return json({ ok: true, id, status: record.status, reverted: true, updatedAt: now });
+  }
+
   const status = safeText(body.status, 20);
   if (!STATUS[status]) return fail(`status는 ${Object.keys(STATUS).join(', ')} 중 하나여야 합니다.`);
 
-  const now = new Date().toISOString();
-  record.status = status;
-  record.updatedAt = now;
-  if (body.result !== undefined) record.result = safeText(body.result, 500) || null;
-  record.history = [...(record.history || []), { at: now, status, note: safeText(body.note, 300) || null }];
-
-  await env.ULTARI_APPS.put(`app:${id}`, JSON.stringify(record));
-
-  // 끝난 접수는 대기 색인에서 빼야 뒷사람 예상일이 늘어나지 않습니다.
-  if (STATUS[status].done) {
-    const open = (await env.ULTARI_APPS.get('index:open', 'json')) || [];
-    await env.ULTARI_APPS.put('index:open', JSON.stringify(open.filter((x) => x !== id)));
+  /* 결과를 알리는 상태에서는 신청자가 읽을 문장이 있어야 합니다.
+     등급만 바뀌고 아무 설명이 없으면 신청자는 이유를 알 수 없습니다. */
+  const result = body.result !== undefined ? safeText(body.result, 500) : (record.result || '');
+  if (STATUS[status].done && !result) {
+    return fail('신청자에게 보일 결과문을 적어 주세요. 결과를 알리는 상태입니다.');
   }
 
-  return json({ ok: true, id, status, updatedAt: now });
+  const now = new Date().toISOString();
+  record.undo = [...(Array.isArray(record.undo) ? record.undo : []), snapshot(record)].slice(-20);
+  record.status = status;
+  record.updatedAt = now;
+  if (body.result !== undefined) record.result = result || null;
+  if (body.awarded !== undefined) record.awarded = sanitizeGrade(body.awarded);
+  if (body.checks !== undefined) record.checks = sanitizeChecks(body.checks);
+  record.history = [...(record.history || []), {
+    at: now,
+    status,
+    note: safeText(body.note, 300) || null,
+    awarded: record.awarded ?? null,
+  }];
+
+  await env.ULTARI_APPS.put(`app:${id}`, JSON.stringify(record));
+  await syncOpenIndex(env, id, Boolean(STATUS[status].done));
+
+  return json({ ok: true, id, status, awarded: record.awarded ?? null, updatedAt: now });
 }
 
 /** 관리 키 확인. 키가 없으면 이 경로는 존재하지 않는 것처럼 답합니다. */
