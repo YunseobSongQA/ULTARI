@@ -469,10 +469,13 @@ export function mountVerifier(root) {
   const progressLabel = root.querySelector('[data-progress-label]');
   const progressBar = root.querySelector('[data-progress-bar]');
   const output = root.querySelector('[data-output]');
+  const readyBox = root.querySelector('[data-ready]');
+  const readyNote = root.querySelector('[data-ready-note]');
 
   let previewUrl = null;
   let markUrl = null;
-  let current = null;      // { file, mode, bundle }
+  let current = null;      // { file, mode, bundle } — 측정이 끝난 것
+  let pending = null;      // { file, mode } — 받아 두고 시작을 기다리는 것
   let busy = false;
 
   const revoke = () => {
@@ -483,10 +486,12 @@ export function mountVerifier(root) {
   const reset = () => {
     revoke();
     current = null;
+    pending = null;
     busy = false;
     output.innerHTML = '';
     fileLine.innerHTML = '';
     runArea.hidden = true;
+    readyBox.hidden = true;
     progress.hidden = true;
     if (stepList) stepList.innerHTML = '';
     lanes.hidden = false;
@@ -519,13 +524,19 @@ export function mountVerifier(root) {
     if (runNote) runNote.textContent = '이 기기에서만 계산했습니다. 어디로도 전송하지 않았습니다.';
   };
 
-  const run = async (file, mode) => {
+  /* 1단계 — 받았다는 사실만 알립니다. 측정은 사용자가 누를 때 시작합니다.
+     파일이 들어왔는지 모르는 채로 기다리게 하지 않기 위한 단계입니다. */
+  const stage = (file, mode) => {
     if (busy || !file) return;
-    busy = true;
     revoke();
+    pending = { file, mode };
+    current = null;
     lanes.hidden = true;
     runArea.hidden = false;
     output.innerHTML = '';
+    progress.hidden = true;
+    if (stepList) stepList.innerHTML = '';
+    progressBar.style.width = '0%';
 
     previewUrl = URL.createObjectURL(file);
     fileLine.innerHTML = `
@@ -535,7 +546,19 @@ export function mountVerifier(root) {
         <div>${escapeHtml(file.type || '형식 미상')} · ${escapeHtml(formatBytes(file.size) || '')}</div>
         <div style="color:var(--ink-3)">이 미리보기는 브라우저 메모리에만 있습니다.</div>
       </div>`;
+    readyNote.textContent = `${MODE_LABEL[mode]}로 ${STEPS.length}단계를 잰 뒤 판정합니다.`;
+    readyBox.hidden = false;
+    paintIcons(runArea);
     runArea.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+
+  /* 2단계 — 실제 측정. 진행이 보이고, 끝나면 결과가 남습니다. */
+  const start = async () => {
+    if (busy || !pending) return;
+    const { file, mode } = pending;
+    busy = true;
+    readyBox.hidden = true;
+    output.innerHTML = '';
 
     const startedAt = performance.now();
     drawSteps(0);
@@ -565,7 +588,7 @@ export function mountVerifier(root) {
 
   // 파일 선택은 label의 기본 동작에 맡깁니다. input.click()을 부르지 않습니다.
   root.querySelectorAll('input[type="file"][data-mode]').forEach((input) => {
-    input.addEventListener('change', () => run(input.files?.[0], input.dataset.mode));
+    input.addEventListener('change', () => stage(input.files?.[0], input.dataset.mode));
   });
 
   root.querySelectorAll('[data-dropzone]').forEach((zone) => {
@@ -574,7 +597,7 @@ export function mountVerifier(root) {
       zone.addEventListener(type, (e) => { e.preventDefault(); zone.classList.add('is-over'); }));
     ['dragleave', 'drop'].forEach((type) =>
       zone.addEventListener(type, (e) => { e.preventDefault(); zone.classList.remove('is-over'); }));
-    zone.addEventListener('drop', (e) => run(e.dataTransfer?.files?.[0], mode));
+    zone.addEventListener('drop', (e) => stage(e.dataTransfer?.files?.[0], mode));
   });
 
   const PREVIEW_EDGE = 1100;   // 미리보기는 이 크기로 줄여 그립니다. 비율은 같습니다.
@@ -690,6 +713,7 @@ export function mountVerifier(root) {
     const el = e.target.closest('[data-action]');
     if (!el) return;
     const act = el.dataset.action;
+    if (act === 'start') { e.preventDefault(); start(); }
     if (act === 'reset') { e.preventDefault(); reset(); }
     if (act === 'dl-photo') { e.preventDefault(); downloadMarked(el); }
     if (act === 'dl-mark') { e.preventDefault(); downloadMarkOnly(el); }

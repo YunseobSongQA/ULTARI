@@ -68,6 +68,17 @@
 
         <div class="run" data-run hidden>
           <div class="file-line" data-file-line></div>
+          <div class="ready" data-ready hidden>
+            <p class="ready-line">
+              <span data-icon="lock"></span>
+              <span><strong>사진을 불러왔습니다.</strong> <span data-ready-note></span></span>
+            </p>
+            <p class="ready-note">이 기기 안에서만 열었습니다. 아직 아무것도 계산하지 않았습니다.</p>
+            <div class="btn-row">
+              <button class="btn" type="button" data-action="start">검사 시작</button>
+              <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 고르기</button>
+            </div>
+          </div>
           <div class="progress" data-progress hidden>
             <ol class="run-steps" data-steps></ol>
             <div class="bar"><i data-progress-bar></i></div>
