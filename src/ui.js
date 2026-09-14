@@ -425,7 +425,7 @@ function renderScorePanel(bundle) {
     {
       // 파일이 스스로 밝힌 것이라 다른 조건보다 앞에 둡니다. 이 줄 하나로 발급이 막힙니다.
       ok: !prov?.declaresAi,
-      label: 'AI 생성 표식',
+      label: `AI 생성 표식${prov?.present ? ` (${prov.via === 'C2PA' ? 'C2PA 서명' : '파일 메타데이터'}으로 확인)` : ' (C2PA 서명·메타데이터 확인)'}`,
       need: '없어야 함',
       got: prov?.declaresAi
         ? `있음${prov.generator ? ` · ${prov.generator}` : ''}`
@@ -476,10 +476,11 @@ function renderScorePanel(bundle) {
       ${splitBar(trace, ai)}
       <p class="score-caveat">
         ${declared
-          ? '이 수치는 배점을 계산한 값이 아닙니다. 파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다.'
-          : `이 수치는 학습된 분류기의 판단이 아닙니다. 아래 여섯 항목에 사람이 정한 배점을 곱해
-             더한 값이고, 배점을 바꾸면 숫자도 바뀝니다. 재는 것은 “카메라 촬영 흔적이 남아 있는가”이며,
-             흔적이 지워진 실제 사진(메신저를 거친 사진, 스크린샷, PNG 내보내기)도 흔적 0에 가깝게 나옵니다.`}
+          ? '파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다. 배점을 계산한 값이 아닙니다.'
+          : `학습된 분류기의 판단이 아닙니다. 여섯 항목에 사람이 정한 배점을 곱해 더한 값이라
+             배점을 바꾸면 숫자도 바뀝니다. 재는 것은 “카메라 촬영 흔적이 남아 있는가”이며, 흔적이
+             지워진 실제 사진(메신저를 거친 사진, 스크린샷)도 낮게 나옵니다.
+             마크 발급은 이 수치가 아니라 아래 다섯 조건으로 정합니다.`}
       </p>
 
       ${declared ? '' : `
@@ -503,11 +504,7 @@ function renderScorePanel(bundle) {
             ? 'AI 생성 표식이 있어 첫 줄에서 막혔습니다. 나머지 측정값과 무관하게 발급하지 않습니다.'
             : '다섯 줄을 모두 충족해야 발급합니다. 위에서 ✕ 표시된 항목이 막고 있는 조건입니다.'}
       </p>
-      <p class="score-caveat">
-        마크 발급은 위 다섯 조건으로 결정합니다. 환산 수치(${trace}%)는 판단 근거가 아니라
-        표시용입니다 — 같은 수치라도 모순이 1건 있으면 발급하지 않습니다.
-        첫 줄은 파일에 적힌 기록이고, 나머지 네 줄은 픽셀과 메타데이터를 재서 얻은 값입니다.
-      </p>
+
     </div>`;
 }
 
@@ -598,11 +595,11 @@ function renderResult(bundle, mode) {
     </section>
 
     ${markPanel}
-    ${reasonList('자동 검증이 멈춘 이유', result.blockers)}
-    ${reasonList('서로 맞지 않는 측정값', result.contradictions)}
     ${deepPanel}
 
     <div class="folds">
+      ${reasonFold('자동 검증이 멈춘 이유', result.blockers)}
+      ${reasonFold('서로 맞지 않는 측정값', result.contradictions)}
       ${fold('측정값 전체 보기', `${rows.length}개 항목`, renderTable(rows))}
       ${result.softSignals.length
         ? fold('약한 신호', `${result.softSignals.length}가지 · 단독으로는 판정을 바꾸지 않습니다`, `
@@ -611,7 +608,23 @@ function renderResult(bundle, mode) {
         : ''}
       ${hints}
       ${fold('이 등급이 보장하지 않는 것', null, NO_GUARANTEE)}
+    </div>
+
+    <div class="end-actions">
+      <button class="btn" type="button" data-action="reset">다른 사진 검사하기</button>
+      <button class="btn btn--ghost" type="button" data-action="swap-mode">
+        이 사진으로 ${mode === 'quick' ? '상세 검사' : '간단 검사'}
+      </button>
+      <p class="btn-note">다시 재지 않습니다. 이미 계산한 측정값을 그대로 씁니다.</p>
     </div>`;
+}
+
+/** 펼쳐 둘 만큼 새롭지 않은 설명은 접어 둡니다. 내용은 그대로입니다. */
+function reasonFold(title, items) {
+  if (!items.length) return '';
+  return fold(title, `${items.length}가지`, `
+    <dl class="def-list">${items.map((i) =>
+      `<div><dt>${escapeHtml(i.title)}</dt><dd>${escapeHtml(i.detail)}</dd></div>`).join('')}</dl>`);
 }
 
 function renderError(message, detail) {
@@ -669,6 +682,18 @@ export function mountVerifier(root) {
     lanes.hidden = false;
     root.querySelectorAll('input[type="file"]').forEach((i) => { i.value = ''; });
     lanes.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+
+  /** 같은 사진을 다른 검사 방식으로 다시 봅니다. 측정은 다시 하지 않습니다. */
+  const swapMode = async () => {
+    if (!current || busy) return;
+    current.mode = current.mode === 'quick' ? 'deep' : 'quick';
+    const tag = fileLine.querySelector('.mode-tag');
+    if (tag) tag.textContent = MODE_LABEL[current.mode];
+    output.innerHTML = renderResult(current.bundle, current.mode);
+    paintIcons(output);
+    if (current.bundle.result.grade) await refreshMarkPreview();
+    output.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
 
   const stepList = root.querySelector('[data-steps]');
@@ -886,6 +911,7 @@ export function mountVerifier(root) {
     if (!el) return;
     const act = el.dataset.action;
     if (act === 'start') { e.preventDefault(); start(); }
+    if (act === 'swap-mode') { e.preventDefault(); swapMode(); }
     if (act === 'reset') { e.preventDefault(); reset(); }
     if (act === 'dl-photo') { e.preventDefault(); downloadMarked(el); }
     if (act === 'dl-mark') { e.preventDefault(); downloadMarkOnly(el); }
