@@ -17,7 +17,8 @@ import { analyzeOptics } from './verify/optics.js';
 import { analyzeCompression } from './verify/compression.js';
 import { analyzeRephoto } from './verify/rephoto.js';
 import { fingerprintFile, formatBytes } from './verify/fingerprint.js';
-import { gradeResult, VERDICT } from './grade.js';
+import { gradeResult, VERDICT, GATE } from './grade.js';
+import { scoreTraces, STATE_LABEL } from './score.js';
 import { REVIEW_QUEUE, CONTACT, MAIL, queueLine } from './queue.js';
 import {
   renderMarkedImage, renderMarkOnly, markedFilename, markOnlyFilename,
@@ -344,6 +345,115 @@ const NO_GUARANTEE = `
     자동 검증이 놓치는 경우를 <a href="/limits">전부 적어 둔 페이지</a>가 따로 있습니다.
   </p>`;
 
+/* ── 환산 수치 화면 ──────────────────────────────────── */
+
+/**
+ * 두 값이 100을 나눠 갖는 막대. 조각 사이는 2px 띄우고, 바깥쪽 끝만 둥글게.
+ * 색만으로 구분하지 않도록 양쪽에 직접 라벨을 답니다.
+ */
+function splitBar(trace, ai) {
+  return `
+    <div class="sbar" role="img" aria-label="촬영 흔적 ${trace}%, AI 생성 환산 ${ai}%">
+      <span class="sbar-seg sbar-seg--trace" style="width:${trace}%"></span>
+      <span class="sbar-seg sbar-seg--ai" style="width:${ai}%"></span>
+    </div>`;
+}
+
+function renderScorePanel(bundle) {
+  const { trace, ai, categories } = scoreTraces(bundle);
+  const { result, pixels } = bundle;
+
+  const bars = categories.map((c) => {
+    const pct = Math.round((c.earned / c.weight) * 100);
+    return `
+      <div class="cat" data-state="${c.state}">
+        <div class="cat-head">
+          <span class="cat-name">${escapeHtml(c.label)}</span>
+          <span class="cat-state">${escapeHtml(STATE_LABEL[c.state])}</span>
+          <span class="cat-num">${c.earned} <span class="cat-den">/ ${c.weight}</span></span>
+        </div>
+        <div class="cat-track"><i style="width:${pct}%"></i></div>
+        <p class="cat-note">${escapeHtml(c.note)}</p>
+      </div>`;
+  }).join('');
+
+  /* 마크 발급선 — 숫자를 그대로 적습니다. */
+  const mp = pixels.megapixels;
+  const gates = [
+    {
+      ok: mp >= GATE.minMegapixels,
+      label: '화소',
+      need: `${GATE.minMegapixels}MP 이상`,
+      got: `${mp.toFixed(1)}MP`,
+    },
+    {
+      ok: result.blockers.every((b) => !['exif-absent', 'no-camera-id', 'no-capture-time'].includes(b.code)),
+      label: '촬영 정보',
+      need: '제조사·모델 + 촬영 시각',
+      got: bundle.exif.hasCameraId ? '있음' : '없음',
+    },
+    {
+      ok: result.contradictions.length === 0,
+      label: '정합성 모순',
+      need: '0건',
+      got: `${result.contradictions.length}건`,
+    },
+    {
+      ok: result.softSignals.length < GATE.softSignalsForHold,
+      label: '약한 신호',
+      need: `${GATE.softSignalsForHold}건 미만`,
+      got: `${result.softSignals.length}건`,
+    },
+  ];
+
+  const eligible = result.verdict === VERDICT.PASS;
+
+  return `
+    <div class="panel score-panel">
+      <p class="panel-title">환산 수치</p>
+
+      <div class="score-hero">
+        <div class="score-figure">
+          <span class="score-num score-num--trace">${trace}<small>%</small></span>
+          <span class="score-cap">촬영 흔적</span>
+        </div>
+        <div class="score-figure score-figure--end">
+          <span class="score-num score-num--ai">${ai}<small>%</small></span>
+          <span class="score-cap">AI 생성 환산</span>
+        </div>
+      </div>
+      ${splitBar(trace, ai)}
+      <p class="score-caveat">
+        이 수치는 학습된 분류기의 판단이 아닙니다. 아래 여섯 항목에 사람이 정한 배점을 곱해
+        더한 값이고, 배점을 바꾸면 숫자도 바뀝니다. 재는 것은 “카메라 촬영 흔적이 남아 있는가”이며,
+        흔적이 지워진 실제 사진(메신저를 거친 사진, 스크린샷, PNG 내보내기)도 흔적 0에 가깝게 나옵니다.
+      </p>
+
+      <p class="panel-title score-sub">항목별 배점</p>
+      <div class="cats">${bars}</div>
+
+      <p class="panel-title score-sub">인증 마크 발급선</p>
+      <ul class="gates">
+        ${gates.map((g) => `
+          <li class="gate${g.ok ? ' is-ok' : ' is-no'}">
+            <span class="gate-mark" aria-hidden="true">${g.ok ? '✓' : '✕'}</span>
+            <span class="gate-label">${escapeHtml(g.label)}</span>
+            <span class="gate-need">${escapeHtml(g.need)}</span>
+            <span class="gate-got">${escapeHtml(g.got)}</span>
+          </li>`).join('')}
+      </ul>
+      <p class="gate-verdict${eligible ? ' is-ok' : ''}">
+        ${eligible
+          ? '네 줄을 모두 충족해 인증 마크를 발급했습니다.'
+          : '한 줄이라도 어긋나면 발급하지 않습니다. 위에서 ✕ 표시된 항목이 막고 있는 조건입니다.'}
+      </p>
+      <p class="score-caveat">
+        마크 발급은 위 네 조건으로 결정합니다. 환산 수치(${trace}%)는 판단 근거가 아니라 표시용입니다 —
+        같은 수치라도 모순 1건이 있으면 발급하지 않습니다.
+      </p>
+    </div>`;
+}
+
 function renderResult(bundle, mode) {
   const { result, print } = bundle;
   const rows = buildRows(bundle);
@@ -425,6 +535,7 @@ function renderResult(bundle, mode) {
       <div class="btn-row">${actions.join('')}</div>
     </section>
 
+    ${renderScorePanel(bundle)}
     ${markPanel}
     ${reasonList('자동 검증이 멈춘 이유', result.blockers)}
     ${reasonList('서로 맞지 않는 측정값', result.contradictions)}

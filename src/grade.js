@@ -21,7 +21,7 @@ export const VERDICT = {
   HOLD: 'hold',
 };
 
-/* 합격선 — 화면에 노출하지 않습니다. */
+/* 합격선. GATE로 내보내 결과 화면에 그대로 적습니다. */
 const T = {
   // 이보다 작은 사진은 측정할 화소가 모자랍니다.
   minMegapixels: 0.3,
@@ -31,6 +31,9 @@ const T = {
   // 1920이나 2560처럼 카메라 원본에서도 흔한 값은 넣지 않습니다. 힌트가 소음이 됩니다.
   messengerLongEdges: [1280, 1440, 2048],
 };
+
+/** 마크 발급선을 화면에 적기 위해 내보냅니다. */
+export const GATE = T;
 
 export const STATEMENT_GRADE3 = [
   '이 사진은 실제 카메라로 촬영된 것으로 보입니다.',

@@ -74,6 +74,7 @@ src/
     rephoto.js       모아레(FFT) / 평면성
     fingerprint.js   SHA-256, 클라이언트 시각
   grade.js           측정 결과 → 세 가지 판정
+  score.js           측정 결과 → 환산 수치 (배점은 사람이 정한 값)
   watermark.js       마크 합성 (위치 선택, 원본 해상도 출력, 마크만 투명 PNG)
   queue.js           심사 대기 건수와 접수처
   site.js            모든 페이지 공통 (아이콘, 대기 건수, 메일 링크)
