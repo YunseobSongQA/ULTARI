@@ -675,3 +675,7 @@ main.main--tool { padding-block: 44px 80px; }
 .progress .bar { height: 6px; }
 .progress .run-steps { margin: 18px 0 0; }
 .progress .run-status { margin-top: 12px; }
+
+/* 결과가 길어서 위에서도 빠져나갈 수 있어야 합니다. 아래 것과 같은 동작입니다. */
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.btn--mini { font-size: 13px; padding: 7px 13px; }

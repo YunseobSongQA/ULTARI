@@ -591,6 +591,13 @@ function renderResult(bundle, mode) {
     : '';
 
   return `
+    <div class="top-actions">
+      <button class="btn btn--mini" type="button" data-action="reset">다른 사진 검사하기</button>
+      <button class="btn btn--mini btn--ghost" type="button" data-action="swap-mode">
+        이 사진으로 ${mode === 'quick' ? '상세 검사' : '간단 검사'}
+      </button>
+    </div>
+
     <section class="cert${certClass}">
       <div class="cert-top">
         <span class="cert-mark">${CERT_MARK}</span>
