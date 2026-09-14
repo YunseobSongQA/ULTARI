@@ -170,6 +170,15 @@ export function aiSignals(b) {
   const { exif, consistency, optics, compression, rephoto, pixels, provenance: prov } = b;
   const rows = [];
 
+  /* 발화율이 낮은 기준은 무언가를 잡았을 때만 줄을 냅니다.
+     15장으로 재 보니 센서 노이즈 7%, 생성기 규격 해상도 7%, 압축 이력 13%로
+     대부분 "판단 보류"만 찍고 있었습니다. 아무 말도 못 하는 줄이 늘어서 있으면
+     읽는 쪽에서는 기준이 많은 것이 아니라 근거가 없는 것으로 보입니다.
+     빼지 않고 숨기는 이유는, 드물게 잡을 때는 그 값이 진짜이기 때문입니다. */
+  const push = (side, row) => {
+    if (side !== 'unknown') rows.push({ ...row, side });
+  };
+
   rows.push({
     label: 'AI 생성 표식',
     basis: '파일에 생성 선언이 없어야 함',
@@ -195,7 +204,7 @@ export function aiSignals(b) {
     const { darkSigma } = consistency.measured;
     const side = consistency.flags.isoNoiseMismatch ? 'ai'
       : darkSigma == null || consistency.iso == null ? 'unknown' : 'camera';
-    rows.push({
+    push(side, {
       label: '센서 노이즈',
       basis: '기록된 ISO에 맞는 노이즈가 있어야 함',
       got: darkSigma == null ? '측정 불가'
@@ -238,7 +247,7 @@ export function aiSignals(b) {
     const lossless = compression.estimatedPasses == null;
     const side = compression.flags.regionalBlockDeviation ? 'ai'
       : lossless ? 'unknown' : 'camera';
-    rows.push({
+    push(side, {
       label: '압축 이력',
       basis: '카메라 JPEG의 8×8 격자가 있어야 함',
       got: compression.flags.regionalBlockDeviation ? `구역별로 다름 (${compression.weakTiles}개)`
@@ -253,7 +262,7 @@ export function aiSignals(b) {
   {
     const [w, h] = [pixels.width, pixels.height];
     const hit = GENERATED_SIZES.some(([a, c]) => (a === w && c === h) || (a === h && c === w));
-    rows.push({
+    push(hit ? 'ai' : 'unknown', {
       label: '생성기 규격 해상도',
       basis: '생성 모델의 표준 크기가 아니어야 함',
       got: `${w}×${h}${hit ? ' — 규격 일치' : ''}`,
