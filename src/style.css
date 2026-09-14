@@ -313,26 +313,10 @@ main.main--tool { padding-block: 44px 80px; }
 .panel--quiet { background: transparent; }
 .panel-title { font-size: 13px; color: var(--ink-2); margin-bottom: 14px; }
 
-/* ── 파일이 스스로 밝힌 출처 ─────────────────────────── */
+/* ── 파일이 스스로 밝힌 출처 (증서 안에 들어갑니다) ──── */
 
-.prov {
-  border: 1px solid var(--rule-strong); background: var(--raised);
-  padding: 24px 26px; margin-bottom: 18px; border-left-width: 3px;
-}
-.prov--ai { border-left-color: var(--warn); }
-.prov--camera { border-left-color: var(--measure); }
-
-.prov-top { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; flex-wrap: wrap; }
-.prov-tag {
-  font-size: 12px; font-weight: 500; letter-spacing: 0.02em;
-  border: 1px solid currentColor; padding: 2px 8px;
-}
-.prov--ai .prov-tag { color: var(--warn); }
-.prov--camera .prov-tag { color: var(--measure); }
-.prov-src { font-size: 12.5px; color: var(--ink-3); }
-
-.prov-head { font-size: 19px; font-weight: 600; line-height: 1.45; margin: 0 0 8px; }
-.prov-detail { margin: 0 0 16px; font-size: 14.5px; color: var(--ink-2); line-height: 1.6; }
+.prov-block { margin: 20px 0 4px; }
+.prov-src { margin: 0 0 10px; font-size: 12.5px; color: var(--ink-3); }
 
 .prov-facts { margin: 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
 .prov-facts > div {
@@ -344,10 +328,25 @@ main.main--tool { padding-block: 44px 80px; }
   margin: 0; font-size: 13.5px; overflow-wrap: anywhere;
   font-family: var(--mono); color: var(--ink);
 }
+.prov-block--ai .prov-facts { border-color: var(--warn); }
 .prov-note {
-  margin: 14px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-3);
+  margin: 12px 0 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-3);
   border-left: 2px solid var(--rule-strong); padding-left: 14px;
 }
+
+/* AI 판별에서 결정적인 한 줄 — 배점 막대와 다른 무게로 답니다. */
+.evid { border: 1px solid var(--rule-strong); padding: 14px 16px; margin-bottom: 22px; }
+.evid--ai { border-color: var(--warn); background: #FDF7F4; }
+.evid-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.evid-name { font-weight: 500; font-size: 14.5px; }
+.evid-tag {
+  font-size: 11.5px; border: 1px solid var(--rule-strong);
+  padding: 0 6px; color: var(--ink-3); flex: none;
+}
+.evid--ai .evid-tag { color: var(--warn); border-color: var(--warn); }
+.evid-val { margin-left: auto; font-weight: 500; font-size: 14px; }
+.evid--ai .evid-val { color: var(--warn); }
+.evid-note { margin: 8px 0 0; font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
 
 /* ── 환산 수치 ───────────────────────────────────────── */
 

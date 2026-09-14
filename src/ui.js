@@ -366,8 +366,12 @@ function splitBar(trace, ai) {
     </div>`;
 }
 
-/** 파일이 스스로 밝힌 출처. 추정이 아니므로 맨 위에 크게 답니다. */
-function renderProvenance(prov) {
+/**
+ * 파일이 스스로 밝힌 출처.
+ * 증서가 이미 같은 문장을 헤드라인으로 달고 있어서, 별도 상자를 만들지 않고
+ * 증서 안에 사실 목록만 넣습니다. 같은 말을 두 상자에 적지 않습니다.
+ */
+function renderProvenanceFacts(prov) {
   if (!prov?.present) return '';
 
   const facts = [
@@ -379,22 +383,14 @@ function renderProvenance(prov) {
   ].filter(Boolean);
 
   return `
-    <div class="prov${prov.declaresAi ? ' prov--ai' : ' prov--camera'}">
-      <p class="prov-top">
-        <span class="prov-tag">${prov.declaresAi ? 'AI 생성 기록' : '출처 기록'}</span>
-        <span class="prov-src">${escapeHtml(prov.via)} 표식에서 읽음</span>
-      </p>
-      <h3 class="prov-head">${prov.declaresAi
-        ? '이 파일은 스스로 AI 생성물이라고 기록하고 있습니다'
-        : '이 파일에 서명된 출처 기록이 있습니다'}</h3>
-      ${prov.sourceDetail ? `<p class="prov-detail">${escapeHtml(prov.sourceDetail)}</p>` : ''}
+    <div class="prov-block${prov.declaresAi ? ' prov-block--ai' : ''}">
+      <p class="prov-src">${escapeHtml(prov.via)} 표식에서 읽음 — 픽셀을 잰 값이 아니라 파일에 적힌 값입니다</p>
       <dl class="prov-facts">
         ${facts.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join('')}
       </dl>
       <p class="prov-note">
-        이 값은 픽셀을 재서 추정한 것이 아니라 파일 안에 적힌 것을 그대로 읽은 것입니다.
         ${prov.declaresAi
-          ? '다만 이 표식은 지울 수 있습니다. 화면을 캡처하거나 다시 저장하면 사라지므로, 표식이 없다고 해서 AI가 아니라는 뜻은 되지 않습니다.'
+          ? '이 표식은 지울 수 있습니다. 화면을 캡처하거나 다시 저장하면 사라지므로, 표식이 없다고 해서 AI가 아니라는 뜻은 되지 않습니다.'
           : '표식은 위조와 삭제가 모두 가능하므로, 이것만으로 진위가 확정되지는 않습니다.'}
       </p>
     </div>`;
@@ -418,45 +414,42 @@ function renderScorePanel(bundle) {
       </div>`;
   }).join('');
 
-  /* 마크 발급선 — 숫자를 그대로 적습니다. */
+  /* 발급선. 숫자 합격선은 그대로 공개하되, 통과한 줄은 접어 둡니다.
+     AI인지 아닌지를 보러 온 사람에게 ✓ 다섯 줄은 읽을 것이 없습니다. */
   const mp = pixels.megapixels;
   const prov = bundle.provenance;
+  const checkedBy = prov?.present
+    ? (prov.via === 'C2PA' ? 'C2PA 서명으로 확인' : '파일 메타데이터로 확인')
+    : 'C2PA 서명·메타데이터를 훑었으나 없음';
+
   const gates = [
     {
-      // 파일이 스스로 밝힌 것이라 다른 조건보다 앞에 둡니다. 이 줄 하나로 발급이 막힙니다.
       ok: !prov?.declaresAi,
-      label: `AI 생성 표식${prov?.present ? ` (${prov.via === 'C2PA' ? 'C2PA 서명' : '파일 메타데이터'}으로 확인)` : ' (C2PA 서명·메타데이터 확인)'}`,
+      label: 'AI 생성 표식',
       need: '없어야 함',
       got: prov?.declaresAi
         ? `있음${prov.generator ? ` · ${prov.generator}` : ''}`
         : prov?.present ? '없음 (출처 기록은 있음)' : '없음',
     },
-    {
-      ok: mp >= GATE.minMegapixels,
-      label: '화소',
-      need: `${GATE.minMegapixels}MP 이상`,
-      got: `${mp.toFixed(1)}MP`,
-    },
+    { ok: mp >= GATE.minMegapixels, label: '화소', need: `${GATE.minMegapixels}MP 이상`, got: `${mp.toFixed(1)}MP` },
     {
       ok: result.blockers.every((b) => !['exif-absent', 'no-camera-id', 'no-capture-time'].includes(b.code)),
-      label: '촬영 정보',
-      need: '제조사·모델 + 촬영 시각',
+      label: '촬영 정보', need: '제조사·모델 + 촬영 시각',
       got: bundle.exif.hasCameraId ? '있음' : '없음',
     },
-    {
-      ok: result.contradictions.length === 0,
-      label: '정합성 모순',
-      need: '0건',
-      got: `${result.contradictions.length}건`,
-    },
-    {
-      ok: result.softSignals.length < GATE.softSignalsForHold,
-      label: '약한 신호',
-      need: `${GATE.softSignalsForHold}건 미만`,
-      got: `${result.softSignals.length}건`,
-    },
+    { ok: result.contradictions.length === 0, label: '정합성 모순', need: '0건', got: `${result.contradictions.length}건` },
+    { ok: result.softSignals.length < GATE.softSignalsForHold, label: '약한 신호', need: `${GATE.softSignalsForHold}건 미만`, got: `${result.softSignals.length}건` },
   ];
 
+  const gateRow = (g) => `
+    <li class="gate${g.ok ? ' is-ok' : ' is-no'}">
+      <span class="gate-mark" aria-hidden="true">${g.ok ? '✓' : '✕'}</span>
+      <span class="gate-label">${escapeHtml(g.label)}</span>
+      <span class="gate-need">${escapeHtml(g.need)}</span>
+      <span class="gate-got">${escapeHtml(g.got)}</span>
+    </li>`;
+
+  const failed = gates.filter((g) => !g.ok);
   const eligible = result.verdict === VERDICT.PASS;
 
   return `
@@ -477,34 +470,43 @@ function renderScorePanel(bundle) {
       <p class="score-caveat">
         ${declared
           ? '파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다. 배점을 계산한 값이 아닙니다.'
-          : `학습된 분류기의 판단이 아닙니다. 여섯 항목에 사람이 정한 배점을 곱해 더한 값이라
+          : `학습된 분류기의 판단이 아닙니다. 아래 항목에 사람이 정한 배점을 곱해 더한 값이라
              배점을 바꾸면 숫자도 바뀝니다. 재는 것은 “카메라 촬영 흔적이 남아 있는가”이며, 흔적이
-             지워진 실제 사진(메신저를 거친 사진, 스크린샷)도 낮게 나옵니다.
-             마크 발급은 이 수치가 아니라 아래 다섯 조건으로 정합니다.`}
+             지워진 실제 사진(메신저를 거친 사진, 스크린샷)도 낮게 나옵니다.`}
       </p>
 
-      ${declared ? '' : `
-        <p class="panel-title score-sub">항목별 배점</p>
-        <div class="cats">${bars}</div>`}
+      <p class="panel-title score-sub">AI 판별 근거</p>
 
-      <p class="panel-title score-sub">인증 마크 발급선</p>
-      <ul class="gates">
-        ${gates.map((g) => `
-          <li class="gate${g.ok ? ' is-ok' : ' is-no'}">
-            <span class="gate-mark" aria-hidden="true">${g.ok ? '✓' : '✕'}</span>
-            <span class="gate-label">${escapeHtml(g.label)}</span>
-            <span class="gate-need">${escapeHtml(g.need)}</span>
-            <span class="gate-got">${escapeHtml(g.got)}</span>
-          </li>`).join('')}
-      </ul>
+      <div class="evid${prov?.declaresAi ? ' evid--ai' : ''}">
+        <div class="evid-head">
+          <span class="evid-name">AI 생성 표식</span>
+          <span class="evid-tag">${prov?.declaresAi ? '결정적' : '해당 없음'}</span>
+          <span class="evid-val">${escapeHtml(prov?.declaresAi
+            ? `있음${prov.generator ? ` · ${prov.generator}` : ''}`
+            : '없음')}</span>
+        </div>
+        <p class="evid-note">${escapeHtml(checkedBy)}${prov?.declaresAi
+          ? ' · 파일이 스스로 밝힌 기록이라 아래 측정값보다 앞섭니다'
+          : ' · 표식은 저장·캡처로 지워지므로 없다고 해서 AI가 아니라는 뜻은 아닙니다'}</p>
+      </div>
+
+      ${declared
+        ? '<p class="score-caveat">표식이 결정적이므로 아래 여섯 항목은 세지 않았습니다.</p>'
+        : `<div class="cats">${bars}</div>`}
+
+      <p class="panel-title score-sub">인증 마크</p>
       <p class="gate-verdict${eligible ? ' is-ok' : ''}">
         ${eligible
-          ? '다섯 줄을 모두 충족해 인증 마크를 발급했습니다.'
-          : declared
-            ? 'AI 생성 표식이 있어 첫 줄에서 막혔습니다. 나머지 측정값과 무관하게 발급하지 않습니다.'
-            : '다섯 줄을 모두 충족해야 발급합니다. 위에서 ✕ 표시된 항목이 막고 있는 조건입니다.'}
+          ? '발급했습니다. 발급 조건 다섯 줄을 모두 충족합니다.'
+          : `발급하지 않습니다. 막은 조건 ${failed.length}건 —
+             ${failed.map((g) => `${escapeHtml(g.label)}(${escapeHtml(g.got)})`).join(', ')}`}
       </p>
-
+      ${fold('발급 조건 전체 보기', '다섯 줄 · 합격선 포함', `
+        <ul class="gates">${gates.map(gateRow).join('')}</ul>
+        <p class="score-caveat" style="margin-top:16px">
+          다섯 줄을 모두 충족해야 발급합니다. 첫 줄은 파일에 적힌 기록이고 나머지 네 줄은
+          재서 얻은 값입니다. 환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.
+        </p>`)}
     </div>`;
 }
 
@@ -513,6 +515,7 @@ function renderResult(bundle, mode) {
   const rows = buildRows(bundle);
   const summary = summaryLines(result, rows, print);
   const isPass = result.verdict === VERDICT.PASS;
+  const isDeclared = result.verdict === VERDICT.DECLARED_AI;
 
   const certClass = isPass ? ''
     : (result.verdict === VERDICT.HOLD || result.verdict === VERDICT.DECLARED_AI)
@@ -521,12 +524,6 @@ function renderResult(bundle, mode) {
   const fingerprint = print.sha256
     ? `원본 파일 지문 <span class="hash">${escapeHtml(print.short)}…</span> · 이 기기에서만 계산됐고 어디로도 전송되지 않았습니다`
     : '파일 지문을 계산하지 못했습니다 — 브라우저가 보안 컨텍스트가 아닙니다';
-
-  const actions = [];
-  if (mode === 'quick') {
-    actions.push(`<a class="btn btn--ghost" href="${MAIL.deepReview(summary)}">상세 검사로 올리기</a>`);
-  }
-  actions.push(`<button class="btn btn--ghost" type="button" data-action="reset">다른 사진</button>`);
 
   // 통과하면 마크 패널을 바로 펼칩니다. 버튼 뒤에 숨기면 결과물이 있는 줄도 모릅니다.
   const markPanel = isPass ? `
@@ -579,9 +576,6 @@ function renderResult(bundle, mode) {
     : '';
 
   return `
-    ${renderProvenance(bundle.provenance)}
-    ${renderScorePanel(bundle)}
-
     <section class="cert${certClass}">
       <div class="cert-top">
         <span class="cert-mark">${CERT_MARK}</span>
@@ -589,10 +583,12 @@ function renderResult(bundle, mode) {
       </div>
       ${isPass ? '' : `<h2>${escapeHtml(result.headline)}</h2>`}
       <p class="statement">${result.statement.map((l) => `<span>${escapeHtml(l)}</span>`).join('')}</p>
-      ${renderKeyLines(keyLines(bundle))}
+      ${renderProvenanceFacts(bundle.provenance)}
+      ${isDeclared ? '' : renderKeyLines(keyLines(bundle))}
       <p class="fingerprint-line">${fingerprint}</p>
-      <div class="btn-row">${actions.join('')}</div>
     </section>
+
+    ${renderScorePanel(bundle)}
 
     ${markPanel}
     ${deepPanel}
