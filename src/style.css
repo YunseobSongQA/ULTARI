@@ -1001,26 +1001,120 @@ main.main--tool { padding-block: 32px 80px; }
 
 .site-head--landing { position: sticky; top: 0; z-index: 20; background: rgba(245,244,241,0.86); backdrop-filter: blur(8px); }
 
-.landing {
-  padding: 0;
-  scroll-snap-type: y proximity;
-  overflow-x: clip;
-}
-@media (prefers-reduced-motion: reduce) {
-  .landing { scroll-snap-type: none; }
-}
+.landing { padding: 0; overflow-x: clip; }
 
-.stage {
+/* 기본 — 스크립트가 없으면 화면들이 그냥 위에서 아래로 이어집니다.
+   내용은 전부 읽히고, 애니메이션만 없습니다. */
+.slide {
   position: relative;
   min-height: 100svh;
   display: flex; align-items: center;
-  scroll-snap-align: start;
-  scroll-margin-top: 0;
   border-top: 1px solid var(--rule);
 }
-.stage:first-child { border-top: none; }
+.slide:first-child { border-top: none; }
 .stage--id { min-height: calc(100svh - 64px); }
 .stage-inner { width: 100%; padding-block: 90px; }
+
+/* ── 제자리에 두고 갈아 끼우기 ──────────────────────── */
+/* 릴의 높이가 스크롤할 거리이고, 화면 자체는 sticky로 붙어 움직이지 않습니다.
+   스크롤한 만큼 어느 화면을 보여 줄지만 바뀝니다. */
+.reel.is-reel {
+  position: relative;
+  height: calc(var(--slides, 6) * 100svh);
+}
+.reel.is-reel .slide {
+  position: sticky; top: 0;
+  height: 100svh; min-height: 0;
+  margin-bottom: -100svh;          /* 겹쳐 쌓습니다 */
+  border-top: none;
+  opacity: 0; visibility: hidden;
+  transform: translateY(26px);
+  transition:
+    opacity 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    visibility 0s linear 420ms;
+}
+.reel.is-reel .slide.is-on {
+  opacity: 1; visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+  z-index: 2;
+}
+.reel.is-reel .slide.is-past { transform: translateY(-26px); }
+.reel.is-reel .stage-inner { padding-block: 0; }
+.has-reel .site-foot { position: relative; z-index: 3; }
+
+/* 글자 — 한 자씩 올라오면서 굵기가 붙습니다.
+   Pretendard Variable의 wght를 그대로 움직이므로 글자 모양이 변합니다. */
+.morph span {
+  display: inline-block;
+  font-variation-settings: 'wght' 600;
+}
+.reel.is-reel .morph span {
+  opacity: 0;
+  transform: translateY(0.42em);
+  font-variation-settings: 'wght' 200;
+  transition:
+    opacity 380ms ease,
+    transform 520ms cubic-bezier(0.19, 0.84, 0.3, 1),
+    font-variation-settings 620ms ease;
+}
+.reel.is-reel .slide.is-on .morph span {
+  opacity: 1;
+  transform: none;
+  font-variation-settings: 'wght' 600;
+  transition-delay: calc(var(--i, 0) * 26ms);
+}
+
+/* 나머지 요소도 조금 늦게 따라옵니다. 한꺼번에 나타나면 툭 바뀝니다. */
+.reel.is-reel .slide .stage-en,
+.reel.is-reel .slide .stage-mark,
+.reel.is-reel .slide .stage-claim,
+.reel.is-reel .slide .stage-facts,
+.reel.is-reel .slide .stage-row,
+.reel.is-reel .slide .stage-go,
+.reel.is-reel .slide .stage-note,
+.reel.is-reel .slide .id-mark,
+.reel.is-reel .slide .id-claim,
+.reel.is-reel .slide .id-value,
+.reel.is-reel .slide .principle-list {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 380ms ease, transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.reel.is-reel .slide.is-on .stage-en { opacity: 1; transform: none; transition-delay: 40ms; }
+.reel.is-reel .slide.is-on .id-mark { opacity: 1; transform: none; transition-delay: 90ms; }
+.reel.is-reel .slide.is-on .stage-mark { opacity: 1; transform: none; transition-delay: 90ms; }
+.reel.is-reel .slide.is-on .id-claim { opacity: 1; transform: none; transition-delay: 200ms; }
+.reel.is-reel .slide.is-on .stage-claim { opacity: 1; transform: none; transition-delay: 200ms; }
+.reel.is-reel .slide.is-on .id-value { opacity: 1; transform: none; transition-delay: 280ms; }
+.reel.is-reel .slide.is-on .stage-facts { opacity: 1; transform: none; transition-delay: 300ms; }
+.reel.is-reel .slide.is-on .stage-row { opacity: 1; transform: none; transition-delay: 360ms; }
+.reel.is-reel .slide.is-on .stage-go { opacity: 1; transform: none; transition-delay: 380ms; }
+.reel.is-reel .slide.is-on .stage-note { opacity: 1; transform: none; transition-delay: 420ms; }
+.reel.is-reel .slide.is-on .principle-list { opacity: 1; transform: none; transition-delay: 300ms; }
+
+/* ── 화면 눈금자 ───────────────────────────────────── */
+.rail {
+  position: fixed; left: 18px; top: 50%; transform: translateY(-50%);
+  z-index: 15; display: none; flex-direction: column; gap: 3px;
+}
+.has-reel .rail { display: flex; }
+.rail-dot {
+  display: flex; align-items: center; gap: 9px;
+  background: none; border: none; cursor: pointer;
+  padding: 5px 4px; font: inherit; color: var(--ink-3);
+}
+.rail-dot i { display: block; width: 13px; height: 1px; background: var(--ink-3); transition: width 200ms ease, background 200ms ease; }
+.rail-dot span {
+  font-size: 11.5px; opacity: 0; transform: translateX(-4px);
+  transition: opacity 180ms ease, transform 180ms ease; white-space: nowrap;
+}
+.rail-dot:hover i, .rail-dot:focus-visible i { width: 22px; background: var(--ink); }
+.rail-dot:hover span, .rail-dot:focus-visible span { opacity: 1; transform: none; }
+.rail-dot.is-on i { width: 26px; height: 2px; background: var(--ink); }
+.rail-dot.is-on span { opacity: 1; transform: none; color: var(--ink); }
+@media (max-width: 880px) { .rail { display: none !important; } }
 
 /* 첫 화면 */
 .stage--id .stage-inner { padding-block: 40px 120px; }
@@ -1110,9 +1204,11 @@ main.main--tool { padding-block: 32px 80px; }
 .principle-list b { color: var(--ink); font-weight: 600; }
 
 @media (max-width: 620px) {
-  /* 좁은 화면에서도 한 번 밀 때 한 화면씩 넘어가게 둡니다.
-     min-height이므로 내용이 더 길면 화면이 늘어나고 잘리지 않습니다. */
   .stage-inner { padding-block: 56px; }
+  /* 좁은 화면에서는 글자가 커서 한 화면에 안 들어갈 수 있습니다.
+     고정한 화면이 내용을 자르지 않게 넘치면 그 안에서 스크롤합니다. */
+  .reel.is-reel .slide { overflow-y: auto; }
+  .reel.is-reel .stage-inner { padding-block: 24px; }
   .stage--id .stage-inner { padding-block: 30px 96px; }
   .id-mark svg { width: 78px; height: 64px; }
   .id-word { font-size: 46px; }
