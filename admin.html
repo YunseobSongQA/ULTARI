@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>심사 콘솔 | ULTARI</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <a class="sr-only" href="#main">본문으로 건너뛰기</a>
+
+  <header class="site-head">
+    <div class="shell">
+      <a class="brand" href="/"><svg viewBox="1 4 30 24.6" width="27" height="22" fill="currentColor" aria-hidden="true"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg><span>ULTARI</span></a>
+      <nav class="site-nav" aria-label="주요 메뉴">
+          <a href="/">검증</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="shell">
+      <div class="page-head">
+        <p class="kicker">심사자 전용</p>
+        <h1>심사 콘솔</h1>
+        <p class="lede">접수된 상세 검사를 여기서 처리합니다. 관리 열쇠를 아는 사람만 열 수 있고, 검색에는 올라가지 않습니다.</p>
+      </div>
+
+      <section data-admin>
+        <div class="panel" data-gate>
+          <p class="panel-title">관리 열쇠</p>
+          <form class="adm-gate" data-gate-form>
+            <label class="fld">
+              <span class="fld-label">ULTARI_ADMIN_KEY</span>
+              <input type="password" data-key placeholder="Cloudflare에 넣어 두신 값" autocomplete="current-password">
+            </label>
+            <div class="btn-row">
+              <button class="btn" type="submit">열기</button>
+              <button class="btn btn--ghost" type="button" data-action="lock" hidden>잠그기</button>
+            </div>
+          </form>
+          <p class="btn-note">
+            열쇠는 <strong>이 탭에만</strong> 둡니다(sessionStorage). 탭을 닫으면 사라지고 서버로는 조회할 때마다 헤더로만 보냅니다.
+            공용 컴퓨터라면 끝나고 잠그기를 눌러 주십시오.
+          </p>
+          <p class="adm-msg" data-gate-msg hidden></p>
+        </div>
+
+        <div data-console hidden>
+          <div class="adm-bar">
+            <p class="adm-count" data-count></p>
+            <div class="adm-filters" role="group" aria-label="보기">
+              <button class="btn btn--mini" type="button" data-filter="open" aria-pressed="true">진행 중</button>
+              <button class="btn btn--mini btn--ghost" type="button" data-filter="all" aria-pressed="false">전체</button>
+              <button class="btn btn--mini btn--ghost" type="button" data-action="reload">새로 읽기</button>
+            </div>
+          </div>
+          <div data-list></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="shell">
+      <p class="foot-note">이 페이지는 심사자용입니다. 신청하신 분의 현황 조회는 <a href="/">검증 화면</a>에 있습니다.</p>
+    </div>
+  </footer>
+  <script type="module" src="/src/admin.js"></script>
+</body>
+</html>

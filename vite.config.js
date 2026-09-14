@@ -47,6 +47,7 @@ export default defineConfig({
         roadmap: page('roadmap.html'),
         limits: page('limits.html'),
         privacy: page('privacy.html'),
+        admin: page('admin.html'),
         terms: page('terms.html'),
         articles: page('articles/index.html'),
         exifIsNotProof: page('articles/exif-is-not-proof.html'),

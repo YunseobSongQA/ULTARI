@@ -1303,6 +1303,15 @@ export function mountVerifier(root) {
     if (act === 'copy-receipt') { e.preventDefault(); copyReceipt(el); }
     if (act === 'check-status') { e.preventDefault(); showStatus(el.dataset.id, el.dataset.token); }
     if (act === 'lookup') { e.preventDefault(); lookupFromForm(); }
+    if (act === 'lookup-open') {
+      e.preventDefault();
+      const fold = root.querySelector('[data-lookup]');
+      if (!fold) return;
+      // 이 브라우저에서 신청한 건이 있으면 번호를 적지 않아도 목록에 나옵니다.
+      fold.open = true;
+      fold.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      root.querySelector('[data-lookup-id]')?.focus({ preventScroll: true });
+    }
     if (act === 'reset') { e.preventDefault(); reset(); }
     if (act === 'dl-photo') { e.preventDefault(); downloadMarked(el); }
     if (act === 'dl-mark') { e.preventDefault(); downloadMarkOnly(el); }

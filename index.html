@@ -36,7 +36,8 @@
       <p class="local-badge"><span data-icon="lock"></span>간단 검사는 이 브라우저 안에서 끝납니다. 사진이 전송되는 것은 상세 검사를 직접 신청하실 때뿐입니다.</p>
 
       <section data-verifier>
-        <div class="lanes" data-lanes>
+        <div data-lanes>
+        <div class="lanes">
 
           <section class="lane">
             <span class="lane-tag"><span class="dot"></span>간단 검사</span>
@@ -64,6 +65,12 @@
             </label>
           </section>
 
+        </div>
+
+        <p class="entry-lookup">
+          이미 상세 검사를 신청하셨다면
+          <button class="btn btn--mini btn--ghost" type="button" data-action="lookup-open">상세 검사 진행 현황 조회</button>
+        </p>
         </div>
 
         <div class="run" data-run hidden>

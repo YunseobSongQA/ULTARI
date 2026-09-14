@@ -125,7 +125,8 @@ main.main--tool { padding-block: 44px 80px; }
   border: 1px solid var(--rule-strong); background: var(--surface);
   padding: 24px 24px 22px; display: flex; flex-direction: column;
 }
-.lane--deep { background: var(--paper); }
+/* 두 투입구는 같은 종이 위에 있습니다. 배경을 다르게 하면 한쪽이 비활성처럼
+   보입니다. 구분은 말머리 점 색으로만 합니다. */
 
 .lane-tag {
   display: inline-flex; align-items: center; gap: 7px;
@@ -809,6 +810,40 @@ main.main--tool { padding-block: 44px 80px; }
 .section-head { margin: 36px 0 14px; padding-top: 18px; border-top: 1px solid var(--rule-strong); }
 .section-head h2 { font-size: 17px; }
 .section-head p { margin: 5px 0 0; font-size: 13px; color: var(--ink-3); }
+
+/* 메인 화면에서 현황 조회로 가는 줄. 투입구와 같이 숨습니다. */
+.entry-lookup {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 16px 0 0; font-size: 13.5px; color: var(--ink-2);
+}
+
+/* ── 심사 콘솔 ───────────────────── */
+
+.adm-bar {
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  margin: 26px 0 14px;
+}
+.adm-count { margin: 0; font-size: 13.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.adm-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+
+.adm-card { margin-bottom: 14px; }
+.adm-card--done { background: var(--paper); }
+.adm-top {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 16px; font-size: 13px;
+}
+.adm-id { font-size: 18px; font-weight: 600; letter-spacing: 0.04em; }
+.adm-card .receipt-keys dd { font-size: 13.5px; }
+.adm-card .status-hist { border-top: 1px solid var(--rule); padding-top: 10px; margin-top: 14px; }
+.adm-note { margin-top: 14px; }
+.adm-actions { margin-top: 16px; }
+.adm-danger { color: var(--warn); border-color: var(--warn); }
+.adm-danger:hover { border-color: var(--warn); color: var(--warn); }
+.adm-empty { font-size: 14px; color: var(--ink-3); }
+.adm-msg { margin: 12px 0 0; font-size: 13.5px; color: var(--measure); }
+.adm-msg.is-bad { color: var(--warn); }
+.adm-gate .fld { max-width: 420px; }
+.adm-gate .btn-row { margin-top: 14px; }
 
 @media (max-width: 620px) {
   .elig { padding: 20px 18px; }
