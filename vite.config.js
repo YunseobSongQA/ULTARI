@@ -54,6 +54,8 @@ export default defineConfig({
         exifIsNotProof: page('articles/exif-is-not-proof.html'),
         noisePhysics: page('articles/noise-physics.html'),
         lensTraces: page('articles/lens-traces.html'),
+        videoFrames: page('articles/video-frames.html'),
+        roomTone: page('articles/room-tone.html'),
       },
     },
   },

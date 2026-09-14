@@ -11,6 +11,11 @@ const icon = (inner) =>
   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
   `stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">${inner}</svg>`;
 
+/** 큰 자리용. 폭에 맞춰 늘어나도 선 굵기가 유지되게 그립니다. */
+const mark = (inner) =>
+  `<svg viewBox="0 0 64 42" fill="none" stroke="currentColor" stroke-width="1.7" ` +
+  `stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">${inner}</svg>`;
+
 export const ICONS = {
   frame: icon('<rect x="3" y="5" width="18" height="14"/><path d="M3 16l5-5 4 4 3-3 6 6"/>'),
   layers: icon('<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>'),
@@ -20,9 +25,36 @@ export const ICONS = {
   // 상태 표시용. 색만으로 구분하지 않도록 라벨과 함께 씁니다.
   check: icon('<path d="M4.5 12.5l4.8 4.8L19.5 7"/>'),
   cross: icon('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>'),
-  // 매체 표시 — 필름과 파형
+  // 매체 표시 — 작은 자리(칩)용
   film: icon('<rect x="3" y="5" width="18" height="14"/><path d="M3 9h4M3 15h4M17 9h4M17 15h4M8 5v14M16 5v14"/>'),
   wave: icon('<path d="M3 12h2M7 7v10M11 4v16M15 8v8M19 11h2"/>'),
+
+  /* 랜딩의 큰 마크.
+     작은 아이콘을 그냥 키우면 선이 가늘어 초라해집니다. 큰 자리에는 큰
+     자리용으로 따로 그립니다.
+     넷 다 ULTARI 마크와 같은 언어입니다 — 가로 띠 하나에 수직 요소가 얹힙니다.
+     색은 쓰지 않습니다. 파란색은 이 사이트에서 측정값의 색이고, 장식에 쓰면
+     그 뜻이 옅어집니다. */
+  markPhoto: mark(
+    '<path d="M2 33h60"/>'
+    + '<rect x="17" y="9" width="30" height="24"/>'
+    + '<circle cx="32" cy="21" r="6.5"/>'
+  ),
+  markVideo: mark(
+    '<path d="M2 33h60"/>'
+    + '<rect x="11" y="9" width="42" height="24"/>'
+    + '<path d="M11 15h5M11 21h5M11 27h5M48 15h5M48 21h5M48 27h5"/>'
+    + '<path d="M21 9v24M43 9v24"/>'
+  ),
+  markMusic: mark(
+    '<path d="M2 33h60"/>'
+    + '<path d="M18 33V15M25 33V6M32 33V19M39 33V10M46 33V17"/>'
+  ),
+  markDeep: mark(
+    '<path d="M2 33h60"/>'
+    + '<rect x="17" y="9" width="30" height="24"/>'
+    + '<path d="M24 21.5l5.5 5.5L41 15.5"/>'
+  ),
 };
 
 export function paintIcons(scope = document) {

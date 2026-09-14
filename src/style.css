@@ -1155,8 +1155,13 @@ main.main--tool { padding-block: 32px 80px; }
 }
 
 /* 매체마다 한 화면 */
-.stage-mark { display: block; color: var(--measure); margin: 22px 0 16px; line-height: 0; }
-.stage-mark svg { width: 46px; height: 46px; }
+/* 매체 마크 — 색을 쓰지 않습니다. 파란색은 측정값의 색입니다. */
+.stage-mark { display: block; color: var(--ink); margin: 26px 0 20px; line-height: 0; }
+.stage-mark svg { width: 118px; height: auto; display: block; }
+@media (max-width: 620px) {
+  .stage-mark svg { width: 86px; }
+  .stage-mark { margin: 20px 0 16px; }
+}
 .stage--kind h2 {
   font-size: 52px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin: 0;
 }
