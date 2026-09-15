@@ -614,6 +614,51 @@ main.main--tool { padding-block: 32px 80px; }
 
 .byline { font-size: 13px; color: var(--ink-3); margin-top: 14px; }
 
+/* ── 페이지 첫 화면 ─────────────────────────────────── */
+/* 모바일에서 제목이 상단 바에 바로 붙어 시작하면 페이지 전체가 위로
+   쏠려 보입니다. 랜딩 첫 화면처럼 제목에 한 화면을 통째로 내주고
+   그 안에서 가운데에 세웁니다.
+   남는 높이 = 화면 − 상단 바 − main 위 여백. 상단 바는 메뉴 글자
+   13.5px에 위아래 13px과 경계선 1px이 붙어 50px로 고정돼 있습니다. */
+@media (max-width: 720px) {
+  .page-head {
+    position: relative;
+    min-height: calc(100svh - 50px - 40px);
+    display: flex; flex-direction: column; justify-content: center;
+    /* 아래 표시가 앉을 자리. 가운데도 그만큼 올라가는데, 눈에는
+       그쪽이 가운데로 보입니다. 랜딩 첫 화면도 같은 비율입니다. */
+    padding-bottom: 52px;
+    margin-bottom: 36px;
+  }
+  main.main--tool .page-head { min-height: calc(100svh - 50px - 32px); }
+
+  /* 한 화면을 다 쓰면 아래에 더 있다는 것이 보이지 않습니다.
+     랜딩 첫 화면과 같은 표시를 둡니다. */
+  .page-head::after {
+    content: ""; position: absolute; left: 50%; bottom: 22px;
+    width: 9px; height: 9px; margin-left: -4.5px;
+    border-right: 1.5px solid var(--ink-3);
+    border-bottom: 1.5px solid var(--ink-3);
+    transform: rotate(45deg);
+    animation: nudge-down 2.4s ease-in-out infinite;
+  }
+
+  /* 심사 콘솔은 메뉴에 없는 작업 화면입니다. 열쇠 칸이 바로 나와야 합니다. */
+  .page-head--plain {
+    min-height: 0; display: block;
+    padding-bottom: 0; margin-bottom: 40px;
+  }
+  .page-head--plain::after { content: none; }
+}
+/* 45도 돌아가 있어 제 축으로 밀어야 똑바로 내려갑니다. */
+@keyframes nudge-down {
+  0%, 100% { transform: rotate(45deg) translate(0, 0); }
+  50% { transform: rotate(45deg) translate(3px, 3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-head::after { animation: none; }
+}
+
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
