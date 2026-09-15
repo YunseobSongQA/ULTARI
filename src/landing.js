@@ -53,6 +53,12 @@ export function mountLanding(reel) {
 
   const rail = document.querySelector('[data-rail]');
   const quiet = window.matchMedia('(prefers-reduced-motion: reduce)');
+  /* 좁은 화면에서는 고정하지 않습니다. 화면을 붙잡아 두고 갈아 끼우면
+     손가락으로 끄는 만큼 화면이 따라오지 않다가 툭 바뀌어, 스크롤이 중간에
+     걸린 것처럼 느껴집니다. 게다가 눈금자는 880px 아래에서 감춰져 있어
+     지금 몇 번째인지도 보이지 않습니다. 폭이 좁으면 화면들을 그냥 위에서
+     아래로 잇습니다. 눈금자가 나오는 폭과 같은 선을 씁니다. */
+  const narrow = window.matchMedia('(max-width: 880px)');
 
   /* 제목은 어느 쪽이든 한 자씩 나눠 둡니다. 움직이지 않는 설정에서는
      CSS가 곧바로 제자리에 두므로 보이는 결과는 같습니다. */
@@ -166,8 +172,10 @@ export function mountLanding(reel) {
     goTo(at);
   });
 
-  quiet.addEventListener('change', () => (quiet.matches ? disable() : enable()));
-  if (!quiet.matches) enable();
+  const sync = () => (quiet.matches || narrow.matches ? disable() : enable());
+  quiet.addEventListener('change', sync);
+  narrow.addEventListener('change', sync);
+  sync();
 
   /* 주소에 화면이 적혀 있으면 그 자리에서 시작합니다. */
   const wanted = slides.findIndex((s) => `#${s.id}` === window.location.hash);

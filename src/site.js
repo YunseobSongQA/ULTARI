@@ -80,4 +80,25 @@ export function paintShared() {
   });
 }
 
+/**
+ * 모바일에서 상단 메뉴는 줄을 바꾸지 않고 한 줄로 고정돼 옆으로 밀립니다.
+ * 지금 보고 있는 페이지가 그 줄 밖에 있으면 어디쯤인지 알 수 없으므로
+ * 메뉴 안에서만 끌어다 놓습니다. 페이지의 세로 위치는 건드리지 않습니다.
+ */
+export function revealCurrentNav() {
+  document.querySelectorAll('.site-nav').forEach((nav) => {
+    const here = nav.querySelector('[aria-current="page"]');
+    if (!here || nav.scrollWidth <= nav.clientWidth + 1) return;
+    const navBox = nav.getBoundingClientRect();
+    const hereBox = here.getBoundingClientRect();
+    // 왼쪽에 붙박인 버튼이 있으면 그 뒤부터가 실제로 보이는 자리입니다.
+    const pinned = nav.querySelector('.nav-lookup');
+    const leftEdge = navBox.left + (pinned ? pinned.getBoundingClientRect().width + 8 : 0);
+    // 이미 보이면 건드리지 않습니다. 필요한 만큼만 밉니다.
+    if (hereBox.left < leftEdge) nav.scrollLeft -= leftEdge - hereBox.left;
+    else if (hereBox.right > navBox.right) nav.scrollLeft += hereBox.right - navBox.right + 8;
+  });
+}
+
 paintShared();
+revealCurrentNav();

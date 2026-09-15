@@ -45,6 +45,20 @@ import {
   rememberApplication, formatDate, MAX_UPLOAD, MIN_PASSWORD,
 } from './review.js';
 
+/**
+ * 부드러운 스크롤은 손가락과 싸웁니다. 끌고 있는 중에 애니메이션이 끼어들면
+ * 화면이 중간에 걸린 것처럼 멈춥니다. 터치 기기와 움직임을 줄인 설정에서는
+ * 즉시 옮깁니다. 멈출 자리는 CSS의 scroll-padding-top이 잡아 줍니다.
+ */
+function bringIntoView(el, block = 'start') {
+  if (!el) return;
+  const instant =
+    !window.matchMedia ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    window.matchMedia('(hover: none)').matches;
+  el.scrollIntoView({ block, behavior: instant ? 'auto' : 'smooth' });
+}
+
 /* 증서에 찍히는 울타리 마크 — public/favicon.svg와 같은 도형 */
 const CERT_MARK = `<svg viewBox="1 4 30 24.6" width="38" height="31" fill="currentColor" aria-hidden="true"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg>`;
 
@@ -1102,7 +1116,7 @@ export function mountVerifier(root) {
     if (stepList) stepList.innerHTML = '';
     lanes.hidden = false;
     root.querySelectorAll('input[type="file"]').forEach((i) => { i.value = ''; });
-    lanes.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    bringIntoView(lanes, 'nearest');
   };
 
   /** 같은 사진을 다른 검사 방식으로 다시 봅니다. 측정은 다시 하지 않습니다. */
@@ -1112,7 +1126,7 @@ export function mountVerifier(root) {
     if (!panel) return;
     panel.hidden = false;
     if (current) current.applyOpen = true;
-    panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    bringIntoView(panel, 'start');
     output.querySelector('[data-apply-contact]')?.focus({ preventScroll: true });
   };
 
@@ -1127,7 +1141,7 @@ export function mountVerifier(root) {
     paintIcons(output);
     if (current.mode === 'deep') paintEta();
     if (current.bundle.result.grade) await refreshMarkPreview();
-    output.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    bringIntoView(output, 'start');
   };
 
   const stepList = root.querySelector('[data-steps]');
@@ -1200,7 +1214,7 @@ export function mountVerifier(root) {
       : `${KIND_LABEL[kind]} · ${MODE_LABEL[mode]}로 ${steps.length}단계를 잰 뒤 판정합니다.`;
     readyBox.hidden = false;
     paintIcons(runArea);
-    runArea.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    bringIntoView(runArea, 'start');
   };
 
   /* 2단계 — 실제 측정. 진행이 보이고, 끝나면 결과가 남습니다. */
@@ -1451,7 +1465,7 @@ export function mountVerifier(root) {
       say('접수됐습니다.');
       applyEl('[data-apply-done]').innerHTML = renderReceipt(r);
       paintMine();
-      applyEl('[data-apply-done]').scrollIntoView({ block: 'center', behavior: 'smooth' });
+      bringIntoView(applyEl('[data-apply-done]'), 'center');
     } catch (err) {
       button.disabled = false;
       bar.hidden = true;
@@ -1480,7 +1494,7 @@ export function mountVerifier(root) {
     if (!target) return;
     root.querySelector('[data-lookup]')?.setAttribute('open', '');
     target.innerHTML = '<p class="apply-msg">조회하는 중…</p>';
-    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    bringIntoView(target, 'center');
     try {
       const data = await ask();
       const items = Array.isArray(data.items) && data.items.length ? data.items : [data];
@@ -1663,7 +1677,7 @@ export function mountVerifier(root) {
       if (!fold) return;
       // 이 브라우저에서 신청한 건이 있으면 번호를 적지 않아도 목록에 나옵니다.
       fold.open = true;
-      fold.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      bringIntoView(fold, 'start');
       root.querySelector('[data-lookup-contact]')?.focus({ preventScroll: true });
     }
     if (act === 'reset') { e.preventDefault(); reset(); }
@@ -1710,7 +1724,7 @@ export function mountVerifier(root) {
     const lane = root.querySelector(`.lane input[data-mode="${wanted}"]`)?.closest('.lane');
     if (!lane) return;
     lane.classList.add('lane--wanted');
-    lane.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    bringIntoView(lane, 'center');
   };
   applyIntent();
 
@@ -1724,7 +1738,7 @@ export function mountVerifier(root) {
     const box = root.querySelector('[data-lookup]');
     if (!box) return;
     box.open = true;
-    box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    bringIntoView(box, 'start');
     // 펼쳐진 뒤에 포커스를 줍니다. 같은 틱에 주면 아직 숨어 있어 먹지 않습니다.
     setTimeout(() => root.querySelector('[data-lookup-contact]')?.focus({ preventScroll: true }), 60);
   };

@@ -93,20 +93,6 @@ code { font-family: var(--mono); font-size: 0.9em; background: #EDEBE6; padding:
 }
 .site-nav .nav-lookup:hover { border-color: var(--ink); }
 
-@media (max-width: 620px) {
-  /* 메뉴가 일곱 항목이 되면서 좁은 화면에서 네 줄이 됐습니다. 한 줄로 눕혀
-     옆으로 밀어 보게 합니다. 가로 스크롤은 이 줄 안에서만 일어납니다. */
-  .site-nav {
-    flex-wrap: nowrap; overflow-x: auto; gap: 16px; width: 100%;
-    margin-top: 12px; padding-bottom: 2px; scrollbar-width: none;
-  }
-  .site-nav::-webkit-scrollbar { display: none; }
-  .site-nav a { white-space: nowrap; }
-  /* 잘리는 자리에 두면 안 됩니다. 좁은 화면에서는 도구를 맨 앞에 둡니다. */
-  .site-nav .nav-lookup { order: -1; margin: 0 4px 0 0; }
-  .site-head .shell { flex-wrap: wrap; }
-}
-
 main { display: block; padding-block: 60px 80px; }
 main.main--tool { padding-block: 32px 80px; }
 
@@ -647,7 +633,45 @@ main.main--tool { padding-block: 32px 80px; }
   .hero-sub { font-size: 16px; }
   main { padding-block: 40px 56px; }
   main.main--tool { padding-block: 32px 56px; }
-  .site-head .shell { min-height: 0; padding-block: 14px; }
+
+  /* 고정된 상단 바 높이만큼 앵커 이동 지점을 내려 둡니다.
+     이걸 빼면 /verify#lookup 같은 자리가 바 뒤에 숨습니다. */
+  html { scroll-padding-top: 56px; }
+
+  /* 브랜드와 메뉴를 같은 줄에 둡니다. 전에는 메뉴가 아래 줄로 내려가
+     상단 바가 125px이었고, 그만큼 본문을 계속 가렸습니다. */
+  .site-head { position: sticky; top: 0; z-index: 40; }
+  .site-head .shell {
+    min-height: 0; padding-block: 0;
+    flex-wrap: nowrap; gap: 0; align-items: stretch;
+  }
+  .brand {
+    flex: none; align-self: center; gap: 8px;
+    padding: 8px 13px 8px 0; margin-right: 13px;
+    border-right: 1px solid var(--rule);
+    font-size: 13.5px; letter-spacing: 0.06em;
+  }
+  .brand svg { width: 23px; height: 19px; }
+
+  /* 메뉴는 줄을 바꾸는 대신 그 줄 안에서 옆으로 밀립니다. 줄 수가 늘어나
+     본문을 더 가리는 일이 없습니다. 세로 드래그는 그대로 페이지로
+     넘어가므로 스크롤을 붙잡지 않습니다. */
+  .site-nav {
+    flex: 1 1 auto; min-width: 0;
+    flex-wrap: nowrap; gap: 16px; width: auto; margin-top: 0;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .site-nav::-webkit-scrollbar { display: none; }
+  .site-nav a { white-space: nowrap; padding-block: 13px; font-size: 13.5px; }
+  /* 잘리는 자리에 두면 안 됩니다. 좁은 화면에서는 도구를 맨 앞에 붙박아
+     둡니다. 메뉴가 옆으로 밀려도 이 버튼만은 왼쪽에 남습니다. */
+  .site-nav .nav-lookup {
+    order: -1; align-self: center;
+    position: sticky; left: 0; z-index: 1;
+    background: var(--paper);
+    margin: 0 8px 0 0; padding: 4px 10px; font-size: 13px;
+  }
   .panel { padding: 20px; }
   .lane { padding: 20px; }
   .cert { padding: 24px 20px; }
@@ -673,6 +697,22 @@ main.main--tool { padding-block: 32px 80px; }
   .seg { flex-wrap: wrap; }
   .seg-btn { flex: 1 0 40%; border-bottom: 1px solid var(--rule-strong); }
   .wm-stage { min-height: 160px; }
+
+  /* 신청서가 상자 안에서 따로 스크롤되면 페이지 스크롤을 가로챕니다.
+     손가락이 거기 닿으면 화면이 안 내려갑니다. 모바일에서는 펴 둡니다. */
+  .copybox { max-height: none; overflow: visible; }
+
+  /* 링크가 아홉 개라 여러 줄로 접히고, 그러면 바로 아래 안내 문단과
+     한 덩어리로 붙어 보입니다. 두 칸짜리 격자로 줄을 맞추고
+     구분선을 그어 문단과 떼어 놓습니다. */
+  .site-foot { padding-block: 26px 44px; }
+  .site-foot .foot-links {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0; margin-bottom: 0;
+    padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+  }
+  .site-foot .foot-links a { padding: 9px 0; font-size: 13.5px; }
+  .site-foot .foot-note { margin-top: 20px; }
 }
 
 /* 길게 읽고 내려온 자리에 다음 행동이 있어야 합니다. */
