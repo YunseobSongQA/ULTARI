@@ -47,6 +47,9 @@ export const AUDIO_WEIGHTS = {
   floor: 30,       // 노이즈 플로어 — 방과 마이크의 소리
   band: 20,        // 대역 한계 — 어디까지 살아 있는가
   dynamics: 25,    // 크레스트 팩터 — 눌리지 않은 다이내믹
+  /* 변환 도구 기록은 영상에서만 점수에 넣고 있었습니다. 소리에서는 근거 줄로만
+     보이고 수치에는 반영되지 않아, 유튜브에서 받은 파일도 절반을 넘겼습니다. */
+  history: 20,     // 압축·변환 이력 (다시 만든 파일일수록 잴 것이 없습니다)
 };
 
 const FACTOR = { match: 1, unknown: 0.5, against: 0 };
@@ -108,7 +111,10 @@ function audioCategories(bundle) {
   /* 크레스트 팩터 — 실측 11.1(눌린 마스터) ~ 20.1(손대지 않은 녹음) */
   const dynamics = a.natural ? 'match' : a.squashed ? 'against' : 'unknown';
 
-  return { record, floor, band, dynamics };
+  /* 변환 이력 — 변환 도구가 적혀 있으면 원본이 아닙니다. */
+  const history = (c.toolSigns?.length || 0) > 0 ? 'against' : 'unknown';
+
+  return { record, floor, band, dynamics, history };
 }
 
 /* ── 환산 수치 ─────────────────────────────────────── */
@@ -181,6 +187,10 @@ export function mediaSignals(bundle) {
       push(SIDE.camera, '방 소리가 남아 있음',
         `조용한 구간이 ${a.floor.floorDb.toFixed(1)}dB입니다. 마이크와 방의 소리입니다.`);
     }
+    if (a.noQuietPart) {
+      push(SIDE.unknown, '쉬는 구간이 없음',
+        `가장 조용한 구간도 ${a.floor.floorDb.toFixed(1)}dB입니다. 방 소리를 잴 자리가 없어 이 항목은 판단하지 않았습니다.`);
+    }
     if (a.deadSilence) {
       push(SIDE.ai, '잡음이 지워진 무음',
         `조용한 구간이 ${a.floor.floorDb.toFixed(1)}dB로 잡음이 없습니다. 마이크는 이렇게 조용하지 않습니다.`);
@@ -205,9 +215,13 @@ export function mediaSignals(bundle) {
       push(SIDE.ai, '두 채널이 사실상 같음',
         `상관 ${a.stereo.correlation.toFixed(4)}. 스테레오로 저장했지만 한 소리를 복사한 것입니다.`);
     }
+    /* 두 채널이 다른 것은 녹음의 근거가 아닙니다. 편곡한 음원이든 생성한
+       음원이든 스테레오로 만들면 상관이 떨어집니다. 예전에는 이것을 녹음 쪽
+       근거로 세어, 유튜브에서 받은 비트가 0.881로 통과했습니다.
+       가짜 스테레오(한 소리를 복사한 것)만 반대쪽 근거로 씁니다. */
     if (a.wideStereo) {
-      push(SIDE.camera, '두 채널이 서로 다름',
-        `상관 ${a.stereo.correlation.toFixed(3)}. 공간이 담긴 녹음입니다.`);
+      push(SIDE.unknown, '두 채널이 서로 다름',
+        `상관 ${a.stereo.correlation.toFixed(3)}. 스테레오로 만든 소리입니다 — 녹음인지 아닌지는 이 값으로 알 수 없습니다.`);
     }
     if (a.clipping) {
       push(SIDE.camera, '클리핑',
@@ -298,6 +312,11 @@ export function gradeMedia(bundle) {
   const aiSide = signals.filter((r) => r.side === SIDE.ai).length;
 
   const blockers = [];
+  /* 변환 도구만 적혀 있고 기기 기록이 없는 파일 — 유튜브에서 받았거나 다시
+     인코딩한 것입니다. 잴 것이 지워진 뒤라 무엇을 재도 같은 답이 나옵니다.
+     그 사실을 제목에서부터 말해 줘야 다음에 무엇을 하면 되는지 압니다. */
+  const remade = (bundle.container?.toolSigns?.length || 0) > 0
+    && score.categories.record === 'against';
   const measurable = kind === 'audio'
     ? Boolean(bundle.sound)
     : Boolean(bundle.frames?.frameCount);
@@ -315,7 +334,12 @@ export function gradeMedia(bundle) {
     });
   } else if (MEDIA_GATE.requireRecord && score.categories.record === 'against') {
     verdict = VERDICT.HOLD;
-    blockers.push({
+    blockers.push(remade ? {
+      title: '다시 만든 파일입니다',
+      detail: kind === 'audio'
+        ? `변환 도구 기록만 남아 있고 녹음 기기 기록은 없습니다${bundle.container?.muxer ? ` — ${bundle.container.muxer}` : ''}. 유튜브에서 받았거나 다시 인코딩한 파일이 이렇습니다. 다시 만드는 과정에서 잴 것이 지워지므로, 어떤 파일이든 여기서는 같은 답이 나옵니다. 만드실 때 나온 원본으로 올려 주십시오.`
+        : `변환 도구 기록만 남아 있고 촬영 기기 기록은 없습니다${bundle.container?.muxer ? ` — ${bundle.container.muxer}` : ''}. 메신저나 편집 도구를 거친 파일입니다. 촬영 원본으로 올려 주십시오.`,
+    } : {
       title: '기기 기록이 없습니다',
       detail: kind === 'audio'
         ? '녹음기나 기기 이름이 파일에 적혀 있지 않습니다. 파형만으로는 발급하지 않습니다 — 실제 음원이면 대부분 통과하는 값이라 생성물도 통과할 수 있습니다.'
@@ -343,7 +367,11 @@ export function gradeMedia(bundle) {
     kind,
     verdict,
     grade: verdict === VERDICT.PASS ? 3 : null,
-    headline: HEADLINE[verdict][kind],
+    headline: verdict === VERDICT.HOLD && remade
+      ? (kind === 'audio'
+        ? '다시 만든 파일이라 녹음 흔적이 남아 있지 않습니다'
+        : '다시 만든 파일이라 촬영 흔적이 남아 있지 않습니다')
+      : HEADLINE[verdict][kind],
     statement: statementFor(verdict, kind, score, cameraSide, aiSide),
     blockers,
     contradictions: [],

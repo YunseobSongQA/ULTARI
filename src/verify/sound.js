@@ -35,9 +35,16 @@ const T = {
   /* 노이즈 플로어 — 조용한 구간의 RMS를 10번째 백분위로 잡습니다.
      "가장 조용한 구간"을 쓰면 곡 앞뒤의 디지털 무음을 재게 됩니다. 실측에서
      실제 음원의 최소 구간이 -141dB, -Infinity로 나왔습니다 — 그건 방 소리가
-     아니라 패딩입니다. 무음 창은 빼고 백분위로 잡습니다. */
+     아니라 패딩입니다. 무음 창은 빼고 백분위로 잡습니다.
+
+     크기 하나만 보면 안 됩니다. 쉬는 구간이 없는 곡은 10번째 백분위도 음악이라
+     늘 큰 값이 나오는데, 그걸 방 소리로 세면 꽉 채운 트랙은 무엇이든 "마이크로
+     녹음했다"가 됩니다 — 유튜브에서 받은 비트가 -22.6dB로 그렇게 통과했습니다.
+     그래서 "쉬는 구간이 실제로 있는가"를 함께 봅니다. 중앙값보다 한참 내려간
+     자리가 있어야 그게 방 소리입니다. */
   floorQuietDb: -75,           // 이보다 조용하면 잡음이 지워진 것
-  floorRoomDb: -55,            // 이보다 크면 방 소리가 남은 것
+  floorRoomDb: -35,            // 이보다 크면 쉬는 구간 자체가 없다는 뜻입니다
+  floorDropDb: 15,             // 중앙값보다 이만큼은 내려가야 쉬는 구간입니다
 
   /* 스테레오 — 두 채널의 상관. 1.0이면 완전히 같습니다. */
   stereoSameLimit: 0.9995,     // 이 위는 사실상 모노를 두 채널에 복사한 것
@@ -330,8 +337,17 @@ export async function analyzeSound(file, nativeRate = null) {
 
     /* 판정에 쓰는 요약 — grade 쪽에서 읽습니다. */
     lossless: Boolean(rateTrusted && band && band.ratio >= T.fullBandRatio),
-    roomTone: Boolean(floor && floor.floorDb > T.floorRoomDb),
+    /* 방 소리 — 쉬는 구간이 실제로 있고, 그 자리가 마이크가 낼 만한
+       크기일 때만입니다. 셋 중 하나라도 어긋나면 판단하지 않습니다. */
+    roomTone: Boolean(floor
+      && floor.floorDb > T.floorQuietDb
+      && floor.floorDb < T.floorRoomDb
+      && floor.median - floor.floorDb >= T.floorDropDb),
     deadSilence: Boolean(floor && floor.floorDb < T.floorQuietDb),
+    /* 쉬는 구간이 없어 방 소리를 잴 자리가 없는 경우. 사실로만 적습니다. */
+    noQuietPart: Boolean(floor
+      && floor.floorDb >= T.floorQuietDb
+      && (floor.floorDb >= T.floorRoomDb || floor.median - floor.floorDb < T.floorDropDb)),
     fakeStereo: Boolean(stereo && stereo.correlation >= T.stereoSameLimit),
     wideStereo: Boolean(stereo && stereo.correlation < T.stereoWideBelow),
     squashed: level.crestDb < T.crestSquashedDb,

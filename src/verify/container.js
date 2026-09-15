@@ -76,7 +76,8 @@ const GENERATORS = [
   { re: /\bLuma\b|Dream ?Machine/i, name: 'Luma Dream Machine' },
   { re: /\bVeo\b|Imagen ?Video/i, name: 'Google Veo' },
   { re: /Stable ?Video|SVD\b/i, name: 'Stable Video Diffusion' },
-  { re: /HeyGen|Synthesia|\bD-?ID\b/i, name: '아바타 생성 도구' },
+  // D-?ID로 두면 영어 단어 "did"에 걸립니다. 하이픈을 반드시 요구합니다.
+  { re: /HeyGen|Synthesia|\bD-ID\b/, name: '아바타 생성 도구' },
   { re: /\bSuno\b/i, name: 'Suno' },
   { re: /\bUdio\b/i, name: 'Udio' },
   { re: /ElevenLabs|Eleven ?Labs/i, name: 'ElevenLabs' },
@@ -465,13 +466,15 @@ function readMp3Frame(head, from, facts) {
  * 녹음 기기와 시각, 심지어 편집 이력(CodingHistory)이 들어갑니다.
  * 생성 도구는 이 덩어리를 쓰지 않습니다.
  */
-function readWav(head, facts) {
+function readWav(head, facts, ranges = null) {
   let i = 12;
   while (i + 8 <= head.length) {
     const id = ascii(head, i, 4);
     const size = u32le(head, i + 4);
     if (size < 0 || i + 8 + size > head.length + 8) break;
     const from = i + 8;
+    // data는 표본입니다. 표식을 여기서 찾으면 압축된 소리에서 오탐이 납니다.
+    if (ranges && id !== 'data') ranges.push([i, Math.min(from + size, head.length)]);
     if (id === 'fmt ') {
       facts.channels = u16(head, from + 2 + 0) === 0 ? head[from + 2] : (head[from + 2] | (head[from + 3] << 8));
       facts.sampleRate = u32le(head, from + 4);
@@ -497,6 +500,32 @@ function readWav(head, facts) {
   }
 }
 
+/** FLAC은 fLaC 뒤에 메타데이터 블록이 사슬로 이어집니다. 마지막 블록까지가 태그입니다. */
+function flacMetaEnd(head) {
+  let i = 4;
+  while (i + 4 <= head.length) {
+    const last = (head[i] & 0x80) !== 0;
+    const len = (head[i + 1] << 16) | (head[i + 2] << 8) | head[i + 3];
+    i += 4 + len;
+    if (last) break;
+  }
+  return Math.min(i, head.length);
+}
+
+/** OGG는 첫 몇 페이지에 식별·주석 헤더가 들어갑니다. 그 뒤부터가 소리입니다. */
+function oggHeaderEnd(head) {
+  let i = 0;
+  for (let page = 0; page < 3; page++) {
+    if (i + 27 > head.length || ascii(head, i, 4) !== 'OggS') break;
+    const segs = head[i + 26];
+    if (i + 27 + segs > head.length) break;
+    let body = 0;
+    for (let s = 0; s < segs; s++) body += head[i + 27 + s];
+    i += 27 + segs + body;
+  }
+  return Math.min(i, head.length);
+}
+
 /* ── FLAC / OGG ────────────────────────────────────── */
 
 function readVorbisComments(head, facts) {
@@ -518,7 +547,7 @@ function readVorbisComments(head, facts) {
  * 표식을 찾을 영역만 모읍니다. 화소·표본(mdat)은 넣지 않습니다.
  * MP4는 메타데이터 상자에서, 태그 형식은 태그가 있는 앞부분에서 걷습니다.
  */
-function metaRegions(head, tail, boxes, format, facts) {
+function metaRegions(head, tail, boxes, format, facts, metaRanges = null) {
   const CARRY = /^(udta|meta|keys|ilst|uuid|free|skip|ftyp|hdlr|mdta|©...)$/;
   if (format === 'mp4' || format === 'mov' || format === 'm4a') {
     const parts = [];
@@ -532,8 +561,20 @@ function metaRegions(head, tail, boxes, format, facts) {
     }
     return parts.join(' ');
   }
-  // ID3·RIFF·Vorbis는 태그가 파일 앞에 모여 있습니다.
-  const n = Math.min(head.length, 1 << 19);
+  /* 태그 형식은 태그가 앉은 자리만 봅니다.
+     앞에서 512KB를 통째로 읽던 때가 있었는데, MP3는 그 대부분이 압축된
+     소리입니다. 무작위에 가까운 바이트를 글자로 읽으면 짧은 이름이 우연히
+     걸립니다 — 실제로 유튜브에서 받은 mp3에서 "아바타 생성 도구"가 잡혔고,
+     원인은 소리 데이터 안에 우연히 들어 있던 "did" 세 글자였습니다. */
+  if (metaRanges) {
+    return metaRanges
+      .map(([from, to]) => latin1(head.subarray(Math.max(0, from), Math.min(to, head.length))))
+      .join(' ');
+  }
+  /* 남은 것은 WebM입니다. 머리와 Segment Info·Tracks가 앞쪽에 모여 있고
+     readWebm이 그 값을 이미 facts로 꺼내 둡니다. 창을 좁혀 두면 압축된
+     화소를 글자로 읽다 우연히 걸리는 일이 줄어듭니다. */
+  const n = Math.min(head.length, 1 << 16);
   return latin1(head.subarray(0, n));
 }
 
@@ -564,6 +605,9 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
   const facts = out.facts;
 
   let boxes = [];
+  /* 표식을 찾아도 되는 자리. 소리 파일은 태그 덩어리만 들어갑니다.
+     비워 두면(null) 예전처럼 앞부분을 통째로 봅니다 — MP4가 그렇습니다. */
+  let metaRanges = null;
   if (out.format === 'mp4') {
     boxes = readMp4(head, tail, size, facts);
     if (AUDIO_BRANDS.test(facts.brand || '') || (facts.hasAudio && !facts.hasVideo)) {
@@ -576,10 +620,19 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
   } else if (out.format === 'mp3') {
     const after = readId3(head, facts);
     readMp3Frame(head, after, facts);
+    /* ID3v2는 파일 앞, ID3v1은 뒤 128바이트입니다. 그 사이는 전부 소리입니다. */
+    metaRanges = after > 0 ? [[0, after]] : [];
   } else if (out.format === 'wav') {
-    readWav(head, facts);
-  } else if (out.format === 'flac' || out.format === 'ogg') {
-    readVorbisComments(head.subarray(0, Math.min(head.length, 1 << 18)), facts);
+    metaRanges = [];
+    readWav(head, facts, metaRanges);
+  } else if (out.format === 'flac') {
+    const end = flacMetaEnd(head);
+    readVorbisComments(head.subarray(0, end), facts);
+    metaRanges = [[0, end]];
+  } else if (out.format === 'ogg') {
+    const end = oggHeaderEnd(head);
+    readVorbisComments(head.subarray(0, end), facts);
+    metaRanges = [[0, end]];
   }
   if (name && !facts.name) facts.name = name;
 
@@ -594,7 +647,7 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
      압축된 화소를 정규식으로 훑으면 오탐이 납니다 — 실제 촬영 MOV에서
      "아바타 생성 도구"가 잡혔고, 원인은 H.265 데이터에 우연히 들어 있던
      세 글자였습니다. 파일이 스스로 밝힌 자리만 봅니다. */
-  const scan = metaRegions(head, tail, boxes, out.format, facts);
+  const scan = metaRegions(head, tail, boxes, out.format, facts, metaRanges);
   out.c2pa = scan.includes('c2pa') || scan.includes('jumbf') || scan.includes('urn:uuid:c2pa');
   if (out.c2pa) out.markers.push('C2PA 매니페스트');
 
@@ -605,12 +658,18 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
   }
   const aiDeclared = /trainedAlgorithmicMedia|compositeWithTrainedAlgorithmicMedia|algorithmicMedia/.test(scan);
 
-  const named = GENERATORS.find((g) => g.re.test(`${hay} ${scan}`));
+  /* 생성기 이름이 도구 자리(TSSE·encoder·software)에 적혀 있으면 만든
+     프로그램이 스스로 남긴 것입니다. 제목이나 코멘트에 적힌 이름은 사람이
+     친 글자라 같게 보지 않습니다 — "Sora"나 "Luma"라는 제목의 곡이 있습니다. */
+  const toolHay = [facts.tool, facts.encoder, facts.software, facts.muxingApp, facts.writingApp]
+    .filter(Boolean).join(' | ');
+  const namedTool = GENERATORS.find((g) => g.re.test(toolHay));
+  const named = namedTool || GENERATORS.find((g) => g.re.test(`${hay} ${scan}`));
   if (named) {
     out.generator = named.name;
     out.markers.push(`생성기 · ${named.name}`);
   }
-  out.declaresAi = Boolean(aiDeclared) || Boolean(named && out.c2pa);
+  out.declaresAi = Boolean(aiDeclared) || Boolean(namedTool) || Boolean(named && out.c2pa);
 
   /* 촬영·녹음 기기 흔적 */
   const device = DEVICES.find((d) => d.re.test(hay));

@@ -239,8 +239,8 @@ export function renderMediaScore(bundle) {
           : `발급하지 않습니다. ${escapeHtml(result.blockers.map((b) => b.title).join(', ') || '조건 미달')}`}
       </p>
       <p class="score-caveat">
-        발급 조건은 셋입니다 — AI 생성 기록 없음 · ${what} 쪽 근거 ${MEDIA_GATE.signs}건 이상 ·
-        환산 수치 ${MEDIA_GATE.trace}% 이상.
+        발급 조건은 넷입니다 — AI 생성 기록 없음 · ${bundle.kind === 'audio' ? '녹음기·기기' : '촬영 기기'} 기록 있음 ·
+        ${what} 쪽 근거 ${MEDIA_GATE.signs}건 이상 · 환산 수치 ${MEDIA_GATE.trace}% 이상.
       </p>
     </div>`;
 }
@@ -340,7 +340,8 @@ export function mediaRows(bundle) {
     if (a.stereo) {
       rows.push({
         item: '스테레오 상관',
-        state: a.wideStereo ? ok : a.fakeStereo ? no : meh,
+        // 채널이 서로 다른 것은 녹음의 근거가 아닙니다. 가짜 스테레오만 표시합니다.
+        state: a.fakeStereo ? no : meh,
         value: a.stereo.correlation.toFixed(4),
         sub: `두 채널이 같은 표본 ${(a.stereo.identicalShare * 100).toFixed(1)}%`,
       });
