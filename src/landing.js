@@ -74,6 +74,22 @@ export function mountLanding(reel) {
   let index = -1;
   let pinned = false;
 
+  /**
+   * 좁은 화면에서 내용이 한 화면에 안 들어가면 그 화면 안에서 스크롤할 수
+   * 있어야 합니다. 그런데 넘치지 않는데도 스크롤 상자로 만들어 두면, 손가락이
+   * 그 위에서 끄는 동안 페이지가 아니라 상자가 먼저 받습니다. 상자는 스크롤할
+   * 것이 없으니 아무 일도 일어나지 않고, 화면이 안 넘어갑니다. 손을 뗐다
+   * 다시 끌어야 겨우 넘어가는 것이 이것 때문입니다.
+   *
+   * 그래서 실제로 넘칠 때만 붙입니다. 글꼴이 늦게 와서 높이가 달라질 수
+   * 있으므로 폰트가 준비된 뒤에 한 번 더 잽니다.
+   */
+  const markTall = () => {
+    slides.forEach((slide) => {
+      slide.classList.toggle('is-tall', slide.scrollHeight > slide.clientHeight + 1);
+    });
+  };
+
   const show = (next) => {
     if (next === index) return;
     index = next;
@@ -108,7 +124,7 @@ export function mountLanding(reel) {
    * 릴의 높이는 CSS에서 화면 수 × 100svh로 잡혀 있고, svh는 주소창이
    * 접혀도 변하지 않습니다. 그래서 릴에서 직접 꺼냅니다.
    */
-  const slideRun = () => reel.offsetHeight / slides.length;
+  const slideRun = () => slides[0].offsetHeight;
 
   /** 스크롤한 자리를 화면 번호로 바꿉니다. */
   const measure = () => {
@@ -122,6 +138,8 @@ export function mountLanding(reel) {
     const moved = p - index;
     return moved > 0.58 || moved < -0.58 ? Math.round(p) : index;
   };
+
+  const onResize = () => { markTall(); onScroll(); };
 
   let raf = 0;
   const onScroll = () => {
@@ -144,9 +162,10 @@ export function mountLanding(reel) {
     reel.classList.add('is-reel');
     document.body.classList.add('has-reel');
     index = -1;
+    markTall();
     show(measure());
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('resize', onResize);
   };
 
   const disable = () => {
@@ -155,8 +174,9 @@ export function mountLanding(reel) {
     reel.classList.remove('is-reel');
     document.body.classList.remove('has-reel');
     window.removeEventListener('scroll', onScroll);
-    window.removeEventListener('resize', onScroll);
+    window.removeEventListener('resize', onResize);
     slides.forEach((slide) => {
+      slide.classList.remove('is-tall');
       slide.classList.add('is-on');
       slide.classList.remove('is-past');
       slide.inert = false;
@@ -193,6 +213,8 @@ export function mountLanding(reel) {
   }
 
   paintIcons(reel);
+  // 글꼴이 늦게 오면 글자 높이가 달라집니다. 온 뒤에 한 번 더 잽니다.
+  document.fonts?.ready.then(() => { if (pinned) markTall(); });
   return { goTo, show };
 }
 
