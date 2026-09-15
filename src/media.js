@@ -105,6 +105,26 @@ function videoCategories(bundle) {
  */
 export const RECORD_SLOT = /^(wav|flac|m4a|mp4|mov|webm)$/;
 
+/**
+ * 더 낮은 품질을 한 번 거쳐 온 소리인지.
+ *
+ * 인코더는 자기가 로우패스를 몇 Hz에 걸었는지 LAME 헤더에 적어 둡니다.
+ * 그런데 실제로 잰 대역이 그보다 한참 낮으면, 이 인코더가 자른 것이 아니라
+ * 이미 좁아진 소리를 받아 다시 인코딩한 것입니다. 태그를 지워도 남습니다.
+ *
+ * 헤더에 적힌 값이 없으면 비트율로 갈음합니다. 256kbps 이상으로 저장해
+ * 놓고 17.5kHz에서 끊기는 파일은 그 비트율이 만들어 낸 소리가 아닙니다.
+ * 낮은 비트율에서는 원래 일찍 끊기므로 이 판단을 하지 않습니다.
+ */
+export function recompressed(bundle) {
+  const fa = bundle.container?.facts || {};
+  const a = bundle.sound;
+  if (!a || !a.rateTrusted || !a.band) return false;
+  const roomy = fa.lowpassHz ? fa.lowpassHz - 2500
+    : (fa.bitrate >= 256 ? 17500 : null);
+  return Boolean(roomy && a.band.cutoffHz < roomy);
+}
+
 function audioCategories(bundle) {
   const c = bundle.container || {};
   const a = bundle.sound || {};
@@ -125,8 +145,9 @@ function audioCategories(bundle) {
   /* 크레스트 팩터 — 실측 11.1(눌린 마스터) ~ 20.1(손대지 않은 녹음) */
   const dynamics = a.natural ? 'match' : a.squashed ? 'against' : 'unknown';
 
-  /* 변환 이력 — 변환 도구가 적혀 있으면 원본이 아닙니다. */
-  const history = (c.toolSigns?.length || 0) > 0 ? 'against' : 'unknown';
+  /* 변환 이력 — 변환 도구가 적혀 있거나, 담긴 소리가 비트율이 허용하는
+     것보다 좁으면 원본이 아닙니다. */
+  const history = (c.toolSigns?.length || 0) > 0 || recompressed(bundle) ? 'against' : 'unknown';
 
   return { record, floor, band, dynamics, history };
 }
@@ -212,6 +233,12 @@ export function mediaSignals(bundle) {
     if (a.lossless && a.band) {
       push(SIDE.camera, '대역이 끝까지 살아 있음',
         `${(a.band.cutoffHz / 1000).toFixed(1)}kHz까지 에너지가 있습니다. 손실 압축을 거치지 않았습니다.`);
+    }
+    if (recompressed(bundle)) {
+      const lp = c.facts?.lowpassHz;
+      push(SIDE.ai, '비트율보다 좁은 소리',
+        `${c.facts?.bitrate ? `${c.facts.bitrate}kbps로 저장돼 있는데 ` : ''}실제 소리는 ${(a.band.cutoffHz / 1000).toFixed(1)}kHz에서 끊깁니다${
+          lp ? ` — 인코더는 ${(lp / 1000).toFixed(1)}kHz까지 남기도록 걸려 있었습니다` : ''}. 더 낮은 품질을 한 번 거친 뒤 다시 인코딩된 파일입니다.`);
     }
     if (a.band && a.band.cutoffHz < 15000) {
       push(SIDE.ai, '대역이 일찍 끊김',
@@ -329,8 +356,12 @@ export function gradeMedia(bundle) {
   /* 변환 도구만 적혀 있고 기기 기록이 없는 파일 — 유튜브에서 받았거나 다시
      인코딩한 것입니다. 잴 것이 지워진 뒤라 무엇을 재도 같은 답이 나옵니다.
      그 사실을 제목에서부터 말해 줘야 다음에 무엇을 하면 되는지 압니다. */
-  const remade = (bundle.container?.toolSigns?.length || 0) > 0
-    && (bundle.container?.cameraSigns?.length || 0) === 0;
+  /* LAME은 mp3를 만든 인코더입니다. mp3라면 당연히 적혀 있으므로 그것만으로
+     "다시 만든 파일"이라고 하면 처음 내보낸 파일까지 그렇게 됩니다.
+     변환 도구가 따로 적혀 있거나, 담긴 소리가 실제로 좁아져 있어야 합니다. */
+  const transcoded = (bundle.container?.muxer && bundle.container.muxer !== 'LAME (MP3)')
+    || recompressed(bundle);
+  const remade = Boolean(transcoded) && (bundle.container?.cameraSigns?.length || 0) === 0;
   /* 녹음 기록이 들어갈 자리가 아예 없는 형식 — mp3로 받으면 여기서 멈춥니다.
      "녹음 흔적이 없다"가 아니라 "이 파일로는 가릴 수 없다"가 사실입니다. */
   const noRecordSlot = kind === 'audio'
@@ -451,6 +482,11 @@ function hintsFor(verdict, kind, bundle) {
     }
   } else {
     hints.push('마스터링을 거친 음원은 녹음 흔적이 많이 지워집니다. 편집 전 원본이 있으면 그쪽이 정확합니다.');
+    /* 발매 등록은 녹음의 증거가 아니라 유통 절차의 흔적입니다. 문턱에는
+       넣지 않고, 사람이 볼 때 참고가 되도록 여기 적어 둡니다. */
+    if (bundle.container?.releaseSigns?.length) {
+      hints.push(`발매 등록 기록이 있습니다 — ${bundle.container.releaseSigns.join(' · ')}. 유통 절차를 거친 파일이라는 뜻입니다. 녹음 자체의 증거는 아니지만 상세 검사에서는 이것도 함께 봅니다.`);
+    }
     if (bundle.sound && !bundle.sound.rateTrusted) {
       hints.push('이 브라우저가 파일의 표본율로 디코딩하지 못해 대역 한계는 참고만 하십시오.');
     }

@@ -406,7 +406,26 @@ const ID3_KEYS = {
   TSSE: 'tool', TENC: 'encoder', TDRC: 'date', TYER: 'date', TIT2: 'title',
   TPE1: 'artist', TALB: 'album', TCON: 'genre', COMM: 'comment', TXXX: 'extra',
   WXXX: 'url', TCOP: 'copyright', TPUB: 'publisher',
+  // 발매용으로 등록된 곡에만 붙습니다. 유통 경로를 거쳤다는 기록입니다.
+  TSRC: 'isrc',
 };
+
+/** ISRC는 나라 2 + 등록자 3 + 연도 2 + 일련번호 5입니다. 모양이 맞아야 인정합니다. */
+const ISRC_RE = /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/;
+
+/** 배급사가 남기는 이름. 사람이 발매 절차를 밟았다는 흔적입니다. */
+const RELEASES = [
+  { re: /DistroKid/i, name: 'DistroKid' },
+  { re: /TuneCore/i, name: 'TuneCore' },
+  { re: /CD ?Baby/i, name: 'CD Baby' },
+  { re: /Believe ?(Digital|SAS)/i, name: 'Believe' },
+  { re: /RouteNote/i, name: 'RouteNote' },
+  { re: /\bONErpm\b/i, name: 'ONErpm' },
+  { re: /Ditto ?Music/i, name: 'Ditto Music' },
+  { re: /\bAmuse\.io\b|\bamuse\b/i, name: 'Amuse' },
+  { re: /Stem ?Disintermedia|\bstem\.is\b/i, name: 'Stem' },
+  { re: /\bLANDR\b/i, name: 'LANDR' },
+];
 
 function readId3(head, facts) {
   if (ascii(head, 0, 3) !== 'ID3') return 0;
@@ -438,6 +457,62 @@ function readId3(head, facts) {
 const MP3_RATES = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320];
 const MP3_FREQ = [44100, 48000, 32000];
 
+/* MPEG 버전과 채널 수에 따라 프레임 머리 뒤 side info의 길이가 다릅니다.
+   Xing/LAME 태그는 그 뒤에 붙습니다. */
+const SIDE_INFO = (mpeg1, mono) => (mpeg1 ? (mono ? 17 : 32) : (mono ? 9 : 17));
+
+const VBR_METHOD = [
+  '미상', '고정(CBR)', '평균(ABR)', '가변(VBR rh)', '가변(VBR mtrh)',
+  '가변(VBR rh)', '가변(VBR mtrh)', '', '고정 2패스', '평균 2패스',
+];
+const SOURCE_RATE = ['32kHz 이하', '44.1kHz', '48kHz', '48kHz 초과'];
+const STEREO_MODE = ['모노', '스테레오', '듀얼 모노', '조인트 스테레오', '강제 조인트', '', '자동', '인텐시티'];
+
+/**
+ * 첫 프레임에 붙는 Xing/Info 헤더와 LAME 확장 36바이트.
+ *
+ * 인코더가 자기 설정을 그대로 적어 둔 자리입니다. 로우패스를 몇 Hz에서
+ * 걸었는지, 지연이 몇 표본인지, 원본 표본율이 무엇이었는지가 숫자로
+ * 들어갑니다 — 파형에서 추정하는 것이 아니라 파일이 스스로 밝힌 값입니다.
+ * 도구 사슬마다 조합이 달라서, 같은 곳에서 나온 파일은 같은 조합을 냅니다.
+ */
+function readXingLame(head, at, mpeg1, mono, facts) {
+  let p = at + 4 + SIDE_INFO(mpeg1, mono);
+  if (p + 8 > head.length) return;
+  const magic = ascii(head, p, 4);
+  if (magic !== 'Xing' && magic !== 'Info') return;
+  facts.xing = magic;
+  facts.vbr = magic === 'Xing';
+  facts.cbrTag = magic === 'Info';
+
+  const flags = u32(head, p + 4);
+  p += 8;
+  if (flags & 1) { facts.frameCount = u32(head, p); p += 4; }
+  if (flags & 2) { facts.streamBytes = u32(head, p); p += 4; }
+  if (flags & 4) { facts.xingToc = true; p += 100; }
+  if (flags & 8) { facts.xingQuality = u32(head, p); p += 4; }
+
+  if (p + 36 > head.length) return;
+  const version = clean(latin1(head.subarray(p, p + 9)));
+  // 인코더 문자열 자리가 비어 있으면 Xing 헤더만 있고 LAME 확장은 없습니다.
+  if (!/^[\x20-\x7e]{4,}$/.test(version)) return;
+  facts.encoderTag = version;
+  if (!facts.tool) facts.tool = version;
+
+  facts.vbrMethod = VBR_METHOD[head[p + 9] & 0x0f] || '미상';
+  if (head[p + 10]) facts.lowpassHz = head[p + 10] * 100;
+  facts.athType = head[p + 19] & 0x0f;
+  facts.encDelay = (head[p + 21] << 4) | (head[p + 22] >> 4);
+  facts.encPadding = ((head[p + 22] & 0x0f) << 8) | head[p + 23];
+  const misc = head[p + 24];
+  facts.sourceRate = SOURCE_RATE[(misc >> 6) & 3];
+  facts.encStereoMode = STEREO_MODE[(misc >> 2) & 7] || '';
+  facts.noiseShaping = misc & 3;
+  facts.preset = ((head[p + 26] << 8) | head[p + 27]) & 0x07ff;
+  facts.musicBytes = u32(head, p + 28);
+  facts.musicCrc = ((head[p + 32] << 8) | head[p + 33]).toString(16).padStart(4, '0');
+}
+
 function readMp3Frame(head, from, facts) {
   for (let i = from; i < Math.min(from + 200000, head.length - 4); i++) {
     if (head[i] !== 0xff || (head[i + 1] & 0xe0) !== 0xe0) continue;
@@ -449,12 +524,12 @@ function readMp3Frame(head, from, facts) {
     facts.bitrate = MP3_RATES[bitrateIx];
     facts.sampleRate = MP3_FREQ[freqIx];
     facts.channelMode = ['스테레오', '조인트 스테레오', '듀얼 모노', '모노'][mode];
-    // Xing/Info 헤더가 있으면 가변 비트율로 인코딩된 파일입니다.
-    const tag = latin1(head.subarray(i, i + 200));
-    facts.vbr = tag.includes('Xing');
-    facts.cbrTag = tag.includes('Info');
-    const lame = tag.match(/LAME\d[\d.a-z]*/i);
-    if (lame) facts.tool = facts.tool || lame[0];
+    readXingLame(head, i, ((head[i + 1] >> 3) & 3) === 3, mode === 3, facts);
+    if (!facts.encoderTag) {
+      const tag = latin1(head.subarray(i, i + 200));
+      const lame = tag.match(/LAME\d[\d.a-z]*/i);
+      if (lame) facts.tool = facts.tool || lame[0];
+    }
     return;
   }
 }
@@ -580,6 +655,7 @@ function metaRegions(head, tail, boxes, format, facts, metaRanges = null) {
 
 const EMPTY = {
   format: 'unknown', kind: 'unknown', facts: {}, cameraSigns: [], toolSigns: [],
+  releaseSigns: [], distributor: null,
   declaresAi: false, generator: null, c2pa: false, markers: [], gpsPresent: false,
 };
 
@@ -600,6 +676,7 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
     facts: { bytes: size || head.length },
     cameraSigns: [],
     toolSigns: [],
+    releaseSigns: [],
     markers: [],
   };
   const facts = out.facts;
@@ -687,6 +764,22 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
   if (facts.bext) out.cameraSigns.push('방송용 WAV 덩어리 (bext)');
   if (facts.ixml) out.cameraSigns.push('녹음기 메타데이터 (iXML)');
   if (facts.bitDepth >= 24) out.cameraSigns.push(`${facts.bitDepth}비트 녹음`);
+
+  /* 발매 경로 흔적 — 녹음의 증거는 아닙니다. 사람이 유통 절차를 밟았다는
+     기록이라 따로 모읍니다. 판정 문턱에는 넣지 않고 사실로만 적습니다. */
+  const isrc = (facts.isrc || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  if (ISRC_RE.test(isrc)) {
+    facts.isrc = isrc;
+    out.releaseSigns.push(`ISRC · ${isrc}`);
+  } else if (facts.isrc) {
+    delete facts.isrc;
+  }
+  const label = RELEASES.find((r) => r.re.test(`${hay} ${scan}`));
+  if (label) {
+    out.distributor = label.name;
+    out.releaseSigns.push(`배급사 · ${label.name}`);
+  }
+  if (facts.publisher) out.releaseSigns.push(`발매사 기록 · ${facts.publisher}`);
 
   /* 재인코딩·편집 도구 흔적 */
   const muxer = MUXERS.find((m) => m.re.test(hay));

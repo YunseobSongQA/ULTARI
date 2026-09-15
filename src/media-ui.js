@@ -94,6 +94,13 @@ export function mediaKeyLines(bundle) {
         a.duration ? `${a.duration.toFixed(0)}초` : '길이 미상'}${
         fa.bitrate ? ` · ${fa.bitrate}kbps` : ''}`,
     });
+    if (c.releaseSigns?.length) {
+      lines.push({
+        label: '발매 등록',
+        state: meh,
+        value: c.releaseSigns.join(' · '),
+      });
+    }
     lines.push({
       label: '대역 한계',
       state: a.lossless ? ok : a.band && a.band.cutoffHz < 15000 ? no : meh,
@@ -347,6 +354,41 @@ export function mediaRows(bundle) {
         sub: `창 ${a.floor.windows}개 중 10번째 백분위 · 무음 창 ${a.floor.silentWindows}개 제외`,
       });
     }
+    if (fa.encoderTag) {
+      rows.push({
+        item: '인코더 기록',
+        state: meh,
+        value: escapeHtml(fa.encoderTag),
+        sub: [fa.vbrMethod, fa.encStereoMode, fa.preset ? `프리셋 ${fa.preset}` : '']
+          .filter(Boolean).join(' · '),
+      });
+    }
+    if (fa.lowpassHz) {
+      rows.push({
+        item: '인코더 로우패스',
+        state: meh,
+        value: `${(fa.lowpassHz / 1000).toFixed(1)}kHz`,
+        sub: '파일에 적힌 설정값입니다 — 잰 값이 아닙니다',
+      });
+    }
+    if (fa.encDelay != null) {
+      rows.push({
+        item: '인코더 지연',
+        state: meh,
+        value: `${fa.encDelay} / ${fa.encPadding} 표본`,
+        sub: fa.sourceRate ? `원본 표본율 ${fa.sourceRate}` : '',
+      });
+    }
+    if (fa.musicCrc) {
+      rows.push({
+        item: '소리 CRC',
+        state: meh,
+        value: escapeHtml(fa.musicCrc),
+        sub: '태그를 고쳐도 바뀌지 않는 값입니다',
+      });
+    }
+    if (fa.isrc) rows.push({ item: 'ISRC', state: meh, value: escapeHtml(fa.isrc) });
+    if (c.distributor) rows.push({ item: '배급사', state: meh, value: escapeHtml(c.distributor) });
     rows.push({
       item: '크레스트 팩터',
       state: a.natural ? ok : a.squashed ? no : meh,
