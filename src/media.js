@@ -36,6 +36,9 @@ export const VIDEO_WEIGHTS = {
   optics: 25,      // 비네팅·색수차
   light: 15,       // 하이라이트 날림
   history: 20,     // 압축 이력 (재인코딩 흔적이 없을수록 원본에 가깝습니다)
+  /* 기록은 편집해서 내보내면 지워지지만 이건 남습니다. 빛이 알갱이로
+     도착해서 생기는 곡선이라 렌즈와 센서를 지난 그림에만 있습니다. */
+  noise: 25,       // 노이즈-밝기 곡선 (광자 산탄 잡음)
 };
 
 /**
@@ -56,8 +59,6 @@ const FACTOR = { match: 1, unknown: 0.5, against: 0 };
 
 /* ── 영상 ──────────────────────────────────────────── */
 
-const half = (n, of) => (of > 0 ? n / of : 0);
-
 /**
  * 프레임에서 나온 값을 세 갈래로 나눕니다.
  * match = 촬영 쪽, against = 생성·재가공 쪽, unknown = 판단 보류.
@@ -67,10 +68,11 @@ function videoCategories(bundle) {
   const s = bundle.frames?.summary || {};
   const n = bundle.frames?.frameCount || 0;
 
-  /* 1. 기록 — 컨테이너가 남긴 것. 가장 잘 갈렸습니다.
-        아이폰 MOV 5건 / 카카오톡·화면녹화·편집 0건 (실측) */
-  const record = c.cameraSigns?.length >= 2 ? 'match'
-    : c.cameraSigns?.length === 1 ? 'unknown' : 'against';
+  /* 1. 기록 — 컨테이너가 남긴 것. 아이폰 MOV 5건 / 카카오톡·화면녹화·편집
+        0건 (실측). 있으면 강한 근거지만, 없는 것은 근거가 아닙니다.
+        편집해서 내보내면 지워지므로 없다고 반대쪽으로 세면 손을 댄 작업일수록
+        감점부터 받습니다. 발급 문턱은 따로 잠가 두었습니다. */
+  const record = c.cameraSigns?.length >= 2 ? 'match' : 'unknown';
 
   /* 2. 광학 흔적 — 렌즈를 거친 그림에만 남습니다.
         편집 영상 720p만 5/5로 전무했습니다. */
@@ -83,11 +85,20 @@ function videoCategories(bundle) {
   const light = (s.clipFrames || 0) >= n && n > 0 ? 'match'
     : (s.clipFrames || 0) === 0 ? 'against' : 'unknown';
 
-  /* 4. 압축 이력 — 변환 도구 기록이나 겹친 격자는 다시 만든 파일의 흔적입니다. */
-  const history = (c.toolSigns?.length || 0) > 0 || (s.recompressed || 0) > 0 ? 'against'
-    : (s.gridStrength != null ? 'match' : 'unknown');
+  /* 4. 압축 이력 — 변환 도구 기록은 다시 만든 파일의 흔적입니다.
+        겹친 격자만으로는 "편집을 거쳤다"까지입니다. 편집한 영상은 전부
+        여기 걸리므로 그것만으로 반대쪽으로 세지 않습니다. */
+  const history = (c.toolSigns?.length || 0) > 0 ? 'against'
+    : (s.recompressed || 0) > 0 || c.editor ? 'unknown'
+      : (s.gridStrength != null ? 'match' : 'unknown');
 
-  return { record, optics, light, history };
+  /* 5. 노이즈-밝기 곡선 — 프레임 절반 이상에서 밝을수록 노이즈가 커지면
+        센서를 지난 그림입니다. 뒤집힌 곡선은 센서에서 나오지 않습니다. */
+  const mostFrames = Math.max(1, Math.ceil(n / 2));
+  const noise = (s.noiseRising || 0) >= mostFrames ? 'match'
+    : (s.noiseInverted || 0) >= mostFrames ? 'against' : 'unknown';
+
+  return { record, optics, light, history, noise };
 }
 
 /* ── 음악 ──────────────────────────────────────────── */
@@ -129,9 +140,7 @@ function audioCategories(bundle) {
   const c = bundle.container || {};
   const a = bundle.sound || {};
 
-  const record = c.cameraSigns?.length >= 2 ? 'match'
-    : c.cameraSigns?.length === 1 ? 'unknown'
-      : RECORD_SLOT.test(c.format || '') ? 'against' : 'unknown';
+  const record = c.cameraSigns?.length >= 2 ? 'match' : 'unknown';
 
   /* 노이즈 플로어 — 실제 녹음은 방 소리와 프리앰프 잡음이 남습니다.
      실측 -15.8 ~ -44.0dB. 완전히 지워진 것은 손을 댄 것입니다. */
@@ -215,6 +224,11 @@ export function mediaSignals(bundle) {
     const [title, detail] = split(sign);
     push(SIDE.ai, title, `${detail} — 원본이 아니라 다시 만든 파일입니다.`);
   }
+  /* 편집 도구는 사람이 손을 댄 흔적입니다. 변환 도구와 같게 세지 않습니다. */
+  for (const sign of c.editSigns || []) {
+    const [title, detail] = split(sign);
+    push(SIDE.unknown, title, `${detail} — 편집을 거친 파일입니다. 촬영하지 않았다는 뜻은 아닙니다.`);
+  }
 
   if (bundle.kind === 'audio') {
     const a = bundle.sound || {};
@@ -294,9 +308,24 @@ export function mediaSignals(bundle) {
     push(SIDE.camera, '하이라이트 날림',
       `밝은 부분이 흰색으로 눌렸습니다(${(s.clipWhite * 100).toFixed(3)}%). 실제 빛에서 생깁니다.`);
   }
+  /* 편집한 영상은 전부 여기 걸립니다. "다시 저장됐다"까지가 사실이고,
+     생성물이라는 뜻이 아닙니다. 판단 보류로 둡니다. */
   if ((s.recompressed || 0) > 0) {
-    push(SIDE.ai, '두 번 인코딩된 격자',
-      `프레임 ${s.recompressed}장에서 어긋난 압축 격자가 겹칩니다. 다시 저장된 파일입니다.`);
+    push(SIDE.unknown, '두 번 인코딩된 격자',
+      `프레임 ${s.recompressed}장에서 어긋난 압축 격자가 겹칩니다. 편집이나 변환을 거쳐 다시 저장된 파일입니다 — 촬영하지 않았다는 뜻은 아닙니다.`);
+  }
+  if ((s.noiseRising || 0) > 0 && (s.noiseRising || 0) >= Math.ceil(n / 2)) {
+    push(SIDE.camera, '밝을수록 커지는 노이즈',
+      `프레임 ${s.noiseRising}/${n}에서 밝은 구간일수록 노이즈가 큽니다(상관 ${s.noiseCorr.toFixed(2)}). 빛이 알갱이로 도착해서 생기는 곡선이라 센서를 지난 그림에만 남습니다.`);
+  } else if ((s.noiseInverted || 0) >= Math.ceil(n / 2)) {
+    push(SIDE.ai, '뒤집힌 노이즈 곡선',
+      `밝은 구간일수록 노이즈가 줄어듭니다(상관 ${s.noiseCorr.toFixed(2)}). 실제 센서에서는 일어나지 않습니다.`);
+  } else if ((s.noiseFrames || 0) > 0) {
+    push(SIDE.unknown, '노이즈가 밝기와 무관',
+      `상관 ${s.noiseCorr != null ? s.noiseCorr.toFixed(2) : '—'}, 퍼짐 ${s.noiseSpread != null ? s.noiseSpread.toFixed(2) : '—'}. 균일하게 얹은 그레인도, 강한 노이즈 제거를 거친 실제 영상도 이렇게 나옵니다.`);
+  } else {
+    push(SIDE.unknown, '노이즈를 재지 못함',
+      '잴 만한 구간이 모자랐습니다. 화면이 지나치게 매끈하거나 어두우면 이렇게 됩니다.');
   }
   if (s.alpha != null && s.alphaNatural === 0 && n > 0) {
     push(SIDE.unknown, '주파수 감쇠가 자연 범위 밖',
@@ -364,9 +393,18 @@ export function gradeMedia(bundle) {
   const remade = Boolean(transcoded) && (bundle.container?.cameraSigns?.length || 0) === 0;
   /* 녹음 기록이 들어갈 자리가 아예 없는 형식 — mp3로 받으면 여기서 멈춥니다.
      "녹음 흔적이 없다"가 아니라 "이 파일로는 가릴 수 없다"가 사실입니다. */
-  const noRecordSlot = kind === 'audio'
-    && (bundle.container?.cameraSigns?.length || 0) === 0
+  const noRecord = (bundle.container?.cameraSigns?.length || 0) === 0;
+  const noRecordSlot = kind === 'audio' && noRecord
     && !RECORD_SLOT.test(bundle.container?.format || '');
+  /* 기기 기록이 없어도 렌즈와 센서의 물리가 둘 다 남아 있으면 그것으로
+     갈음합니다. 편집해서 내보낸 영상에는 촬영 기기 기록이 남지 않는데,
+     그렇다고 촬영하지 않은 것은 아닙니다. 비네팅과 색수차는 유리를 지난
+     빛에만 생기고, 밝을수록 커지는 노이즈는 빛이 알갱이로 도착해서
+     생깁니다. 둘 다 나오면 카메라를 지난 그림으로 봅니다.
+     소리에는 아직 이만큼 확실한 물리가 없어 영상에만 둡니다. */
+  const physicsProof = kind === 'video'
+    && score.categories.optics === 'match'
+    && score.categories.noise === 'match';
   const measurable = kind === 'audio'
     ? Boolean(bundle.sound)
     : Boolean(bundle.frames?.frameCount);
@@ -393,7 +431,7 @@ export function gradeMedia(bundle) {
       title: '이 형식에는 녹음 기록이 남지 않습니다',
       detail: 'MP3·AAC 같은 형식에는 녹음기나 기기 이름을 적어 두는 자리가 없습니다. 파형만으로는 사람이 녹음한 것인지 만들어 낸 것인지 가릴 수 없어, 어느 쪽으로도 판정하지 않습니다. 만드실 때 나온 WAV나 FLAC 원본이 있으면 그것으로 올려 주십시오 — 녹음 기록이 살아 있으면 3등급까지 바로 나옵니다. 원본이 없으면 상세 검사로 사람이 봅니다.',
     });
-  } else if (MEDIA_GATE.requireRecord && score.categories.record === 'against') {
+  } else if (MEDIA_GATE.requireRecord && noRecord && !physicsProof) {
     verdict = VERDICT.HOLD;
     blockers.push(remade ? {
       title: '다시 만든 파일입니다',
@@ -404,7 +442,7 @@ export function gradeMedia(bundle) {
       title: '기기 기록이 없습니다',
       detail: kind === 'audio'
         ? '녹음기나 기기 이름이 파일에 적혀 있지 않습니다. 파형만으로는 발급하지 않습니다 — 실제 음원이면 대부분 통과하는 값이라 생성물도 통과할 수 있습니다.'
-        : '촬영 기기 기록이 파일에 남아 있지 않습니다. 메신저나 변환 도구를 거치면 지워집니다.',
+        : '촬영 기기 기록이 파일에 남아 있지 않습니다. 편집해서 내보내면 지워집니다. 기록이 없어도 렌즈 흔적(비네팅·색수차)과 노이즈-밝기 곡선이 함께 나오면 그것으로 갈음하는데, 이 파일에서는 둘 중 하나가 나오지 않았습니다.',
     });
   } else if (cameraSide >= MEDIA_GATE.signs && score.trace >= MEDIA_GATE.trace) {
     verdict = VERDICT.PASS;
@@ -428,11 +466,7 @@ export function gradeMedia(bundle) {
     kind,
     verdict,
     grade: verdict === VERDICT.PASS ? 3 : null,
-    headline: verdict === VERDICT.HOLD && remade
-      ? (kind === 'audio'
-        ? '다시 만든 파일이라 녹음 흔적이 남아 있지 않습니다'
-        : '다시 만든 파일이라 촬영 흔적이 남아 있지 않습니다')
-      : HEADLINE[verdict][kind],
+    headline: holdHeadline(verdict, kind, cameraSide, remade),
     statement: statementFor(verdict, kind, score, cameraSide, aiSide, measurable),
     blockers,
     contradictions: [],
@@ -443,6 +477,21 @@ export function gradeMedia(bundle) {
     cameraSide,
     aiSide,
   };
+}
+
+/**
+ * 보류 화면의 제목.
+ *
+ * "흔적이 남아 있지 않습니다"는 근거가 하나도 안 나왔을 때만 맞는 말입니다.
+ * 비네팅이 3/3으로 잡힌 영상에까지 그렇게 적으면, 화면 안에서 스스로 모순
+ * 됩니다 — 직접 촬영한 뮤직비디오를 올린 분이 그 화면을 봤습니다.
+ */
+function holdHeadline(verdict, kind, cameraSide, remade) {
+  if (verdict !== VERDICT.HOLD) return HEADLINE[verdict][kind];
+  const what = kind === 'audio' ? '녹음' : '촬영';
+  if (cameraSide >= 1) return `${what} 흔적은 있지만 발급 조건에는 모자랍니다`;
+  if (remade) return `다시 만든 파일이라 ${what} 흔적이 남아 있지 않습니다`;
+  return HEADLINE[verdict][kind];
 }
 
 function statementFor(verdict, kind, score, cameraSide, aiSide, measurable = true) {

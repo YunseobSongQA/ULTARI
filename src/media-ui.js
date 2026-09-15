@@ -62,7 +62,8 @@ export function mediaKeyLines(bundle) {
       label: '영상',
       state: meh,
       value: `${fa.width || bundle.frames?.width || '?'}×${fa.height || bundle.frames?.height || '?'} · ${
-        fa.duration ? `${fa.duration.toFixed(0)}초` : '길이 미상'} · ${fa.codec || '코덱 미상'}`,
+        fa.duration ? `${fa.duration.toFixed(0)}초` : '길이 미상'} · ${fa.codec || '코덱 미상'}${
+        fa.audioCodec ? ` · 소리 ${fa.audioCodec}` : ''}`,
     });
     const s = bundle.frames?.summary || {};
     const n = bundle.frames?.frameCount || 0;
@@ -71,6 +72,14 @@ export function mediaKeyLines(bundle) {
       state: (s.vignetteFrames || 0) + (s.caFrames || 0) >= 3 ? ok
         : (s.noOpticalTrace || 0) >= n && n > 0 ? no : meh,
       value: `비네팅 ${s.vignetteFrames || 0}/${n} · 색수차 ${s.caFrames || 0}/${n}`,
+    });
+    lines.push({
+      label: '노이즈-밝기 곡선',
+      state: (s.noiseRising || 0) >= Math.ceil(n / 2) && n > 0 ? ok
+        : (s.noiseInverted || 0) >= Math.ceil(n / 2) && n > 0 ? no : meh,
+      value: s.noiseFrames
+        ? `오르는 프레임 ${s.noiseRising || 0}/${n} · 상관 ${s.noiseCorr != null ? s.noiseCorr.toFixed(2) : '—'}`
+        : '재지 못했습니다',
     });
   } else {
     /* 기기 이름이 비어도 녹음기 흔적이 있을 수 있습니다(예: 음성 메모 태그).
@@ -322,6 +331,16 @@ export function mediaRows(bundle) {
       state: (s.recompressed || 0) > 0 ? no : meh,
       value: `강도 ${num(s.gridStrength)}`,
       sub: (s.recompressed || 0) > 0 ? `두 번 인코딩 ${s.recompressed}프레임` : '겹친 격자 없음',
+    });
+    rows.push({
+      item: '노이즈-밝기 곡선',
+      state: (s.noiseRising || 0) >= Math.ceil(n / 2) && n > 0 ? ok
+        : (s.noiseInverted || 0) >= Math.ceil(n / 2) && n > 0 ? no : meh,
+      value: s.noiseCorr != null ? `상관 ${s.noiseCorr.toFixed(2)}` : '재지 못함',
+      sub: s.noiseFrames
+        ? `퍼짐 ${s.noiseSpread != null ? s.noiseSpread.toFixed(2) : '—'} · 시그마 ${
+          s.noiseSigma != null ? s.noiseSigma.toFixed(2) : '—'} · 잰 프레임 ${s.noiseFrames}/${n}`
+        : '잴 만한 구간이 모자랐습니다',
     });
     rows.push({
       item: '프레임 간 변화',

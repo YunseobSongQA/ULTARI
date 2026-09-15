@@ -24,6 +24,7 @@ import { analyzeOptics } from './optics.js';
 import { analyzeRephoto } from './rephoto.js';
 import { analyzeCompression } from './compression.js';
 import { analyzeSynthesis } from './synthesis.js';
+import { analyzeConsistency } from './consistency.js';
 
 const COUNT = 5;            // 뽑는 프레임 수
 const EDGE = 0.06;          // 앞뒤 6%는 건너뜁니다 (검은 화면·페이드가 많습니다)
@@ -95,6 +96,23 @@ function frameDelta(a, b) {
  * @param {(index:number, label:string)=>void} [onFrame] 진행 알림
  * @returns {Promise<object>} 프레임별 측정과 요약
  */
+/**
+ * 빛은 알갱이로 도착합니다. 밝은 곳에는 광자가 많이 오고, 개수가 포아송을
+ * 따르므로 표준편차가 평균의 제곱근에 비례합니다. 그래서 실제 센서에서는
+ * 밝은 구간일수록 노이즈가 큽니다 — 카메라 설계와 무관한 물리입니다.
+ *
+ * 생성된 그림에는 이 곡선이 없습니다. 그레인을 얹어도 밝기와 무관하게
+ * 균일해서 곡선이 서지 않습니다. 메타데이터와 달리 편집하고 내보내도
+ * 남습니다.
+ *
+ * 실측(VP8 45Mbps로 다시 인코딩한 뒤): 광자 잡음을 넣은 영상이 상관 1.00에
+ * 퍼짐 0.78, 균일 그레인이 0.18에 0.07, 매끈한 영상은 잴 구간이 없어 값이
+ * 나오지 않았습니다. 압축을 거쳐도 갈립니다.
+ */
+const NOISE_RISING = 0.5;     // 밝기와 노이즈의 상관
+const NOISE_SPREAD = 0.35;    // 구간별 노이즈가 얼마나 벌어지는가
+const NOISE_INVERTED = -0.6;  // 밝을수록 줄어드는 것은 센서에서 일어나지 않습니다
+
 export async function analyzeFrames(file, onFrame) {
   const url = URL.createObjectURL(file);
   let video;
@@ -145,6 +163,8 @@ export async function analyzeFrames(file, onFrame) {
       // file을 넘기지 않습니다 — 영상 파일의 바이트는 JPEG 양자화 테이블이
       // 아니고, 컨테이너 쪽에서 이미 따로 읽습니다.
       const synthesis = await analyzeSynthesis(pixels, null);
+      // 촬영 정보가 없으므로 ISO 대조는 빠지고 노이즈-밝기 곡선만 남습니다.
+      const consistency = analyzeConsistency(pixels, { iso: null });
 
       frames.push({
         at: times[i],
@@ -152,6 +172,7 @@ export async function analyzeFrames(file, onFrame) {
         rephoto,
         compression,
         synthesis,
+        consistency,
       });
     }
   } finally {
@@ -170,6 +191,18 @@ export async function analyzeFrames(file, onFrame) {
   }
 
   const pick = (get) => median(frames.map(get));
+
+  /* 노이즈 곡선 — 잰 프레임만 셉니다. 못 잰 것을 0으로 세면 없는 기울기가
+     생깁니다. */
+  const noiseOf = (f) => f.consistency?.measured || null;
+  const measuredNoise = frames.filter((f) => noiseOf(f)?.slopeCorrelation != null);
+  const risingFrames = measuredNoise.filter((f) => {
+    const m = noiseOf(f);
+    return m.slopeCorrelation >= NOISE_RISING && (m.relativeSpread ?? 0) >= NOISE_SPREAD;
+  }).length;
+  const invertedFrames = measuredNoise.filter(
+    (f) => noiseOf(f).slopeCorrelation <= NOISE_INVERTED).length;
+  const sigmas = frames.map((f) => noiseOf(f)?.overallSigma).filter((v) => v != null);
 
   return {
     width,
@@ -212,6 +245,13 @@ export async function analyzeFrames(file, onFrame) {
       peakRatio: pick((f) => f.rephoto?.peakRatio),
 
       /* 프레임 사이의 변화 */
+      noiseFrames: measuredNoise.length,
+      noiseRising: risingFrames,
+      noiseInverted: invertedFrames,
+      noiseCorr: measuredNoise.length ? median(measuredNoise.map((f) => noiseOf(f).slopeCorrelation)) : null,
+      noiseSpread: measuredNoise.length ? median(measuredNoise.map((f) => noiseOf(f).relativeSpread ?? 0)) : null,
+      noiseSigma: sigmas.length ? median(sigmas) : null,
+
       deltaMean: median(deltas.map((d) => d.mean)),
       staticShare: median(deltas.map((d) => d.sameShare)),
     },

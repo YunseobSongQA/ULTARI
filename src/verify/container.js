@@ -98,17 +98,25 @@ const DEVICES = [
   { re: /Zoom [HF]\d|TASCAM|Sound ?Devices|RODE|Zoom Corp/i, name: '녹음기 제조사' },
 ];
 
-/** 재인코딩 도구. 있으면 원본이 아니라 다시 만든 파일입니다. */
+/**
+ * 파일을 다시 만든 도구.
+ *
+ * 편집 도구(edit)와 변환 도구를 가릅니다. 둘을 같게 세면 안 됩니다 —
+ * 프리미어로 자르고 색을 잡아 내보낸 뮤직비디오는 공들여 만든 것인데,
+ * 그걸 "다시 만든 파일"로 감점하면 손을 많이 댈수록 점수가 떨어집니다.
+ * 편집은 사람이 들인 시간의 흔적이지 생성물의 흔적이 아닙니다.
+ */
 const MUXERS = [
   { re: /Lavf(\d+\.\d+\.\d+)?/i, name: 'FFmpeg (libavformat)' },
   { re: /HandBrake/i, name: 'HandBrake' },
   { re: /x264|x265/i, name: 'x264/x265' },
   { re: /Chrome|Google/i, name: 'Chrome 미디어 인코더' },
   { re: /Lame|LAME\d/i, name: 'LAME (MP3)' },
-  { re: /Adobe|Premiere|After ?Effects|Media ?Encoder/i, name: 'Adobe' },
-  { re: /Final ?Cut|Compressor|AVFoundation|CoreMedia/i, name: 'Apple 편집·변환' },
-  { re: /DaVinci|Resolve/i, name: 'DaVinci Resolve' },
-  { re: /CapCut|Kapwing|VLLO|VivaVideo|InShot/i, name: '모바일 편집 앱' },
+  { re: /Adobe|Premiere|After ?Effects|Media ?Encoder/i, name: 'Adobe', edit: true },
+  { re: /Final ?Cut|Compressor|AVFoundation|CoreMedia/i, name: 'Apple 편집·변환', edit: true },
+  { re: /DaVinci|Resolve/i, name: 'DaVinci Resolve', edit: true },
+  { re: /Vegas|Avid|Media ?Composer|Edius|Filmora|Camtasia/i, name: '편집 프로그램', edit: true },
+  { re: /CapCut|Kapwing|VLLO|VivaVideo|InShot/i, name: '모바일 편집 앱', edit: true },
   { re: /yt-dlp|youtube-dl/i, name: '내려받기 도구' },
   { re: /OBS|Game ?Bar|NVIDIA|ShadowPlay|Xbox/i, name: '화면 녹화 도구' },
 ];
@@ -339,10 +347,18 @@ function readMp4(head, tail, size, facts) {
     if (w > 0 && h > 0 && w < 20000 && h < 20000) { facts.width = Math.round(w); facts.height = Math.round(h); }
   }
 
-  const stsd = findBox(all, 'stsd');
-  if (stsd) {
-    const src = tailBoxes.includes(stsd) ? tail : head;
-    facts.codec = ascii(src, stsd.at + stsd.head + 12, 4).replace(/[^\x20-\x7e]/g, '');
+  /* stsd는 트랙마다 하나씩 있습니다. 먼저 찾은 것을 그냥 쓰면 소리 트랙의
+     코덱(mp4a)이 영상 코덱 자리에 적힙니다 — 실제로 그렇게 나왔습니다. */
+  const VIDEO_CODEC = /^(avc[1-4]|hvc1|hev1|av01|vp0[89]|mp4v|dvh[1e]|s263|apc[hnso]|ap4h)$/i;
+  const AUDIO_CODEC = /^(mp4a|ac-3|ec-3|alac|opus|fLaC|samr|sowt|lpcm|twos|in24|in32)$/i;
+  for (const box of all) {
+    if (box.type !== 'stsd') continue;
+    const src = tailBoxes.includes(box) ? tail : head;
+    const code = ascii(src, box.at + box.head + 12, 4).replace(/[^\x20-\x7e]/g, '');
+    if (!code) continue;
+    if (VIDEO_CODEC.test(code)) facts.codec = facts.codec || code;
+    else if (AUDIO_CODEC.test(code)) facts.audioCodec = facts.audioCodec || code;
+    else facts.codec = facts.codec || code;
   }
 
   /* udta / ilst — 제조사, 모델, 소프트웨어, 위치 */
@@ -655,7 +671,7 @@ function metaRegions(head, tail, boxes, format, facts, metaRanges = null) {
 
 const EMPTY = {
   format: 'unknown', kind: 'unknown', facts: {}, cameraSigns: [], toolSigns: [],
-  releaseSigns: [], distributor: null,
+  releaseSigns: [], distributor: null, editSigns: [], editor: null,
   declaresAi: false, generator: null, c2pa: false, markers: [], gpsPresent: false,
 };
 
@@ -677,6 +693,7 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
     cameraSigns: [],
     toolSigns: [],
     releaseSigns: [],
+    editSigns: [],
     markers: [],
   };
   const facts = out.facts;
@@ -782,10 +799,13 @@ export function scanContainer(head, tail = null, size = 0, name = '') {
   if (facts.publisher) out.releaseSigns.push(`발매사 기록 · ${facts.publisher}`);
 
   /* 재인코딩·편집 도구 흔적 */
-  const muxer = MUXERS.find((m) => m.re.test(hay));
-  if (muxer) {
-    out.muxer = muxer.name;
-    out.toolSigns.push(`변환 도구 · ${muxer.name}`);
+  const tool = MUXERS.find((m) => m.re.test(hay));
+  if (tool && tool.edit) {
+    out.editor = tool.name;
+    out.editSigns.push(`편집 도구 · ${tool.name}`);
+  } else if (tool) {
+    out.muxer = tool.name;
+    out.toolSigns.push(`변환 도구 · ${tool.name}`);
   }
   if (facts.tool) out.toolSigns.push(`기록된 도구 · ${facts.tool}`);
   if (facts.software && !device) out.toolSigns.push(`기록된 소프트웨어 · ${facts.software}`);
