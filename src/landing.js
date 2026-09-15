@@ -53,12 +53,6 @@ export function mountLanding(reel) {
 
   const rail = document.querySelector('[data-rail]');
   const quiet = window.matchMedia('(prefers-reduced-motion: reduce)');
-  /* 좁은 화면에서는 고정하지 않습니다. 화면을 붙잡아 두고 갈아 끼우면
-     손가락으로 끄는 만큼 화면이 따라오지 않다가 툭 바뀌어, 스크롤이 중간에
-     걸린 것처럼 느껴집니다. 게다가 눈금자는 880px 아래에서 감춰져 있어
-     지금 몇 번째인지도 보이지 않습니다. 폭이 좁으면 화면들을 그냥 위에서
-     아래로 잇습니다. 눈금자가 나오는 폭과 같은 선을 씁니다. */
-  const narrow = window.matchMedia('(max-width: 880px)');
 
   /* 제목은 어느 쪽이든 한 자씩 나눠 둡니다. 움직이지 않는 설정에서는
      CSS가 곧바로 제자리에 두므로 보이는 결과는 같습니다. */
@@ -103,13 +97,30 @@ export function mountLanding(reel) {
     }
   };
 
+  /**
+   * 한 화면이 차지하는 스크롤 거리.
+   *
+   * window.innerHeight로 재면 안 됩니다. 모바일 브라우저는 스크롤하는 동안
+   * 주소창을 접었다 폈다 하고, 그때마다 innerHeight가 달라집니다. 그러면
+   * 손가락은 가만히 있는데 계산된 화면 번호만 앞뒤로 튀어, 화면이 갈리다
+   * 말고 되돌아옵니다. 그게 끌 때 중간에 걸리는 것처럼 보입니다.
+   *
+   * 릴의 높이는 CSS에서 화면 수 × 100svh로 잡혀 있고, svh는 주소창이
+   * 접혀도 변하지 않습니다. 그래서 릴에서 직접 꺼냅니다.
+   */
+  const slideRun = () => reel.offsetHeight / slides.length;
+
   /** 스크롤한 자리를 화면 번호로 바꿉니다. */
   const measure = () => {
-    const top = reel.offsetTop;
-    const run = reel.offsetHeight - window.innerHeight;
+    const run = slideRun();
     if (run <= 0) return 0;
-    const p = (window.scrollY - top) / run;
-    return Math.max(0, Math.min(slides.length - 1, Math.round(p * (slides.length - 1))));
+    const at = (window.scrollY - reel.offsetTop) / run;
+    const p = Math.max(0, Math.min(slides.length - 1, at));
+    if (index < 0) return Math.round(p);
+    /* 경계가 정확히 반이면 손이 조금만 떨려도 번호가 뒤집힙니다. 조금 더
+       가야 넘어가고 조금 더 돌아와야 되돌아오게 해서 떨림을 없앱니다. */
+    const moved = p - index;
+    return moved > 0.58 || moved < -0.58 ? Math.round(p) : index;
   };
 
   let raf = 0;
@@ -123,8 +134,7 @@ export function mountLanding(reel) {
 
   /** 눈금자나 바로가기로 그 화면의 스크롤 자리로 옮깁니다. */
   const goTo = (i, behavior = 'smooth') => {
-    const run = reel.offsetHeight - window.innerHeight;
-    const to = reel.offsetTop + (run * i) / (slides.length - 1);
+    const to = reel.offsetTop + slideRun() * i;
     window.scrollTo({ top: Math.round(to), behavior });
   };
 
@@ -172,10 +182,8 @@ export function mountLanding(reel) {
     goTo(at);
   });
 
-  const sync = () => (quiet.matches || narrow.matches ? disable() : enable());
-  quiet.addEventListener('change', sync);
-  narrow.addEventListener('change', sync);
-  sync();
+  quiet.addEventListener('change', () => (quiet.matches ? disable() : enable()));
+  if (!quiet.matches) enable();
 
   /* 주소에 화면이 적혀 있으면 그 자리에서 시작합니다. */
   const wanted = slides.findIndex((s) => `#${s.id}` === window.location.hash);
