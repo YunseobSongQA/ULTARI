@@ -92,12 +92,26 @@ function videoCategories(bundle) {
 
 /* ── 음악 ──────────────────────────────────────────── */
 
+/**
+ * 녹음 기록이 들어갈 자리가 있는 형식.
+ *
+ * WAV에는 bext·iXML, FLAC에는 주석 블록, M4A·MP4에는 태그 상자가 있어
+ * 녹음기와 기기 이름이 남습니다. MP3·AAC·OGG에는 그런 자리가 없습니다.
+ *
+ * 이 구분이 없으면 "기록이 없다"와 "기록이 어긋난다"를 같게 세게 됩니다.
+ * 자리가 없는 형식에서 없는 것을 반대쪽 근거로 세면, mp3로 내보낸 것은
+ * 사람이 만들었든 아니든 감점부터 받고 시작합니다 — 실제로 320kbps로
+ * 내보낸 사람의 곡이 그렇게 50%가 됐습니다.
+ */
+export const RECORD_SLOT = /^(wav|flac|m4a|mp4|mov|webm)$/;
+
 function audioCategories(bundle) {
   const c = bundle.container || {};
   const a = bundle.sound || {};
 
   const record = c.cameraSigns?.length >= 2 ? 'match'
-    : c.cameraSigns?.length === 1 ? 'unknown' : 'against';
+    : c.cameraSigns?.length === 1 ? 'unknown'
+      : RECORD_SLOT.test(c.format || '') ? 'against' : 'unknown';
 
   /* 노이즈 플로어 — 실제 녹음은 방 소리와 프리앰프 잡음이 남습니다.
      실측 -15.8 ~ -44.0dB. 완전히 지워진 것은 손을 댄 것입니다. */
@@ -316,7 +330,12 @@ export function gradeMedia(bundle) {
      인코딩한 것입니다. 잴 것이 지워진 뒤라 무엇을 재도 같은 답이 나옵니다.
      그 사실을 제목에서부터 말해 줘야 다음에 무엇을 하면 되는지 압니다. */
   const remade = (bundle.container?.toolSigns?.length || 0) > 0
-    && score.categories.record === 'against';
+    && (bundle.container?.cameraSigns?.length || 0) === 0;
+  /* 녹음 기록이 들어갈 자리가 아예 없는 형식 — mp3로 받으면 여기서 멈춥니다.
+     "녹음 흔적이 없다"가 아니라 "이 파일로는 가릴 수 없다"가 사실입니다. */
+  const noRecordSlot = kind === 'audio'
+    && (bundle.container?.cameraSigns?.length || 0) === 0
+    && !RECORD_SLOT.test(bundle.container?.format || '');
   const measurable = kind === 'audio'
     ? Boolean(bundle.sound)
     : Boolean(bundle.frames?.frameCount);
@@ -331,6 +350,17 @@ export function gradeMedia(bundle) {
       detail: kind === 'audio'
         ? '브라우저가 이 소리를 디코딩하지 못했습니다.'
         : '브라우저가 이 영상에서 프레임을 떼어내지 못했습니다.',
+    });
+  } else if (noRecordSlot) {
+    /* 가릴 수 없다는 답은 같지만 이유가 다릅니다. 다시 만든 파일이면
+       그 사실이 더 구체적이라 그쪽을 먼저 적습니다. */
+    verdict = VERDICT.INSUFFICIENT;
+    blockers.push(remade ? {
+      title: '다시 만든 파일입니다',
+      detail: `변환 도구 기록만 남아 있습니다${bundle.container?.muxer ? ` — ${bundle.container.muxer}` : ''}. 유튜브에서 받았거나 다시 인코딩한 파일이 이렇습니다. 다시 만드는 과정에서 잴 것이 지워지므로 어떤 파일이든 같은 답이 나옵니다. 만드실 때 나온 원본으로 올려 주십시오.`,
+    } : {
+      title: '이 형식에는 녹음 기록이 남지 않습니다',
+      detail: 'MP3·AAC 같은 형식에는 녹음기나 기기 이름을 적어 두는 자리가 없습니다. 파형만으로는 사람이 녹음한 것인지 만들어 낸 것인지 가릴 수 없어, 어느 쪽으로도 판정하지 않습니다. 만드실 때 나온 WAV나 FLAC 원본이 있으면 그것으로 올려 주십시오 — 녹음 기록이 살아 있으면 3등급까지 바로 나옵니다. 원본이 없으면 상세 검사로 사람이 봅니다.',
     });
   } else if (MEDIA_GATE.requireRecord && score.categories.record === 'against') {
     verdict = VERDICT.HOLD;
@@ -372,7 +402,7 @@ export function gradeMedia(bundle) {
         ? '다시 만든 파일이라 녹음 흔적이 남아 있지 않습니다'
         : '다시 만든 파일이라 촬영 흔적이 남아 있지 않습니다')
       : HEADLINE[verdict][kind],
-    statement: statementFor(verdict, kind, score, cameraSide, aiSide),
+    statement: statementFor(verdict, kind, score, cameraSide, aiSide, measurable),
     blockers,
     contradictions: [],
     softSignals: [],
@@ -384,7 +414,7 @@ export function gradeMedia(bundle) {
   };
 }
 
-function statementFor(verdict, kind, score, cameraSide, aiSide) {
+function statementFor(verdict, kind, score, cameraSide, aiSide, measurable = true) {
   const what = kind === 'audio' ? '녹음' : '촬영';
   if (verdict === VERDICT.DECLARED_AI) {
     return [
@@ -399,7 +429,12 @@ function statementFor(verdict, kind, score, cameraSide, aiSide) {
     ];
   }
   if (verdict === VERDICT.INSUFFICIENT) {
-    return ['측정을 하지 못해 판정하지 않았습니다.'];
+    return measurable
+      ? [
+        `잴 수 있는 것은 다 쟀습니다 — ${what} 쪽 근거 ${cameraSide}건, 반대쪽 ${aiSide}건.`,
+        '그래도 이 파일만으로는 어느 쪽인지 말할 수 없습니다. AI라는 뜻이 아닙니다.',
+      ]
+      : ['측정을 하지 못해 판정하지 않았습니다.'];
   }
   return [
     `${what} 쪽 근거 ${cameraSide}건, 반대쪽 ${aiSide}건, 환산 수치 ${score.trace}%.`,

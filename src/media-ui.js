@@ -10,7 +10,7 @@
  */
 
 import { escapeHtml, fold, stripTags } from './html.js';
-import { mediaScore, mediaSignals, MEDIA_GATE } from './media.js';
+import { mediaScore, mediaSignals, MEDIA_GATE, RECORD_SLOT } from './media.js';
 import { VERDICT } from './grade.js';
 import { formatBytes } from './verify/fingerprint.js';
 
@@ -76,10 +76,14 @@ export function mediaKeyLines(bundle) {
     /* 기기 이름이 비어도 녹음기 흔적이 있을 수 있습니다(예: 음성 메모 태그).
        그때 "확인 · 기록 없음"이라고 적으면 서로 어긋나 보입니다. */
     const named = [fa.make, fa.model].filter(Boolean).join(' ') || fa.originator;
+    /* mp3에는 녹음기 이름을 적을 자리가 없습니다. 없는 것을 "어긋남"이라고
+       적으면 파일에 문제가 있는 것처럼 읽힙니다. */
+    const slot = RECORD_SLOT.test(c.format || '');
     lines.push({
       label: '기록된 기기',
-      state: named ? ok : c.cameraSigns?.length ? meh : no,
-      value: named || (c.cameraSigns?.length ? c.cameraSigns[0] : '기록 없음'),
+      state: named ? ok : c.cameraSigns?.length ? meh : slot ? no : meh,
+      value: named || (c.cameraSigns?.length ? c.cameraSigns[0]
+        : slot ? '기록 없음' : '이 형식에는 적을 자리가 없습니다'),
     });
     const a = bundle.sound || {};
     lines.push({
@@ -183,11 +187,22 @@ export function renderMediaScore(bundle) {
 
   const what = bundle.kind === 'audio' ? '녹음' : '촬영';
   const eligible = result.verdict === VERDICT.PASS;
+  /* 가릴 수 없다고 해 놓고 "AI 생성 환산 40%"를 크게 적으면, 읽는 사람에게는
+     40%만 남습니다. 판정하지 않은 화면에서는 숫자를 내걸지 않습니다.
+     항목별 배점은 그대로 펼쳐 볼 수 있게 둡니다. */
+  const noNumber = result.verdict === VERDICT.INSUFFICIENT;
 
   return `
     <div class="panel score-panel">
       <p class="panel-title">환산 수치</p>
 
+      ${noNumber ? `
+      <p class="sig-lead">숫자를 내지 않았습니다.</p>
+      <p class="score-caveat">
+        이 파일에서는 잴 수 있는 항목이 모자랍니다. 그 상태로 백분율을 적으면
+        재지 못한 것이 ${what}이 아닌 쪽으로 세어집니다. 무엇을 쟀고 무엇을
+        재지 못했는지는 아래에 그대로 적어 두었습니다.
+      </p>` : `
       <div class="score-hero">
         <div class="score-figure">
           <span class="score-num score-num--trace">${trace}<small>%</small></span>
@@ -206,7 +221,7 @@ export function renderMediaScore(bundle) {
         ${declared
           ? '파일에 AI 생성 기록이 적혀 있어 흔적을 세지 않았습니다. 배점을 계산한 값이 아닙니다.'
           : '학습된 분류기의 판단이 아닙니다. 아래 항목에 사람이 정한 배점을 곱해 더한 값이라 배점을 바꾸면 숫자도 바뀝니다.'}
-      </p>
+      </p>`}
 
       <p class="panel-title score-sub">판별 근거</p>
       <p class="sig-lead">
@@ -256,8 +271,9 @@ export function mediaRows(bundle) {
   if (fa.brand) rows.push({ item: '컨테이너 브랜드', state: meh, value: escapeHtml(fa.brand) });
   rows.push({
     item: '기록된 기기',
-    state: fa.make || fa.model ? ok : no,
-    value: escapeHtml([fa.make, fa.model].filter(Boolean).join(' ') || '없음'),
+    state: fa.make || fa.model ? ok : RECORD_SLOT.test(c.format || '') ? no : meh,
+    value: escapeHtml([fa.make, fa.model].filter(Boolean).join(' ')
+      || (RECORD_SLOT.test(c.format || '') ? '없음' : '이 형식에는 적을 자리가 없습니다')),
   });
   if (fa.software || fa.tool) {
     rows.push({ item: '기록된 소프트웨어', state: meh, value: escapeHtml(fa.software || fa.tool) });
