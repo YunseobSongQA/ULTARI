@@ -24,6 +24,10 @@
 
   --shell: 1000px;
   --pad: 32px;
+  /* 고정된 상단 바의 높이. 랜딩의 화면들은 이만큼 가려지므로, 가운데를
+     잡을 때 이 값을 빼야 눈에 보이는 자리의 가운데가 됩니다.
+     데스크톱은 .site-head .shell의 min-height 70px에 경계선 1px. */
+  --head-h: 71px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -623,14 +627,14 @@ main.main--tool { padding-block: 32px 80px; }
 @media (max-width: 720px) {
   .page-head {
     position: relative;
-    min-height: calc(100svh - 50px - 40px);
+    min-height: calc(100svh - var(--head-h) - 40px);
     display: flex; flex-direction: column; justify-content: center;
     /* 아래 표시가 앉을 자리. 가운데도 그만큼 올라가는데, 눈에는
        그쪽이 가운데로 보입니다. 랜딩 첫 화면도 같은 비율입니다. */
     padding-bottom: 52px;
     margin-bottom: 36px;
   }
-  main.main--tool .page-head { min-height: calc(100svh - 50px - 32px); }
+  main.main--tool .page-head { min-height: calc(100svh - var(--head-h) - 32px); }
 
   /* 한 화면을 다 쓰면 아래에 더 있다는 것이 보이지 않습니다.
      랜딩 첫 화면과 같은 표시를 둡니다. */
@@ -671,7 +675,8 @@ main.main--tool { padding-block: 32px 80px; }
 }
 
 @media (max-width: 720px) {
-  :root { --pad: 20px; }
+  /* 좁은 화면의 상단 바는 메뉴 글자 13.5px에 위아래 13px과 경계선 1px. */
+  :root { --pad: 20px; --head-h: 50px; }
   body { font-size: 15.5px; }
   h1 { font-size: 26px; }
   .hero h1 { font-size: 30px; letter-spacing: -0.03em; }
@@ -1084,7 +1089,14 @@ main.main--tool { padding-block: 32px 80px; }
 
 .body--landing { background: var(--paper); }
 
-.site-head--landing { position: sticky; top: 0; z-index: 20; background: rgba(245,244,241,0.86); backdrop-filter: blur(8px); }
+.site-head--landing {
+  /* sticky가 아니라 fixed입니다. 흐름에 자리를 차지하면 첫 화면이 그만큼
+     아래로 밀려 시작해 화면 아래가 잘리고 "아래로" 표시가 나갑니다.
+     띄워 두면 여섯 화면이 처음부터 같은 자리에 섭니다. 가려지는 만큼은
+     화면마다 padding-top으로 비워 둡니다. */
+  position: fixed; left: 0; right: 0; top: 0; z-index: 20;
+  background: rgba(245,244,241,0.86); backdrop-filter: blur(8px);
+}
 
 .landing { padding: 0; overflow-x: clip; }
 
@@ -1093,12 +1105,15 @@ main.main--tool { padding-block: 32px 80px; }
 .slide {
   position: relative;
   min-height: 100svh;
-  display: flex; align-items: center;
+  display: flex; align-items: flex-start;
+  /* 떠 있는 상단 바가 가리는 만큼. 이만큼 빼야 눈에 보이는 자리의
+     가운데에 섭니다. */
+  padding-top: var(--head-h);
   border-top: 1px solid var(--rule);
 }
 .slide:first-child { border-top: none; }
 .stage--id { min-height: calc(100svh - 64px); }
-.stage-inner { width: 100%; padding-block: 90px; }
+.stage-inner { width: 100%; margin-block: auto; padding-block: 90px; }
 
 /* ── 제자리에 두고 갈아 끼우기 ──────────────────────── */
 /* 릴의 높이가 스크롤할 거리이고, 화면 자체는 sticky로 붙어 움직이지 않습니다.
@@ -1262,8 +1277,8 @@ main.main--tool { padding-block: 32px 80px; }
 .stage-mark { display: block; color: var(--ink); margin: 26px 0 20px; line-height: 0; }
 .stage-mark svg { width: 118px; height: auto; display: block; }
 @media (max-width: 620px) {
-  .stage-mark svg { width: 86px; }
-  .stage-mark { margin: 20px 0 16px; }
+  .stage-mark svg { width: 72px; }
+  .stage-mark { margin: 16px 0 12px; }
 }
 .stage--kind h2 {
   font-size: 52px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin: 0;
@@ -1318,7 +1333,7 @@ main.main--tool { padding-block: 32px 80px; }
      넘치지도 않는데 스크롤 상자로 만들어 두면, 손가락이 그 위에서 끄는
      동안 페이지가 아니라 상자가 먼저 받아 화면이 안 넘어갑니다. */
   .reel.is-reel .slide.is-tall { overflow-y: auto; }
-  .reel.is-reel .stage-inner { padding-block: 24px; }
+  .reel.is-reel .stage-inner { padding-block: 16px; }
   .stage--id .stage-inner { padding-block: 30px 96px; }
   .id-mark svg { width: 78px; height: 64px; }
   .id-word { font-size: 46px; }
@@ -1329,6 +1344,21 @@ main.main--tool { padding-block: 32px 80px; }
   .stage--last h2 { font-size: 27px; }
   .stage-facts { grid-template-columns: 1fr; }
   .stage-go { width: 100%; justify-content: space-between; }
+
+  /* 한 화면에 들어가야 가운데에 설 수 있습니다. 좁은 화면에서는 상세 검사와
+     원칙 화면이 넘쳐서 위가 잘려 나갔습니다. 글자 크기는 그대로 두고
+     자리 여백만 줄입니다 — 넘치지 않으면 화면 안에서 따로 스크롤할 일도
+     없어집니다. */
+  .stage-claim { margin-top: 14px; }
+  .stage-facts { margin-top: 24px; }
+  .stage-facts > div { padding: 11px 14px; }
+  .stage-facts dt, .stage-facts dd { line-height: 1.5; }
+  .stage-row { margin-top: 24px; }
+  .stage-go { margin-top: 24px; padding: 12px 18px; }
+  .stage-note { margin-top: 12px; }
+  .stage--last h2 { margin-top: 14px; }
+  .principle-list { margin-top: 22px; }
+  .principle-list li { padding: 10px 0; }
 }
 
 /* 랜딩에서 골라 온 투입구를 한 번 짚어 줍니다. */
