@@ -83,10 +83,17 @@ export function mountLanding(reel) {
    *
    * 그래서 실제로 넘칠 때만 붙입니다. 글꼴이 늦게 와서 높이가 달라질 수
    * 있으므로 폰트가 준비된 뒤에 한 번 더 잽니다.
+   *
+   * 1px 차이로 붙이면 안 됩니다. 글자 높이와 가운데를 잡는 auto 여백이
+   * 소수점으로 떨어져, 실제로는 꼭 맞는 화면도 두어 px 넘친 것으로 잡힙니다.
+   * 그 정도는 넘친 것으로 보지 않습니다 — 몇 px은 눈에 보이지 않고,
+   * 스크롤할 것이 없는 상자만 하나 생깁니다.
    */
+  const SLACK = 6;
+
   const markTall = () => {
     slides.forEach((slide) => {
-      slide.classList.toggle('is-tall', slide.scrollHeight > slide.clientHeight + 1);
+      slide.classList.toggle('is-tall', slide.scrollHeight > slide.clientHeight + SLACK);
     });
   };
 

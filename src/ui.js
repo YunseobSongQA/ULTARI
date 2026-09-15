@@ -663,7 +663,7 @@ function renderResult(bundle, mode, openForm = false) {
         <button class="btn" type="button" data-action="dl-photo"><span data-icon="download"></span>마크 넣은 사진 내려받기</button>
         <button class="btn btn--ghost" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
       </div>
-      <p class="btn-note">브라우저의 기본 다운로드 폴더에 저장됩니다. 파일을 만드는 것도 저장하는 것도 이 기기에서만 일어납니다.</p>
+      <p class="btn-note">브라우저의 기본 다운로드 폴더에 저장됩니다.</p>
     </div>` : '';
 
   // 자격이 없으면 폼 대신 왜 안 되는지를 놓습니다. 상태는 이미 위에서 말했고,
@@ -699,7 +699,7 @@ function renderResult(bundle, mode, openForm = false) {
 
       <div class="apply-warn">
         <p><strong>이 버튼을 누르면 원본 파일이 서버로 올라갑니다.</strong></p>
-        <p>간단 검사는 브라우저 안에서 끝나지만, 사람이 보려면 파일이 사람에게 가야 합니다.
+        <p>심사자가 보려면 파일이 사람에게 가야 합니다.
            무엇을 보관하고 언제 지우는지는 <a href="/privacy">개인정보 처리방침</a>에 적어 두었습니다.</p>
       </div>
 
@@ -1207,7 +1207,6 @@ export function mountVerifier(root) {
         <div class="name">${escapeHtml(file.name || '이름 없는 파일')}<span class="mode-tag">${MODE_LABEL[mode]}</span><span class="kind-tag">${KIND_LABEL[kind] || '알 수 없는 형식'}</span></div>
         <div>${escapeHtml(file.type || '형식 미상')} · ${escapeHtml(formatBytes(file.size) || '')}</div>
         ${kind === 'audio' ? `<audio controls src="${previewUrl}" style="margin-top:6px;max-width:280px"></audio>` : ''}
-        <div style="color:var(--ink-3)">이 미리보기는 브라우저 메모리에만 있습니다.</div>
       </div>`;
     readyNote.textContent = kind === 'unknown'
       ? '이 형식은 검사하지 못합니다. 사진, 영상, 소리 파일을 올려 주십시오.'
