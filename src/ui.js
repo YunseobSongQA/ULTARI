@@ -622,7 +622,7 @@ function renderResult(bundle, mode, openForm = false) {
       ? ' cert--hold' : ' cert--insufficient';
 
   const fingerprint = print.sha256
-    ? `원본 파일 지문 <span class="hash">${escapeHtml(print.short)}…</span> · 이 기기에서만 계산됐고 어디로도 전송되지 않았습니다`
+    ? `원본 파일 지문 <span class="hash">${escapeHtml(print.short)}…</span>`
     : '파일 지문을 계산하지 못했습니다 — 브라우저가 보안 컨텍스트가 아닙니다';
 
   /* 영상과 음악에는 마크를 새겨 드릴 수 없습니다. 브라우저에서 영상을 다시
@@ -1034,9 +1034,8 @@ function renderAward(st) {
       <p class="award-note">
         인증 마크는 심사받은 원본에 새깁니다. 같은 파일을 골라 주시면
         지문 <span class="hash">${escapeHtml(st.fingerprint || '없음')}…</span>과 맞는지 대조한 뒤 새겨 드립니다.
-        이 파일도 서버로 가지 않습니다.
       </p>
-      <input id="${pick}" class="file-input" type="file" accept="image/*" data-award-file>
+      <input id="${pick}" class="file-input" type="file" accept="image/*,.heic,.heif" data-award-file>
       <label class="drop drop--mini" for="${pick}">
         <span class="drop-main">심사받은 파일 고르기</span>
         <span class="drop-sub">지문이 다르면 새기지 않습니다</span>
@@ -1172,7 +1171,7 @@ export function mountVerifier(root) {
     drawSteps(steps.length, true);
     setPct(100);
     progressLabel.textContent = `검사 완료 · ${steps.length}단계 · ${(elapsedMs / 1000).toFixed(1)}초`;
-    if (runNote) runNote.textContent = '이 기기에서만 계산했습니다. 어디로도 전송하지 않았습니다.';
+    if (runNote) runNote.hidden = true;
   };
 
   /* 1단계 — 받았다는 사실만 알립니다. 측정은 사용자가 누를 때 시작합니다.
@@ -1229,7 +1228,7 @@ export function mountVerifier(root) {
     progress.hidden = false;
     setPct(0);
     progressLabel.textContent = '시작하는 중…';
-    if (runNote) runNote.textContent = '이 기기에서 계산 중입니다. 업로드가 아닙니다.';
+    if (runNote) { runNote.hidden = false; runNote.textContent = '재는 중입니다…'; }
 
     try {
       const bundle = await verifyAny(file, showProgress);
@@ -1696,12 +1695,18 @@ export function mountVerifier(root) {
    * 랜딩에서 "사진 검증 →" 같은 버튼을 누르면 /verify?kind=photo 로 옵니다.
    * 무엇을 고르려고 왔는지 알고 있으므로 파일 선택 창이 그 형식만 보게
    * 좁혀 주고, 상세 검사로 왔으면 그쪽 투입구를 가리킵니다.
+   *
+   * 좁힐 때 형식만 적으면 안 됩니다. iOS 사파리는 accept가 audio/*뿐이면
+   * 파일 앱이 아니라 음악 보관함을 엽니다. 거기에는 내려받아 둔 mp3가 없고
+   * 있는 곡은 보호돼 있어 고를 수가 없습니다 — "음악 검증"으로 들어온 분이
+   * mp3를 못 고르던 것이 이것입니다. 확장자를 하나라도 적어 두면 파일
+   * 고르기가 열립니다. 안드로이드도 소리 전용 고르개 대신 파일 앱이 열립니다.
    */
   const ACCEPT = {
-    photo: 'image/*',
-    video: 'video/*',
-    music: 'audio/*',
-    audio: 'audio/*',
+    photo: 'image/*,.heic,.heif',
+    video: 'video/*,.mov,.m4v',
+    music: 'audio/*,.mp3,.m4a,.wav,.flac,.aac,.ogg,.opus,.aif,.aiff',
+    audio: 'audio/*,.mp3,.m4a,.wav,.flac,.aac,.ogg,.opus,.aif,.aiff',
   };
 
   const applyIntent = () => {
