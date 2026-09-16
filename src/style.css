@@ -45,6 +45,12 @@
   --track-xl: -0.032em;  /* 26–40px */
   --track-2xl: -0.038em; /* 그보다 큰 것 */
 
+  /* 움직임은 한 곡선만 씁니다. 랜딩에서 화면이 갈리는 것과 메뉴가
+     펼쳐지는 것이 서로 다른 곡선으로 움직이면 같은 사이트로 느껴지지
+     않습니다. 하나씩 늦게 나오는 간격도 같은 값을 씁니다. */
+  --ease: var(--ease);
+  --step: 26ms;
+
   --shell: 1000px;
   --pad: 32px;
   /* 고정된 상단 바의 높이. 랜딩의 화면들은 이만큼 가려지므로, 가운데를
@@ -151,7 +157,7 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
   content: ""; position: absolute; left: 0; right: 0; bottom: -5px; height: 1px;
   background: currentColor;
   transform: scaleX(0); transform-origin: left center;
-  transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: transform 260ms var(--ease);
 }
 .nav-drop.is-open > .nav-top::after,
 .nav-drop.is-here > .nav-top::after { transform: scaleX(1); }
@@ -163,7 +169,7 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
   width: 6px; height: 6px; flex: none; margin-top: -3px;
   border-right: 1.4px solid currentColor; border-bottom: 1.4px solid currentColor;
   transform: rotate(45deg);
-  transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1), margin-top 240ms ease;
+  transition: transform 240ms var(--ease), margin-top 240ms ease;
 }
 .nav-drop.is-open > .nav-top .chev { transform: rotate(-135deg); margin-top: 2px; }
 
@@ -171,26 +177,24 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
    여기에 relative를 주면 칸이 이 글자 폭 안으로 들어갑니다. */
 .nav-drop { position: static; }
 
-/* 뒤가 비치게 둡니다. 메뉴는 페이지를 덮는 다른 화면이 아니라 페이지
-   위에 잠깐 얹히는 것이고, 비쳐 보이면 그렇게 읽힙니다.
+/* 뒤가 비치면 본문 글자가 메뉴 글자와 겹쳐 읽힙니다. 덮습니다.
    display로 껐다 켜면 바뀌는 순간이 없어 애니메이션이 걸리지 않습니다.
    보이지 않는 동안은 visibility로 빼 둡니다 — 자리를 차지하지 않고,
-   화면 읽는 기계와 tab 순서에서도 빠집니다. */
+   화면 읽는 기계와 tab 순서에서도 빠집니다.
+   곡선과 간격은 랜딩의 화면이 갈릴 때와 같은 것을 씁니다. */
 .nav-panel {
   position: absolute; left: 0; right: 0; top: 100%;
-  background: rgba(255, 254, 251, 0.78);
-  -webkit-backdrop-filter: blur(18px) saturate(1.5);
-  backdrop-filter: blur(18px) saturate(1.5);
+  background: var(--raised);
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule-strong);
-  box-shadow: 0 18px 32px -26px rgba(28, 26, 21, 0.4);
+  box-shadow: 0 18px 30px -24px rgba(28, 26, 21, 0.28);
   z-index: 60;
   opacity: 0; visibility: hidden;
-  transform: translateY(-8px);
+  transform: translateY(-14px);
   transition:
-    opacity 170ms ease,
-    transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    visibility 0s linear 170ms;
+    opacity 300ms var(--ease),
+    transform 400ms var(--ease),
+    visibility 0s linear 300ms;
 }
 /* 스크립트가 열고 닫습니다. focus-within은 스크립트가 없을 때의 길이고,
    스크립트가 붙으면(is-live) 끕니다 — 켜 두면 버튼에 초점이 남아 있는
@@ -212,13 +216,14 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
   padding-block: 26px 30px;
 }
 .nav-col { display: flex; flex-direction: column; align-items: flex-start; }
-/* 한 칸씩 조금 늦게 올라옵니다. 한꺼번에 나타나면 툭 바뀝니다. */
+/* 한 칸씩 조금 늦게 올라옵니다. 한꺼번에 나타나면 툭 바뀝니다.
+   간격은 랜딩에서 글자가 하나씩 서는 것과 같은 값입니다. */
 .nav-drop.is-open .nav-col {
-  animation: nav-col-in 300ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  animation-delay: calc(var(--i, 0) * 45ms + 50ms);
+  animation: nav-col-in 380ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * var(--step) + 40ms);
 }
 @keyframes nav-col-in {
-  from { opacity: 0; transform: translateY(7px); }
+  from { opacity: 0; transform: translateY(9px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -237,7 +242,7 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
   content: ""; position: absolute; left: 0; right: 0; bottom: 6px; height: 1px;
   background: var(--measure);
   transform: scaleX(0); transform-origin: left center;
-  transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: transform 260ms var(--ease);
 }
 .nav-col a:hover, .nav-col a:focus-visible { color: var(--measure); }
 .nav-col a:hover::after,
@@ -1266,8 +1271,8 @@ main.main--tool .page-head { margin-bottom: 22px; }
   opacity: 0; visibility: hidden;
   transform: translateY(26px);
   transition:
-    opacity 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 420ms var(--ease),
+    transform 560ms var(--ease),
     visibility 0s linear 420ms;
 }
 /* 겹쳐 쌓습니다. 음수 margin은 반드시 위쪽에 둡니다 — 아래쪽에 두면
@@ -1358,7 +1363,7 @@ main.main--tool .page-head { margin-bottom: 22px; }
 .reel.is-reel .slide .principle-list {
   opacity: 0;
   transform: translateY(16px);
-  transition: opacity 380ms ease, transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: opacity 380ms ease, transform 480ms var(--ease);
 }
 .reel.is-reel .slide.is-on .stage-en { opacity: 1; transform: none; transition-delay: 40ms; }
 .reel.is-reel .slide.is-on .id-mark { opacity: 1; transform: none; transition-delay: 90ms; }
@@ -1655,7 +1660,8 @@ main.main--about { padding-block: 0; }
   border-top: 1px solid var(--rule-strong);
   padding-block: 32px 64px;
   display: grid; gap: 28px 40px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 절이 넷일 때도 다섯일 때도 줄이 어긋나지 않게 폭으로 정합니다. */
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   font-size: 13px; line-height: 1.66; color: var(--ink-3);
 }
 .about-fine h2 {

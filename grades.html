@@ -23,7 +23,7 @@
         <div class="nav-drop is-here" data-nav-drop>
           <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-apply">신청<span class="chev" aria-hidden="true"></span></button>
           <div class="nav-panel" id="nav-apply" data-nav-panel>
-            <div class="shell nav-panel-inner nav-panel-inner--apply">
+            <div class="shell nav-panel-inner">
             <div class="nav-col" style="--i:0">
               <p class="nav-col-title">검증</p>
               <a href="/verify">간단 검사</a>
@@ -31,14 +31,16 @@
               <a href="/verify#lookup">현황 조회</a>
             </div>
             <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">원본 아카이브</p>
+              <a href="/archive">아카이브란</a>
+              <a href="/archive#apply">원본 맡기기</a>
+              <a href="/archive#share">수익 배분</a>
+            </div>
+            <div class="nav-col" style="--i:2">
               <p class="nav-col-title">기준</p>
               <a href="/how">검증 원리</a>
               <a href="/grades" aria-current="page">등급</a>
               <a href="/limits">한계</a>
-            </div>
-            <div class="nav-col" style="--i:2">
-              <p class="nav-col-title">원본</p>
-              <a href="/archive">오리지널 아카이브</a>
             </div>
             </div>
           </div>
@@ -46,10 +48,10 @@
         <div class="nav-drop" data-nav-drop>
           <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-about">소개<span class="chev" aria-hidden="true"></span></button>
           <div class="nav-panel" id="nav-about" data-nav-panel>
-            <div class="shell nav-panel-inner nav-panel-inner--about">
+            <div class="shell nav-panel-inner">
             <div class="nav-col" style="--i:0">
               <p class="nav-col-title">울타리</p>
-              <a href="/about">어바웃 어스</a>
+              <a href="/about">ABOUT US</a>
               <a href="/roadmap">로드맵</a>
               <a href="/articles">읽을거리</a>
             </div>
@@ -170,6 +172,15 @@
         <h2>왜 3등급부터 시작하나</h2>
         <p>3등급은 누구나 30초면 받을 수 있어야 하고, 1등급은 받기 어려워야 합니다. 등급의 값어치는 받기 어려운 정도에서 나옵니다. 그래서 가장 흔한 것을 3에 두고 가장 귀한 것을 1에 두었습니다.</p>
         <p>3등급이 나오지 않았다고 해서 작업물에 문제가 있는 것은 아닙니다. 대부분은 파일이 한 번 가공된 경우입니다. <a href="/limits">한계</a> 페이지에 적어 두었습니다.</p>
+      </div>
+
+      <div class="prose" style="margin-top:56px">
+        <div class="end-actions">
+          <a class="btn" href="/verify">검증하기</a>
+          <a class="btn btn--ghost" href="/archive">원본 맡기기</a>
+          <a class="btn btn--ghost" href="/archive#share">수익 배분은 어떻게</a>
+          <p class="btn-note">검증은 지금 이 자리에서 끝나지만, 원본을 맡겨 두시면 나중에 학습용으로 팔릴 때 몫이 생깁니다. 아직 성사된 건은 없고 그 사실도 아카이브에 적어 두었습니다.</p>
+        </div>
       </div>
 
     </div>

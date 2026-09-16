@@ -23,7 +23,7 @@
         <div class="nav-drop" data-nav-drop>
           <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-apply">신청<span class="chev" aria-hidden="true"></span></button>
           <div class="nav-panel" id="nav-apply" data-nav-panel>
-            <div class="shell nav-panel-inner nav-panel-inner--apply">
+            <div class="shell nav-panel-inner">
             <div class="nav-col" style="--i:0">
               <p class="nav-col-title">검증</p>
               <a href="/verify">간단 검사</a>
@@ -31,14 +31,16 @@
               <a href="/verify#lookup">현황 조회</a>
             </div>
             <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">원본 아카이브</p>
+              <a href="/archive">아카이브란</a>
+              <a href="/archive#apply">원본 맡기기</a>
+              <a href="/archive#share">수익 배분</a>
+            </div>
+            <div class="nav-col" style="--i:2">
               <p class="nav-col-title">기준</p>
               <a href="/how">검증 원리</a>
               <a href="/grades">등급</a>
               <a href="/limits">한계</a>
-            </div>
-            <div class="nav-col" style="--i:2">
-              <p class="nav-col-title">원본</p>
-              <a href="/archive">오리지널 아카이브</a>
             </div>
             </div>
           </div>
@@ -46,10 +48,10 @@
         <div class="nav-drop" data-nav-drop>
           <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-about">소개<span class="chev" aria-hidden="true"></span></button>
           <div class="nav-panel" id="nav-about" data-nav-panel>
-            <div class="shell nav-panel-inner nav-panel-inner--about">
+            <div class="shell nav-panel-inner">
             <div class="nav-col" style="--i:0">
               <p class="nav-col-title">울타리</p>
-              <a href="/about">어바웃 어스</a>
+              <a href="/about">ABOUT US</a>
               <a href="/roadmap">로드맵</a>
               <a href="/articles">읽을거리</a>
             </div>
@@ -75,13 +77,13 @@
     <!-- 첫 화면 — 이름과 마크, 그리고 이 서비스가 무엇을 하는가 -->
     <section class="slide stage--id" id="top" data-name="ULTARI">
       <div class="shell stage-inner">
-        <p class="stage-en">PROOF OF HUMAN WORK</p>
+        <p class="stage-en">A FENCE, NOT A WALL</p>
         <div class="id-mark" aria-hidden="true">
           <svg viewBox="1 4 30 24.6" fill="currentColor"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg>
         </div>
         <h1 class="id-word morph">ULTARI</h1>
-        <p class="id-claim">사람이 들인 시간을<br>인증합니다</p>
-        <p class="id-value">사진·영상·음악을 올리면 30초 안에 등급이 나옵니다.<br>사람이 들인 시간을 증명하고, 무단 학습에 맞설 근거를 남깁니다.</p>
+        <p class="id-claim">사람의 창작물에<br>울타리를 칩니다</p>
+        <p class="id-value">막으려는 울타리가 아니라 문이 달린 울타리입니다.<br>사람은 제값을 받고, AI는 출처가 확인된 것을 받습니다.</p>
       </div>
       <a class="stage-next" href="#photo">
         <span>아래로</span>
@@ -175,14 +177,14 @@
     <!-- 권리 — 인증이 저작권 쪽에서 하는 일 -->
     <section class="slide stage--kind" id="rights" data-name="권리">
       <div class="shell stage-inner">
-        <p class="stage-en">YOUR RIGHTS</p>
+        <p class="stage-en">RIGHTS, AND A GATE</p>
         <span class="stage-mark" data-icon="markRights"></span>
-        <h2 class="morph">학습을 거부할 권리</h2>
-        <p class="stage-claim">인증은 상장이 아니라 기록입니다. 나중에 대조할 수 있는 근거가 남습니다.</p>
+        <h2 class="morph">거부할 권리, 그리고 문</h2>
+        <p class="stage-claim">아무도 못 쓰게 하자는 것이 아닙니다. 값을 치르고 제대로 쓰자는 것입니다.</p>
         <dl class="stage-facts">
           <div><dt>지문과 시점</dt><dd>언제 존재한 무엇이었는지</dd></div>
-          <div><dt>거부 의사</dt><dd>학습에 쓰지 말라는 기록</dd></div>
-          <div><dt>정황이 잡히면</dt><dd>추적하고 권리를 요구</dd></div>
+          <div><dt>쓰임에 대한 의사</dt><dd>어디까지 되고 어디부터 안 되는지</dd></div>
+          <div><dt>허락한 쪽에는</dt><dd>값을 받고 원본을 넘깁니다</dd></div>
         </dl>
         <div class="stage-row">
           <a class="stage-go" href="/archive">
@@ -191,7 +193,7 @@
           </a>
           <a class="stage-go stage-go--quiet" href="/how">무엇이 남나</a>
         </div>
-        <p class="stage-note">인증이 학습을 기술적으로 막지는 못합니다. 만드는 것은 차단이 아니라 근거입니다.</p>
+        <p class="stage-note">인증이 학습을 기술적으로 막지는 못합니다. 만드는 것은 차단이 아니라 거래할 근거입니다.</p>
       </div>
     </section>
 
@@ -199,11 +201,11 @@
     <section class="slide stage--last" id="why" data-name="왜 지금인가">
       <div class="shell stage-inner">
         <p class="stage-en">WHY NOW</p>
-        <h2 class="morph">사람이 만든 것이 귀해집니다</h2>
+        <h2 class="morph">AI와 싸우자는 것이 아닙니다</h2>
         <ul class="principle-list">
-          <li><b>누구나 같은 결과를 만듭니다.</b> 만든 것만 보고는 가릴 수 없는 지점에서, 서로를 믿을 구분선이 필요해집니다.</li>
-          <li><b>자본은 희소한 쪽으로 흐릅니다.</b> 시장을 움직이는 쪽이 사는 것은 흔한 것이 아니라 귀한 것입니다.</li>
-          <li><b>AI를 만드는 쪽에도 필요해집니다.</b> 생성물로 학습한 생성물이 쌓이면 모델은 무너집니다.</li>
+          <li><b>무작위로 긁는 쪽이 먼저 손해를 봅니다.</b> 생성물로 학습한 생성물이 쌓이면 모델은 무너집니다. 출처가 확인된 원본은 그때 대체할 수 없습니다.</li>
+          <li><b>그래서 사는 쪽이 생깁니다.</b> 긁어 가는 것보다 계약하는 쪽이 싸지는 지점이 옵니다. 그 자리가 열리려면 누가 만들었는지가 먼저 기록돼 있어야 합니다.</li>
+          <li><b>둘 다 이기는 거래입니다.</b> 사람은 제값을 받고, AI를 만드는 쪽은 권리가 정리된 것을 받습니다. 지금 없는 것은 그 사이를 이을 자리뿐입니다.</li>
           <li><b>먼저 시작한 쪽에 이력이 쌓입니다.</b> 오늘의 등급과 맡겨 둔 원본이 몇 해 뒤의 근본이 됩니다.</li>
         </ul>
         <div class="stage-row">
@@ -211,7 +213,7 @@
             지금 검증하기
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
           </a>
-          <a class="stage-go stage-go--quiet" href="/archive">아카이브</a>
+          <a class="stage-go stage-go--quiet" href="/archive">원본 맡기기</a>
         </div>
       </div>
     </section>
