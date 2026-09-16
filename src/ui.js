@@ -705,8 +705,12 @@ export function renderResult(bundle, mode, openForm = false) {
   const archiveBlock = !elig.ok ? '' : `
     <div class="claim-item claim-item--archive" data-archive-box>
       <h3 class="claim-head"><span class="claim-no">${isPass ? 2 : 1}</span>아카이브에 등록하고 배분받기</h3>
+      <ol class="steps-now">
+        <li class="is-done"><span class="steps-mark" data-icon="check"></span>검사 완료<em>방금 이 기기에서 쟀습니다</em></li>
+        <li data-arc-step><span class="steps-mark"></span>아카이브 등록<em>아래 버튼을 누르면 끝납니다</em></li>
+      </ol>
       <p class="claim-lead">
-        <strong>검증한 것은 모두 아카이브에 등록됩니다.</strong> 고르실 것이 없습니다.
+        <strong>등록 여부는 고르지 않습니다.</strong> 올리신 것은 모두 등록됩니다.
         원본과 지문, 등록 시각이 함께 남아 무단 학습을 추적할 근거가 됩니다.
         ${isPass ? '' : '판정이 통과가 아니어도 등록됩니다. 등록은 등급과 별개입니다.'}
       </p>
@@ -875,9 +879,12 @@ export function renderResult(bundle, mode, openForm = false) {
      무엇인지 한 줄로 말합니다. 견본이면 stripSampleApply가 떼어 냅니다. */
   const claimCta = claimPanel ? `
     <div class="claim-cta" data-claim-cta>
-      <p class="claim-cta-line">${isPass
-        ? '인증 마크가 준비됐습니다. 검증한 것은 아카이브에도 함께 등록됩니다.'
-        : '판정이 통과가 아니어도 아카이브에는 등록됩니다. 등록은 등급과 별개입니다.'}</p>
+      <div class="claim-cta-text">
+        <p class="claim-cta-line"><b>검사는 끝났습니다. 아카이브 등록은 아직입니다.</b></p>
+        <p class="claim-cta-sub">${isPass
+          ? '다음 화면에서 등록을 누르시면 그 자리에서 끝납니다. 인증 마크도 거기서 받으십시오.'
+          : '판정이 통과가 아니어도 등록됩니다. 다음 화면에서 누르시면 그 자리에서 끝납니다.'}</p>
+      </div>
       <button class="btn" type="button" data-action="claim-open">
         ${isPass ? '마크 받고 등록하기' : '아카이브에 등록하기'}
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
@@ -1081,6 +1088,16 @@ const renderRail = (at) => `
       <li class="${i <= at ? 'is-on' : ''}"><span class="dot"></span>${label}</li>`).join('')}
   </ol>`;
 
+/** 등록이 끝난 시각. 날짜만 적으면 "언제 끝났나"가 안 읽힙니다. */
+function formatStamp(iso) {
+  if (!iso) return '방금';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '방금';
+  const p = (v) => String(v).padStart(2, '0');
+  return `${d.getFullYear()}. ${p(d.getMonth() + 1)}. ${p(d.getDate())}. `
+    + `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /** 접수증. 조회 열쇠는 여기서 한 번만 보여 줍니다. */
 function renderReceipt(r) {
   const onlyArchive = r.reviewed === false;
@@ -1092,11 +1109,12 @@ function renderReceipt(r) {
         <div><dt>${onlyArchive ? '등록번호' : '접수번호'}</dt><dd class="big">${escapeHtml(r.id)}</dd></div>
         <div><dt>조회 방법</dt><dd>신청하실 때 적으신 <strong>연락처 + 비밀번호</strong></dd></div>
         ${onlyArchive ? `
+        <div><dt>등록 시각</dt><dd>${escapeHtml(formatStamp(r.createdAt))}</dd></div>
         <div><dt>보관 중</dt><dd>원본과 지문, 등록 시각, 쓰임에 대한 의사</dd></div>
         <div><dt>배분</dt><dd>학습용으로 팔리면 등급에 맞춰 <a href="/archive#share">배분</a>합니다</dd></div>` : `
         <div><dt>예상 완료</dt><dd>${escapeHtml(formatDate(r.etaDate))} <span class="dim">· 영업일 ${r.etaDays}일</span></dd></div>
         <div><dt>앞선 대기</dt><dd>${r.queueAhead}건</dd></div>
-        <div><dt>아카이브</dt><dd>${r.archive === false ? '등록하지 않았습니다' : '함께 등록됐습니다'}</dd></div>`}
+        <div><dt>아카이브</dt><dd>${r.archive === false ? '등록하지 않았습니다' : `이 접수와 함께 등록 완료 · ${escapeHtml(formatStamp(r.createdAt))}`}</dd></div>`}
       </dl>
       <p class="receipt-note">
         접수번호는 문의하실 때 쓰시면 빠릅니다. 현황은 번호 없이 연락처와 비밀번호만으로도 열립니다.
@@ -1886,8 +1904,20 @@ export function mountVerifier(root) {
       rememberApplication({ id: r.id, token: r.token, grade: r.grade, createdAt: r.createdAt, etaDate: r.etaDate });
       say('아카이브에 등록됐습니다.');
       applyEl('[data-arc-done]').innerHTML = renderReceipt(r);
-      // 다 적은 칸을 그대로 두면 새로고침 없이 또 보낼 수 있습니다.
+
+      /* 지금이 등록이 끝난 시점입니다. 걸음 표시를 완료로 바꾸고 버튼과
+         입력 칸을 잠급니다 — 끝났는데 누를 수 있는 버튼이 남아 있으면
+         끝난 것인지 아닌지가 화면에서 읽히지 않습니다. */
+      const stepNow = box.querySelector('[data-arc-step]');
+      if (stepNow) {
+        stepNow.classList.add('is-done');
+        stepNow.innerHTML = '<span class="steps-mark" data-icon="check"></span>등록 완료'
+          + `<em>등록번호 ${escapeHtml(r.id)}</em>`;
+        paintIcons(stepNow);
+      }
       box.querySelectorAll('input').forEach((el) => { el.disabled = true; });
+      button.textContent = '등록 완료';
+      box.querySelector('.later-note')?.remove();
       paintMine();
       bringIntoView(applyEl('[data-arc-done]'), 'center');
     } catch (err) {

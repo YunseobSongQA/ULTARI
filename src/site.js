@@ -179,33 +179,61 @@ export function mountNav(scope = document) {
  * 시험 운영 띠.
  *
  * 이 사이트는 아직 시험 삼아 돌리는 것입니다. 등급도 아카이브도 실제로
- * 발급하고 등록하지만, 판매도 배분도 이루어진 적이 없고 계좌를 받는 자리도
- * 아직 없습니다. 그 사실을 첫 화면에서 말하지 않으면 다 쓰고 난 뒤에 알게
- * 됩니다 — 진위를 파는 서비스에서 그건 첫 번째로 깨면 안 되는 약속입니다.
+ * 발급하고 등록하지만 수익 배분은 아직 없습니다. 그 사실을 첫 화면에서
+ * 말하지 않으면 다 쓰고 난 뒤에 알게 됩니다.
  *
  * 모든 페이지가 site.js를 부르므로 여기 한 곳에서 붙입니다. 페이지마다
  * 적어 두면 한 장은 반드시 빠집니다.
  *
  * 화면 위가 아니라 아래에 고정합니다. 랜딩의 상단 바는 position: fixed이고
  * 화면들이 100svh에 맞춰 붙어 있어서, 위에 띠를 끼우면 그 높이만큼 전부
- * 어긋납니다. 아래에 두면 어느 페이지의 배치도 건드리지 않습니다.
+ * 어긋납니다.
+ *
+ * 닫을 수 있습니다. 한 번 읽은 사람에게 계속 같은 줄을 보이면 그 줄이
+ * 아니라 화면이 가려집니다. 닫은 것은 이 브라우저에만 적어 둡니다 —
+ * 서버로 가지 않고, 다른 기기에서는 다시 보입니다.
  */
+const TRIAL_KEY = 'ultari.trial.hidden';
+
+/** 띠 높이를 --trial-h로 알려 줍니다. 아래에 있는 것들이 그만큼 비켜섭니다. */
+function measureTrialBar(bar) {
+  const h = bar && !bar.hidden ? Math.round(bar.getBoundingClientRect().height) : 0;
+  document.documentElement.style.setProperty('--trial-h', `${h}px`);
+}
+
 function paintTrialBar() {
   if (document.querySelector('[data-trial-bar]')) return;
+
+  // 저장소는 사생활 보호 창에서 던질 수 있습니다. 못 읽으면 그냥 보여 줍니다.
+  let hidden = false;
+  try { hidden = localStorage.getItem(TRIAL_KEY) === '1'; } catch { /* 보여 줍니다 */ }
+
   const bar = document.createElement('div');
   bar.className = 'trial-bar';
   bar.setAttribute('data-trial-bar', '');
+  bar.hidden = hidden;
   bar.innerHTML = `
     <div class="shell trial-inner">
       <span class="trial-tag">시험 운영</span>
       <p class="trial-line">
-        테스트·시연용으로 열어 둔 서비스입니다. 측정과 등급은 실제로 돌아가지만,
-        <b>판매도 수익 배분도 이루어진 적이 없고</b> 계좌는 받지 않습니다 —
-        로그인 기능을 붙인 뒤에 계정에서 받습니다.
-        <a href="/roadmap">무엇이 언제 붙는지</a>
+        테스트용으로 열어 둔 서비스입니다. 검사와 등급은 진짜로 돌아가지만
+        <b>수익 배분은 아직 없습니다.</b> <a href="/roadmap">언제 되나</a>
       </p>
+      <button class="trial-x" type="button" aria-label="이 안내 닫기" data-trial-close>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
     </div>`;
+
+  bar.querySelector('[data-trial-close]').addEventListener('click', () => {
+    bar.hidden = true;
+    measureTrialBar(bar);
+    try { localStorage.setItem(TRIAL_KEY, '1'); } catch { /* 이번만 닫힙니다 */ }
+  });
+
   document.body.appendChild(bar);
+  measureTrialBar(bar);
+  // 글이 줄바꿈되면 높이가 달라집니다. 창을 줄일 때마다 다시 잽니다.
+  if (window.ResizeObserver) new ResizeObserver(() => measureTrialBar(bar)).observe(bar);
 }
 
 paintTrialBar();
