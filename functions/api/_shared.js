@@ -19,6 +19,10 @@ export const LIMITS = {
   maxBytes: 20 * 1024 * 1024,
   maxNote: 2000,
   maxContact: 200,
+  // 배분받을 계좌. 정산할 때만 꺼내 쓰고 조회 응답에는 넣지 않습니다.
+  maxPayoutHolder: 60,
+  maxPayoutBank: 40,
+  maxPayoutAccount: 40,
 };
 
 /** 접수번호. 사람이 받아 적을 수 있어야 해서 헷갈리는 글자를 뺐습니다. */

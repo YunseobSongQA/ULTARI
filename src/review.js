@@ -56,6 +56,7 @@ export function forgetApplication(id) {
  * fetch는 보내는 쪽 진행률을 알려주지 않습니다.
  *
  * @param {{file:File, grade:number, archive?:boolean, contact:string, note:string,
+ *          payout?:{holder:string,bank:string,account:string}|null,
  *          summary:string, fingerprint:string, onProgress?:(pct:number)=>void,
  *          signal?:AbortSignal}} opt
  */
@@ -67,6 +68,13 @@ export function submitApplication(opt) {
   body.append('contact', opt.contact ?? '');
   body.append('password', opt.password ?? '');
   body.append('note', opt.note ?? '');
+  /* 배분받을 계좌. 적지 않으면 아예 보내지 않습니다 — 빈 칸을 보내면
+     서버에 "적었는데 비어 있다"는 기록이 남습니다. */
+  if (opt.payout) {
+    body.append('payoutHolder', opt.payout.holder ?? '');
+    body.append('payoutBank', opt.payout.bank ?? '');
+    body.append('payoutAccount', opt.payout.account ?? '');
+  }
   body.append('summary', opt.summary ?? '');
   body.append('fingerprint', opt.fingerprint ?? '');
 

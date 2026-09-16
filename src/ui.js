@@ -451,10 +451,10 @@ const NO_GUARANTEE = `
  * 나머지(ai = 100 - trace)라 같이 적어 알게 되는 것이 없고, 통과한 사진
  * 옆에 붙은 주황색 칸이 통과가 무슨 뜻인지를 흐립니다.
  */
-function traceBar(trace) {
+function scoreBar(pct, side) {
   return `
-    <div class="sbar sbar--one" role="img" aria-label="촬영 흔적 ${trace}%">
-      <span class="sbar-seg sbar-seg--trace" style="width:${trace}%"></span>
+    <div class="sbar sbar--one" role="img" aria-label="${side === 'ai' ? 'AI 쪽 환산' : '촬영 흔적'} ${pct}%">
+      <span class="sbar-seg sbar-seg--${side}" style="width:${pct}%"></span>
     </div>`;
 }
 
@@ -488,8 +488,70 @@ function renderProvenanceFacts(prov) {
     </div>`;
 }
 
-function renderScorePanel(bundle) {
-  // ai(= 100 - trace)는 쓰지 않습니다. 한 방향만 적기로 했습니다.
+/**
+ * 판별 기준 한 줄. 세부 칸과 접힌 칸이 같은 모양을 써야 해서 밖으로 뺐습니다.
+ */
+const sigRow = (r) => `
+  <li class="sig-row sig-row--${r.side}${r.decisive ? ' is-decisive' : ''}">
+    <div class="sig-top">
+      <span class="sig-name">${escapeHtml(r.label)}</span>
+      ${r.decisive ? '<span class="sig-decisive">결정적</span>' : ''}
+      <span class="sig-side">${escapeHtml(SIDE[r.side])}</span>
+      <span class="sig-got">${escapeHtml(r.got)}</span>
+    </div>
+    <p class="sig-basis">기준 — ${escapeHtml(r.basis)}</p>
+    <p class="sig-note">${escapeHtml(r.note)}</p>
+  </li>`;
+
+/**
+ * 결과 한 숫자.
+ *
+ * 통과한 파일에는 촬영 흔적을, 그 밖에는 AI 쪽 환산을 적습니다. 두 값은
+ * 서로의 나머지(ai = 100 - trace)라 같이 걸어 둘 이유가 없고, 판정이 간
+ * 방향의 숫자 하나만 크게 두는 편이 읽힙니다.
+ *
+ * AI 쪽 숫자를 적는다고 해서 "AI입니다"라고 말하는 것은 아닙니다. 바로
+ * 아래에 무엇을 잰 값인지와 무엇을 뜻하지 않는지를 같은 크기로 적습니다 —
+ * 메신저를 거친 실제 사진도 이 숫자가 높게 나옵니다.
+ */
+function renderScoreHero(bundle) {
+  const { result } = bundle;
+  const { trace, ai, declared } = traceOf(bundle);
+  const onCamera = result.verdict === VERDICT.PASS;
+  const pct = onCamera ? trace : ai;
+  const side = onCamera ? 'trace' : 'ai';
+
+  return `
+    <div class="panel score-panel score-panel--hero">
+      <div class="score-hero score-hero--${side}">
+        <div class="score-figure">
+          <span class="score-num score-num--${side}">${pct}<small>%</small></span>
+          <span class="score-cap">${onCamera ? '촬영 흔적' : 'AI 쪽 환산'}</span>
+        </div>
+      </div>
+      ${scoreBar(pct, side)}
+      <p class="score-caveat">
+        ${onCamera
+          ? `학습된 분류기의 판단이 아닙니다. 항목마다 사람이 정한 배점을 곱해 더한 값이라
+             배점을 바꾸면 숫자도 바뀝니다. 발급 근거가 아니라 표시용입니다.`
+          : declared
+            ? `파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다.
+               재서 얻은 추정이 아니라 파일이 스스로 밝힌 사실입니다.`
+            : `<strong>이 숫자는 “AI가 만들었다”는 뜻이 아닙니다.</strong>
+               촬영 흔적이 얼마나 안 남아 있는지를 잰 값입니다. 메신저를 거친 사진,
+               스크린샷, 다시 저장한 사진도 이 숫자가 높게 나옵니다.`}
+      </p>
+    </div>`;
+}
+
+/**
+ * 판별 근거와 배점. 전부 접어 둡니다.
+ *
+ * 펼쳐 두면 결과보다 목록이 먼저 읽히고, 처음 온 사람은 무엇을 받았는지
+ * 모른 채 표를 스크롤합니다. 숨기는 것이 아니라 한 번 눌러서 여는 것이고,
+ * 측정값은 하나도 빼지 않았습니다.
+ */
+function renderScoreDetail(bundle) {
   const { trace, categories, declared } = scoreTraces(bundle);
   const { result, pixels } = bundle;
 
@@ -507,42 +569,14 @@ function renderScorePanel(bundle) {
       </div>`;
   }).join('');
 
-  /* AI 판별 기준. 화소 하한이나 "약한 신호 n건" 같은 집계는 여기 넣지 않습니다.
-     측정이 가능한지를 말할 뿐 AI인지를 말하지 않기 때문입니다.
-     접어 두지 않습니다 — 판별 근거는 눌러야 나오면 근거 구실을 못 합니다. */
   const prov = bundle.provenance;
   const signals = [...aiSignals(bundle), ...synthesisSignals(bundle)];
 
-  /**
-   * 판정이 간 방향만 펼쳐 둡니다.
-   *
-   * 전에는 카메라 쪽·AI 쪽·판단 보류를 한 줄에 같이 세워 놓았습니다.
-   * 그래서 3등급을 받은 사진 옆에 "AI 쪽 1건"이 붙고, 떨어진 파일 옆에
-   * "카메라 쪽 4건"이 붙었습니다. 둘 다 사실이지만 한 화면에서 서로를
-   * 지웁니다 — 통과한 사진은 왜 통과했는지, 떨어진 파일은 왜 떨어졌는지가
-   * 읽히지 않습니다.
-   *
-   * 그래서 통과면 카메라 쪽 근거를, 그 밖이면 반대로 나온 기준을 펼쳐
-   * 둡니다. 반대 방향은 지우지 않고 접어 둡니다. 측정한 것을 화면에서
-   * 없애면 이 서비스가 파는 것이 없어집니다.
-   */
   const onCamera = result.verdict === VERDICT.PASS;
   const side = onCamera ? 'camera' : 'ai';
   const shown = signals.filter((r) => r.side === side);
   const opposite = signals.filter((r) => r.side !== side && r.side !== 'unknown');
   const quiet = signals.filter((r) => r.side === 'unknown');
-
-  const sigRow = (r) => `
-    <li class="sig-row sig-row--${r.side}${r.decisive ? ' is-decisive' : ''}">
-      <div class="sig-top">
-        <span class="sig-name">${escapeHtml(r.label)}</span>
-        ${r.decisive ? '<span class="sig-decisive">결정적</span>' : ''}
-        <span class="sig-side">${escapeHtml(SIDE[r.side])}</span>
-        <span class="sig-got">${escapeHtml(r.got)}</span>
-      </div>
-      <p class="sig-basis">기준 — ${escapeHtml(r.basis)}</p>
-      <p class="sig-note">${escapeHtml(r.note)}</p>
-    </li>`;
 
   const eligible = result.verdict === VERDICT.PASS;
   const mp = pixels.megapixels;
@@ -554,72 +588,55 @@ function renderScorePanel(bundle) {
     mp < GATE.minMegapixels && `화소 ${mp.toFixed(1)}MP`,
   ].filter(Boolean);
 
-  return `
-    <div class="panel score-panel">
-      ${onCamera ? `
-        <p class="panel-title">환산 수치</p>
+  const basis = `
+    <p class="sig-lead">
+      아래 <strong>${signals.length}가지</strong> 기준으로 검사했고,
+      ${onCamera
+        ? `그중 <strong>${shown.length}가지</strong>에서 카메라를 거친 흔적이 나왔습니다.`
+        : `그중 <strong>${shown.length}가지</strong>가 반대로 나왔습니다.`}
+    </p>
+    <p class="sig-list">${signals.map((r) => escapeHtml(r.label)).join(' · ')}</p>
 
-        <div class="score-hero">
-          <div class="score-figure">
-            <span class="score-num score-num--trace">${trace}<small>%</small></span>
-            <span class="score-cap">촬영 흔적</span>
-          </div>
-        </div>
-        ${traceBar(trace)}
-        <p class="score-caveat">
-          학습된 분류기의 판단이 아닙니다. 아래 항목에 사람이 정한 배점을 곱해 더한 값이라
-          배점을 바꾸면 숫자도 바뀝니다.
-        </p>` : ''}
+    ${shown.length
+      ? `<ul class="sig">${shown.map(sigRow).join('')}</ul>`
+      : `<p class="tally-read is-none">${onCamera
+          ? '카메라를 거친 흔적이 <strong>한 건도</strong> 잡히지 않았습니다.'
+          : '반대로 나온 기준은 <strong>한 건도</strong> 없습니다. 잴 것이 모자랐을 뿐입니다.'}</p>`}
 
-      <p class="panel-title${onCamera ? ' score-sub' : ''}">AI 판별 기준</p>
-
-      <p class="sig-lead">
-        아래 <strong>${signals.length}가지</strong> 기준으로 검사했고,
-        ${onCamera
-          ? `그중 <strong>${shown.length}가지</strong>에서 카메라를 거친 흔적이 나왔습니다.`
-          : `그중 <strong>${shown.length}가지</strong>가 반대로 나왔습니다.`}
-      </p>
-      <p class="sig-list">${signals.map((r) => escapeHtml(r.label)).join(' · ')}</p>
-
-      ${shown.length
-        ? `<ul class="sig">${shown.map(sigRow).join('')}</ul>`
-        : `<p class="tally-read is-none">${onCamera
-            ? '카메라를 거친 흔적이 <strong>한 건도</strong> 잡히지 않았습니다.'
-            : '반대로 나온 기준은 <strong>한 건도</strong> 없습니다. 잴 것이 모자랐을 뿐입니다.'}</p>`}
-
-      ${onCamera ? '' : `
-        <p class="score-caveat">
-          ${declared
-            ? '파일에 AI 생성 기록이 적혀 있습니다. 위 기준을 재서 나온 판단이 아니라 파일이 스스로 밝힌 사실입니다.'
-            : `흔적이 없다는 것과 AI가 만들었다는 것은 같은 말이 아닙니다.
-               메신저를 거친 사진과 스크린샷에서도 같은 기준이 걸립니다.`}
-        </p>`}
-
-      ${opposite.length
-        ? fold(onCamera ? '반대로 나온 기준' : '카메라 쪽으로 나온 기준',
-          `${opposite.length}가지 · 판정을 뒤집지 못했습니다`,
-          `<ul class="sig">${opposite.map(sigRow).join('')}</ul>`)
-        : ''}
-      ${quiet.length
-        ? fold('판단이 서지 않은 기준', `${quiet.length}가지 · 이 파일에서는 잴 수 없었습니다`,
-          `<ul class="sig sig--quiet">${quiet.map(sigRow).join('')}</ul>`)
-        : ''}
-
-      ${declared || !onCamera ? '' : fold('환산 수치는 어떻게 나왔나', '여섯 항목의 배점',
-        `<div class="cats">${bars}</div>`)}
-
-      <p class="panel-title score-sub">인증 마크</p>
-      <p class="gate-verdict${eligible ? ' is-ok' : ''}">
-        ${eligible
-          ? '발급했습니다. 발급 조건을 모두 충족합니다.'
-          : `발급하지 않습니다. 막은 조건 — ${escapeHtml(blockers.join(', '))}`}
-      </p>
+    ${onCamera ? '' : `
       <p class="score-caveat">
-        발급 조건은 다섯입니다 — AI 생성 표식 없음 · 촬영 정보(제조사·모델 + 촬영 시각) 있음 ·
-        정합성 모순 0건 · 약한 신호 ${GATE.softSignalsForHold}건 미만 · 화소 ${GATE.minMegapixels}MP 이상.
-        ${onCamera ? `환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.` : ''}
-      </p>
-    </div>`;
+        ${declared
+          ? '파일에 AI 생성 기록이 적혀 있습니다. 위 기준을 재서 나온 판단이 아니라 파일이 스스로 밝힌 사실입니다.'
+          : `흔적이 없다는 것과 AI가 만들었다는 것은 같은 말이 아닙니다.
+             메신저를 거친 사진과 스크린샷에서도 같은 기준이 걸립니다.`}
+      </p>`}
+
+    ${opposite.length
+      ? fold(onCamera ? '반대로 나온 기준' : '카메라 쪽으로 나온 기준',
+        `${opposite.length}가지 · 판정을 뒤집지 못했습니다`,
+        `<ul class="sig">${opposite.map(sigRow).join('')}</ul>`)
+      : ''}
+    ${quiet.length
+      ? fold('판단이 서지 않은 기준', `${quiet.length}가지 · 이 파일에서는 잴 수 없었습니다`,
+        `<ul class="sig sig--quiet">${quiet.map(sigRow).join('')}</ul>`)
+      : ''}`;
+
+  const gate = `
+    <p class="gate-verdict${eligible ? ' is-ok' : ''}">
+      ${eligible
+        ? '발급했습니다. 발급 조건을 모두 충족합니다.'
+        : `발급하지 않습니다. 막은 조건 — ${escapeHtml(blockers.join(', '))}`}
+    </p>
+    <p class="score-caveat">
+      발급 조건은 다섯입니다 — AI 생성 표식 없음 · 촬영 정보(제조사·모델 + 촬영 시각) 있음 ·
+      정합성 모순 0건 · 약한 신호 ${GATE.softSignalsForHold}건 미만 · 화소 ${GATE.minMegapixels}MP 이상.
+      ${onCamera ? `환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.` : ''}
+    </p>`;
+
+  return `
+    ${fold('AI 판별 기준', `${signals.length}가지 · 그중 ${shown.length}가지가 ${onCamera ? '카메라 쪽' : '반대로'} 나왔습니다`, basis)}
+    ${declared ? '' : fold('환산 수치는 어떻게 나왔나', '여섯 항목의 배점', `<div class="cats">${bars}</div>`)}
+    ${fold('인증 마크 발급 조건', eligible ? '충족' : `막은 조건 ${blockers.length}가지`, gate)}`;
 }
 
 export function renderResult(bundle, mode, openForm = false) {
@@ -641,30 +658,16 @@ export function renderResult(bundle, mode, openForm = false) {
     ? `원본 파일 지문 <span class="hash">${escapeHtml(print.short)}…</span>`
     : '파일 지문을 계산하지 못했습니다 — 브라우저가 보안 컨텍스트가 아닙니다';
 
-  /* 영상과 음악에는 마크를 새겨 드릴 수 없습니다. 브라우저에서 영상을 다시
-     인코딩할 수 없고, 소리에 그림을 얹는 것은 의미가 없습니다. 대신 마크만
-     투명 PNG로 드리고 인증서로 사실을 적어 드립니다. */
-  const markOnlyPanel = isPass && !isImage ? `
-    <div class="panel wm-panel" data-watermark>
-      <p class="panel-title">인증 마크 — 내려받기</p>
-      <p class="wm-lead">
-        ${bundle.kind === 'audio' ? '소리' : '영상'}에는 마크를 직접 새겨 드리지 않습니다.
-        ${bundle.kind === 'audio'
-          ? '소리 파일에 그림을 얹을 자리가 없습니다.'
-          : '브라우저에서 영상을 다시 인코딩하면 화질이 떨어지고, 그러면 지문도 달라집니다.'}
-        마크만 투명 PNG로 받아 표지나 자막에 직접 얹어 주십시오.
-      </p>
-      <div class="btn-row">
-        <button class="btn" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
-      </div>
-      <p class="btn-note">이 기기에서 만듭니다. 파일은 어디로도 가지 않습니다.</p>
-    </div>` : '';
+  /* ── 받으실 것 ───────────────────────────────────────
+     검증이 끝난 자리에서 바로 이어집니다. 결과만 보여 주고 끝내면
+     무엇을 받는 서비스인지가 화면에 없습니다. */
 
-  // 통과하면 마크 패널을 바로 펼칩니다. 버튼 뒤에 숨기면 결과물이 있는 줄도 모릅니다.
-  const markPanel = isPass && isImage ? `
-    <div class="panel wm-panel" data-watermark>
-      <p class="panel-title">인증 마크 — 내려받기</p>
-      <p class="wm-lead">사진에 마크를 새겨 받거나, 마크만 따로 받아 직접 배치하실 수 있습니다.</p>
+  // 영상과 음악에는 마크를 새겨 드릴 수 없습니다. 브라우저에서 영상을 다시
+  // 인코딩할 수 없고, 소리에 그림을 얹는 것은 의미가 없습니다.
+  const markBlock = !isPass ? '' : isImage ? `
+    <div class="claim-item" data-watermark>
+      <h3 class="claim-head"><span class="claim-no">1</span>인증 마크</h3>
+      <p class="claim-lead">사진에 마크를 새겨 받거나, 마크만 따로 받아 직접 배치하실 수 있습니다.</p>
       <div class="wm-controls">
         <span class="wm-label">마크 위치</span>
         <div class="seg" role="radiogroup" aria-label="마크 위치">
@@ -679,7 +682,91 @@ export function renderResult(bundle, mode, openForm = false) {
         <button class="btn" type="button" data-action="dl-photo"><span data-icon="download"></span>마크 넣은 사진 내려받기</button>
         <button class="btn btn--ghost" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
       </div>
-      <p class="btn-note">브라우저의 기본 다운로드 폴더에 저장됩니다.</p>
+      <p class="btn-note">이 기기에서 만듭니다. 파일은 어디로도 가지 않습니다.</p>
+    </div>` : `
+    <div class="claim-item" data-watermark>
+      <h3 class="claim-head"><span class="claim-no">1</span>인증 마크</h3>
+      <p class="claim-lead">
+        ${bundle.kind === 'audio' ? '소리' : '영상'}에는 마크를 직접 새겨 드리지 않습니다.
+        ${bundle.kind === 'audio'
+          ? '소리 파일에 그림을 얹을 자리가 없습니다.'
+          : '브라우저에서 영상을 다시 인코딩하면 화질이 떨어지고, 그러면 지문도 달라집니다.'}
+        마크만 투명 PNG로 받아 표지나 자막에 직접 얹어 주십시오.
+      </p>
+      <div class="btn-row">
+        <button class="btn" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
+      </div>
+      <p class="btn-note">이 기기에서 만듭니다. 파일은 어디로도 가지 않습니다.</p>
+    </div>`;
+
+  /* 아카이브 등록 — 배분받을 계좌를 여기서 함께 받습니다.
+     등록과 정산 계좌를 다른 화면으로 나누면, 등록만 해 두고 계좌를 안 적은
+     사람에게 나중에 다시 연락해야 합니다. 그 연락은 대부분 닿지 않습니다. */
+  const archiveBlock = !elig.ok ? '' : `
+    <div class="claim-item claim-item--archive" data-archive-box>
+      <h3 class="claim-head"><span class="claim-no">${isPass ? 2 : 1}</span>아카이브에 등록하고 배분받기</h3>
+      <p class="claim-lead">
+        원본과 지문, 등록 시각, 그리고 <strong>어떤 쓰임을 허락하는지</strong>가 함께 남습니다.
+        무단 학습을 추적할 근거가 되고, 학습용으로 팔리면 그 몫이 계좌로 갑니다.
+        ${isPass ? '' : '판정이 통과가 아니어도 등록하실 수 있습니다. 등록은 등급과 별개입니다.'}
+      </p>
+
+      <div class="apply-warn">
+        <p><strong>이 버튼을 누르면 원본 파일이 서버로 올라갑니다.</strong>
+           보관할 원본이 없으면 등록이 성립하지 않습니다.
+           무엇을 보관하고 언제 지우는지는 <a href="/privacy">개인정보 처리방침</a>에 적어 두었습니다.</p>
+      </div>
+
+      <div class="apply-grid">
+        <label class="fld">
+          <span class="fld-label">연락받을 곳 <em>필수 · 현황 조회에도 씁니다</em></span>
+          <input type="text" data-arc-contact placeholder="메일 주소 또는 전화번호" maxlength="200" autocomplete="email">
+        </label>
+        <label class="fld">
+          <span class="fld-label">조회 비밀번호 <em>필수 · ${MIN_PASSWORD}자 이상</em></span>
+          <input type="password" data-arc-pw maxlength="72" autocomplete="new-password">
+        </label>
+      </div>
+
+      <fieldset class="payout">
+        <legend class="payout-legend">배분받을 계좌 <em>지금 비워 두셔도 됩니다</em></legend>
+        <div class="apply-grid apply-grid--three">
+          <label class="fld">
+            <span class="fld-label">예금주</span>
+            <input type="text" data-arc-holder maxlength="60" autocomplete="name">
+          </label>
+          <label class="fld">
+            <span class="fld-label">은행</span>
+            <input type="text" data-arc-bank maxlength="40" placeholder="예: 국민은행">
+          </label>
+          <label class="fld">
+            <span class="fld-label">계좌번호</span>
+            <input type="text" data-arc-account maxlength="40" inputmode="numeric" autocomplete="off">
+          </label>
+        </div>
+        <p class="payout-note">
+          정산할 때만 씁니다. 화면 어디에도 다시 표시하지 않고, 현황 조회 응답에도 넣지 않습니다.
+          <strong>아직 판매도 배분도 이루어진 적이 없습니다.</strong> 처음 정산이 생기면 이 계좌로 갑니다.
+          나중에 연락처로 말씀하시면 계좌만 따로 지워 드립니다.
+        </p>
+      </fieldset>
+
+      <div class="btn-row">
+        <button class="btn" type="button" data-action="archive-send">등록하고 배분받기</button>
+      </div>
+      <div class="apply-bar" data-arc-bar hidden>
+        <span class="apply-pct" data-arc-pct>0<small>%</small></span>
+        <div class="bar"><i data-arc-fill></i></div>
+      </div>
+      <p class="apply-msg" data-arc-msg hidden></p>
+      <div data-arc-done></div>
+    </div>`;
+
+  const claimPanel = (markBlock || archiveBlock) ? `
+    <div class="panel claim-panel">
+      <p class="panel-title">${isPass ? '이제 받으실 것' : '지금 하실 수 있는 것'}</p>
+      ${markBlock}
+      ${archiveBlock}
     </div>` : '';
 
   // 자격이 없으면 폼 대신 왜 안 되는지를 놓습니다. 상태는 이미 위에서 말했고,
@@ -755,6 +842,29 @@ export function renderResult(bundle, mode, openForm = false) {
           <option value="no">등록하지 않습니다 — 심사만 받습니다</option>
         </select>
       </label>
+
+      <fieldset class="payout">
+        <legend class="payout-legend">배분받을 계좌 <em>지금 비워 두셔도 됩니다</em></legend>
+        <div class="apply-grid apply-grid--three">
+          <label class="fld">
+            <span class="fld-label">예금주</span>
+            <input type="text" data-apply-holder maxlength="60" autocomplete="name">
+          </label>
+          <label class="fld">
+            <span class="fld-label">은행</span>
+            <input type="text" data-apply-bank maxlength="40" placeholder="예: 국민은행">
+          </label>
+          <label class="fld">
+            <span class="fld-label">계좌번호</span>
+            <input type="text" data-apply-account maxlength="40" inputmode="numeric" autocomplete="off">
+          </label>
+        </div>
+        <p class="payout-note">
+          정산할 때만 씁니다. 화면 어디에도 다시 표시하지 않고, 현황 조회 응답에도 넣지 않습니다.
+          <strong>아직 판매도 배분도 이루어진 적이 없습니다.</strong>
+        </p>
+      </fieldset>
+
       <p class="apply-hint">
         등록해 두면 원본과 지문, 등록 시각, 그리고 <strong>어떤 쓰임을 허락하는지</strong>가 함께 남습니다.
         무단 학습을 추적할 근거가 되고, 학습용으로 팔리면 그 몫이 돌아옵니다.
@@ -801,15 +911,27 @@ export function renderResult(bundle, mode, openForm = false) {
         : '방금 이 기기에서 계산한 값입니다. 접수되지 않으므로 어디로도 올라가지 않습니다.'}</p>
     </div>`;
 
-  const quickHead = `
-    <div class="top-actions">
-      ${elig.ok ? `
-        <button class="btn btn--mini" type="button" data-action="swap-mode">상세 검사 신청하기</button>` : ''}
-      <button class="btn btn--mini btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
-    </div>`;
+  /* ── 결과 화면의 순서 ─────────────────────────────────
+     판정 → 숫자 하나 → 받으실 것 → (접어 둔) 근거와 측정값.
+     처음 온 사람이 위에서 아래로 읽었을 때 "무엇이 나왔나 · 그래서 무엇을
+     받나"까지 닿아야 합니다. 근거는 그다음에 눌러서 봅니다. */
+  /* 받기 칸으로 넘어가는 자리. 결과를 다 읽은 사람에게 다음 걸음이
+     무엇인지 한 줄로 말합니다. 견본이면 stripSampleApply가 떼어 냅니다. */
+  const claimCta = claimPanel ? `
+    <div class="claim-cta" data-claim-cta>
+      <p class="claim-cta-line">${isPass
+        ? '인증 마크가 준비됐습니다. 아카이브에 등록해 두시면 팔렸을 때 몫이 계좌로 갑니다.'
+        : '판정이 통과가 아니어도 아카이브에는 등록하실 수 있습니다. 등록은 등급과 별개입니다.'}</p>
+      <button class="btn" type="button" data-action="claim-open">
+        ${isPass ? '마크 받고 등록하기' : '아카이브에 등록하기'}
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>` : '';
 
   return `
-    ${mode === 'deep' ? deepHead : quickHead}
+    ${mode === 'deep' ? deepHead : ''}
+
+    <div data-result-body>
 
     <section class="cert${certClass}">
       <div class="cert-top">
@@ -823,12 +945,12 @@ export function renderResult(bundle, mode, openForm = false) {
       <p class="fingerprint-line">${fingerprint}</p>
     </section>
 
-    ${isImage ? renderScorePanel(bundle) : renderMediaScore(bundle)}
+    ${renderScoreHero(bundle)}
 
-    ${markPanel}
-    ${markOnlyPanel}
+    ${mode === 'deep' ? '' : claimCta}
 
     <div class="folds">
+      ${isImage ? renderScoreDetail(bundle) : renderMediaScore(bundle)}
       ${reasonFold('자동 검증이 멈춘 이유', result.blockers)}
       ${reasonFold('서로 맞지 않는 측정값', result.contradictions)}
       ${fold('측정값 전체 보기', `${rows.length}개 항목`, renderTable(rows))}
@@ -842,12 +964,9 @@ export function renderResult(bundle, mode, openForm = false) {
     </div>
 
     <div class="end-actions">
-      ${elig.ok ? `
-        <button class="btn" type="button" data-action="${mode === 'quick' ? 'swap-mode' : 'apply-open'}">
-          상세 검사 신청하기
-        </button>
-        <button class="btn btn--ghost" type="button" data-action="archive-open">
-          등록하고 배분받기
+      ${elig.ok && mode === 'quick' ? `
+        <button class="btn btn--ghost" type="button" data-action="swap-mode">
+          사람이 보는 상세 검사 신청하기
         </button>` : ''}
       <button class="btn btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
       <p class="btn-note">${elig.ok
@@ -855,6 +974,16 @@ export function renderResult(bundle, mode, openForm = false) {
         : elig.declared
           ? '이 파일은 AI 생성 기록이 있어 상세 검사를 신청할 수 없습니다.'
           : `이 파일은 ${UPLOAD_MB}MB를 넘어 화면에서 접수할 수 없습니다.`}</p>
+    </div>
+
+    </div>
+
+    <div data-claim-body hidden>
+      ${mode === 'deep' ? '' : claimPanel}
+      <div class="end-actions">
+        <button class="btn btn--ghost" type="button" data-action="back">결과로 돌아가기</button>
+        <button class="btn btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
+      </div>
     </div>`;
 }
 
@@ -944,7 +1073,7 @@ function eligibility(bundle) {
 function renderEligibility(bundle, elig) {
   const { result } = bundle;
   // 환산 수치는 통과한 파일에만 적습니다. 판정 패널과 같은 규칙입니다.
-  const { trace } = traceOf(bundle);
+  const { trace, ai } = traceOf(bundle);
   const onCamera = result.verdict === VERDICT.PASS;
 
   const verdict = result.verdict === VERDICT.PASS ? '3등급 발급'
@@ -966,7 +1095,8 @@ function renderEligibility(bundle, elig) {
       </ul>
 
       <p class="elig-quick">
-        간단 검사 판정 <b>${escapeHtml(verdict)}</b>${onCamera ? ` · 촬영 흔적 <b>${trace}%</b>` : ''}
+        간단 검사 판정 <b>${escapeHtml(verdict)}</b>
+        ${onCamera ? ` · 촬영 흔적 <b>${trace}%</b>` : ` · AI 쪽 환산 <b>${ai}%</b>`}
       </p>
       ${elig.ok ? `
         <p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>
@@ -1128,11 +1258,18 @@ export function mountVerifier(root) {
   const readyBox = root.querySelector('[data-ready]');
   const readyNote = root.querySelector('[data-ready-note]');
 
+  const stepbar = root.querySelector('[data-stepbar]');
+  const stepLabel = root.querySelector('[data-step-label]');
+  const stepBackText = root.querySelector('[data-step-back]');
+  const extras = Array.from(document.querySelectorAll('[data-extra]'));
+
   let previewUrl = null;
   let markUrl = null;
   let current = null;      // { file, mode, bundle } — 측정이 끝난 것
   let pending = null;      // { file, mode } — 받아 두고 시작을 기다리는 것
   let busy = false;
+  let step = 'pick';       // pick → run → result
+  let pushed = 0;          // 우리가 밀어 넣은 history 칸 수
   /* 지금 돌리는 검사의 단계 이름. 매체마다 하는 일이 달라서 목록이 다릅니다. */
   let steps = STEPS;
 
@@ -1140,6 +1277,87 @@ export function mountVerifier(root) {
     if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
     if (markUrl) { URL.revokeObjectURL(markUrl); markUrl = null; }
   };
+
+  /* ── 한 화면에 한 걸음 ────────────────────────────────
+     전에는 고르는 칸, 검사 진행, 결과가 한 문서에 차례로 쌓였습니다.
+     그래서 결과를 보려면 지나온 것을 지나쳐 내려가야 했고, 결과 자체도
+     길어서 판정과 받는 자리가 한 화면에 같이 잡히지 않았습니다.
+
+     지금은 셋을 같은 자리에서 갈아 끼우고 되돌아갈 자리를 위에 둡니다.
+     브라우저·기기의 뒤로가기도 같은 곳으로 갑니다 — 결과 화면에서 뒤로를
+     누른 사람이 사이트 밖으로 튕겨 나가지 않게 하려는 것입니다. */
+  const STEP_LABEL = {
+    run: '2 / 4 · 검사',
+    result: '3 / 4 · 결과',
+    claim: '4 / 4 · 받기',
+  };
+
+  const paintStep = () => {
+    document.querySelector('.main--tool')?.classList.toggle('is-stepping', step !== 'pick');
+    lanes.hidden = step !== 'pick';
+    runArea.hidden = step !== 'run';
+    output.hidden = step !== 'result' && step !== 'claim';
+    extras.forEach((el) => { el.hidden = step !== 'pick'; });
+
+    // 결과와 받기는 같은 출력 상자를 나눠 씁니다. 측정은 한 번뿐입니다.
+    const resultBody = output.querySelector('[data-result-body]');
+    const claimBody = output.querySelector('[data-claim-body]');
+    if (resultBody) resultBody.hidden = step === 'claim';
+    if (claimBody) claimBody.hidden = step !== 'claim';
+
+    if (stepbar) stepbar.hidden = step === 'pick';
+    if (stepLabel) stepLabel.textContent = STEP_LABEL[step] || '';
+    if (stepBackText) {
+      stepBackText.textContent = step === 'claim' ? '결과로 돌아가기'
+        : step === 'result' && current?.mode === 'deep' ? '간단 검사 결과로'
+          : '다른 작업물 고르기';
+    }
+  };
+
+  /** 화면을 갈아 끼우고 맨 위에서 다시 시작합니다. 걸음마다 위에서 읽습니다. */
+  const goStep = (next, push = true) => {
+    step = next;
+    paintStep();
+    if (push && next !== 'pick') {
+      history.pushState({ ultariStep: next }, '');
+      pushed += 1;
+    }
+    toStepTop();
+  };
+
+  /* 걸음이 바뀔 때마다 그 걸음의 머리로 올립니다. 걸음 안에서는 옮기지 않습니다.
+     고르는 화면에서는 페이지 머리말까지 보여야 하고, 검사와 결과에서는
+     머리말이 접히므로 도구 영역이 곧 첫 줄입니다. */
+  function toStepTop() {
+    const top = step === 'pick'
+      ? (document.querySelector('.page-head--tool') || root)
+      : root;
+    top.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }
+
+  /** 되돌아가기. 재는 중에는 움직이지 않습니다. */
+  const goBack = () => {
+    if (busy) return false;
+    if (step === 'claim') { goStep('result', false); return true; }
+    if (step === 'result' && current?.mode === 'deep') { swapMode(); return true; }
+    reset();
+    return true;
+  };
+
+  window.addEventListener('popstate', (e) => {
+    if (!root.isConnected) return;
+    pushed = Math.max(0, pushed - 1);
+    if (busy) {
+      // 재는 중에 빠져나가지 않게 칸을 도로 밀어 넣습니다.
+      history.pushState({ ultariStep: step }, '');
+      pushed += 1;
+      return;
+    }
+    if (step === 'pick') return;   // 이미 처음이면 브라우저에 맡깁니다
+    void 0;
+    goBack();
+    void e;
+  });
 
   const reset = () => {
     revoke();
@@ -1152,11 +1370,10 @@ export function mountVerifier(root) {
     readyBox.hidden = true;
     progress.hidden = true;
     if (stepList) stepList.innerHTML = '';
-    lanes.hidden = false;
     root.querySelectorAll('input[type="file"]').forEach((i) => { i.value = ''; });
     // 견본을 못 받았다는 줄이 다음 사람에게 남아 있으면 안 됩니다.
     root.querySelectorAll('[data-sample-state]').forEach((el) => { el.textContent = ''; });
-    bringIntoView(lanes, 'nearest');
+    goStep('pick', false);
   };
 
   /** 같은 사진을 다른 검사 방식으로 다시 봅니다. 측정은 다시 하지 않습니다. */
@@ -1205,7 +1422,7 @@ export function mountVerifier(root) {
       paintEta();
     }
     if (current.bundle.result.grade) await refreshMarkPreview();
-    bringIntoView(output, 'start');
+    paintStep();
   };
 
   const stepList = root.querySelector('[data-steps]');
@@ -1251,10 +1468,26 @@ export function mountVerifier(root) {
    */
   const stripSampleApply = () => {
     if (!current || !current.sample) return;
-    output.querySelectorAll('[data-apply]').forEach((el) => el.remove());
+    output.querySelectorAll('[data-apply], [data-archive-box]').forEach((el) => el.remove());
     output.querySelectorAll(
       '[data-action="swap-mode"], [data-action="apply-open"], [data-action="archive-open"]',
     ).forEach((el) => el.remove());
+
+    /* 등록 칸을 떼고 나면 받기 칸에 마크만 남거나 아무것도 남지 않습니다.
+       제목만 있고 속이 빈 상자는 무언가 깨진 것처럼 보이므로 통째로 지우고,
+       마크만 남았으면 앞의 번호를 뗍니다 — 한 가지뿐인데 "1"이 붙어 있으면
+       뒤에 더 있다가 사라진 것처럼 읽힙니다. */
+    const claim = output.querySelector('.claim-panel');
+    if (claim) {
+      if (!claim.querySelector('.claim-item')) claim.remove();
+      else claim.querySelectorAll('.claim-no').forEach((el) => el.remove());
+    }
+    /* 받을 것이 하나도 남지 않았으면 그리로 가는 안내와 칸을 함께 뗍니다.
+       누를 곳이 있는데 눌러 봐야 빈 화면이면 그것이 더 나쁩니다. */
+    if (!output.querySelector('.claim-panel')) {
+      output.querySelector('[data-claim-cta]')?.remove();
+      output.querySelector('[data-claim-body]')?.remove();
+    }
 
     const end = output.querySelector('.end-actions');
     if (!end) return;
@@ -1307,7 +1540,7 @@ export function mountVerifier(root) {
         : `${KIND_LABEL[kind]} · ${MODE_LABEL[mode]}로 ${steps.length}단계를 잰 뒤 판정합니다.`;
     readyBox.hidden = false;
     paintIcons(runArea);
-    bringIntoView(runArea, 'start');
+    goStep('run');
   };
 
   /* 2단계 — 실제 측정. 진행이 보이고, 끝나면 결과가 남습니다. */
@@ -1332,6 +1565,7 @@ export function mountVerifier(root) {
       output.innerHTML = renderResult(bundle, mode);
       paintIcons(output);
       stripSampleApply();
+      goStep('result');
       if (mode === 'deep') paintEta();
       if (bundle.result.grade) await refreshMarkPreview();
     } catch (err) {
@@ -1583,6 +1817,7 @@ export function mountVerifier(root) {
     const password2 = applyEl('[data-apply-pw2]')?.value || '';
     const note = applyEl('[data-apply-note]')?.value?.trim() || '';
     const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
+    const payout = readPayout('apply');
     // 등록만 하러 온 건은 고를 것이 없으므로 언제나 등록입니다.
     const archive = grade === 3 || applyEl('[data-apply-archive]')?.value !== 'no';
 
@@ -1618,6 +1853,7 @@ export function mountVerifier(root) {
         contact,
         password,
         note,
+        payout,
         summary: summaryFor(current.bundle).join(String.fromCharCode(10)),
         fingerprint: current.bundle.print?.short || '',
         onProgress: (v) => {
@@ -1636,6 +1872,93 @@ export function mountVerifier(root) {
       button.disabled = false;
       bar.hidden = true;
       say(err.message || '접수에 실패했습니다.', true);
+    }
+  };
+
+  /**
+   * 계좌 세 칸을 하나로 모읍니다. 셋 다 비어 있으면 아무것도 보내지 않습니다 —
+   * 빈 문자열을 보내면 서버에 "계좌를 적었는데 비어 있다"는 기록이 남습니다.
+   */
+  const readPayout = (prefix) => {
+    const get = (k) => applyEl(`[data-${prefix}-${k}]`)?.value?.trim() || '';
+    const holder = get('holder');
+    const bank = get('bank');
+    const account = get('account');
+    if (!holder && !bank && !account) return null;
+    return { holder, bank, account };
+  };
+
+  /**
+   * 아카이브 등록 — 결과 화면의 받기 칸에서 그대로 끝냅니다.
+   *
+   * 심사 신청과 같은 접수 경로(grade 3)를 씁니다. 다른 경로를 하나 더 두면
+   * 접수번호 체계와 대기 색인이 갈립니다.
+   */
+  const sendArchive = async (button) => {
+    if (!current) return;
+    const box = output.querySelector('[data-archive-box]');
+    if (!box) return;
+    const msg = applyEl('[data-arc-msg]');
+    const bar = applyEl('[data-arc-bar]');
+    const fill = applyEl('[data-arc-fill]');
+    const pct = applyEl('[data-arc-pct]');
+    const contact = applyEl('[data-arc-contact]')?.value?.trim() || '';
+    const password = applyEl('[data-arc-pw]')?.value || '';
+    const payout = readPayout('arc');
+
+    const say = (text, bad = false) => {
+      if (!msg) return;
+      msg.hidden = false;
+      msg.textContent = text;
+      msg.classList.toggle('is-bad', bad);
+    };
+
+    if (contact.length < 5) { say('연락받을 메일 주소나 전화번호를 적어 주세요.', true); return; }
+    if (password.length < MIN_PASSWORD) {
+      say(`조회 비밀번호를 ${MIN_PASSWORD}자 이상으로 정해 주세요. 이 비밀번호로 현황을 보십니다.`, true);
+      return;
+    }
+    if (payout && (!payout.holder || !payout.bank || !payout.account)) {
+      say('계좌를 적으시려면 예금주·은행·계좌번호를 모두 적어 주세요. 비워 두셔도 등록은 됩니다.', true);
+      return;
+    }
+    if (current.file.size > MAX_UPLOAD) {
+      say(`파일이 ${Math.round(MAX_UPLOAD / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 등록해 주세요.`, true);
+      return;
+    }
+
+    button.disabled = true;
+    bar.hidden = false;
+    say('파일을 올려 아카이브에 등록하고 있습니다. 이 창을 닫지 마세요.');
+
+    try {
+      const r = await submitApplication({
+        file: current.file,
+        grade: 3,
+        archive: true,
+        contact,
+        password,
+        note: '',
+        payout,
+        summary: summaryFor(current.bundle).join(String.fromCharCode(10)),
+        fingerprint: current.bundle.print?.short || '',
+        onProgress: (v) => {
+          const n = Math.round(v);
+          fill.style.width = `${n}%`;
+          pct.innerHTML = `${n}<small>%</small>`;
+        },
+      });
+      rememberApplication({ id: r.id, token: r.token, grade: r.grade, createdAt: r.createdAt, etaDate: r.etaDate });
+      say(payout ? '등록됐습니다. 계좌도 함께 적어 두었습니다.' : '등록됐습니다.');
+      applyEl('[data-arc-done]').innerHTML = renderReceipt(r);
+      // 다 적은 칸을 그대로 두면 새로고침 없이 또 보낼 수 있습니다.
+      box.querySelectorAll('input').forEach((el) => { el.disabled = true; });
+      paintMine();
+      bringIntoView(applyEl('[data-arc-done]'), 'center');
+    } catch (err) {
+      button.disabled = false;
+      bar.hidden = true;
+      say(err.message || '등록에 실패했습니다.', true);
     }
   };
 
@@ -1834,10 +2157,18 @@ export function mountVerifier(root) {
     if (!el) return;
     const act = el.dataset.action;
     if (act === 'start') { e.preventDefault(); start(); }
+    if (act === 'claim-open') { e.preventDefault(); goStep('claim'); }
+    if (act === 'back') {
+      e.preventDefault();
+      // 밀어 넣은 칸이 있으면 브라우저 기록을 통해 돌아갑니다. 그래야 기기의
+      // 뒤로가기와 화면의 뒤로가기가 같은 자리를 가리킵니다.
+      if (pushed > 0) history.back(); else goBack();
+    }
     if (act === 'swap-mode') { e.preventDefault(); swapMode(); }
     if (act === 'apply-open') { e.preventDefault(); openApplyForm(); }
     if (act === 'archive-open') { e.preventDefault(); openArchive(); return; }
     if (act === 'apply-send') { e.preventDefault(); sendApplication(el); }
+    if (act === 'archive-send') { e.preventDefault(); sendArchive(el); }
     if (act === 'apply-summary') { e.preventDefault(); toggleSummary(); }
     if (act === 'copy-receipt') { e.preventDefault(); copyReceipt(el); }
     if (act === 'check-status') { e.preventDefault(); showStatus(el.dataset.id, el.dataset.token); }
@@ -1924,6 +2255,7 @@ export function mountVerifier(root) {
 
   paintIcons(root);
   paintMine();
+  paintStep();
 }
 
 mountVerifier(document.querySelector('[data-verifier]'));

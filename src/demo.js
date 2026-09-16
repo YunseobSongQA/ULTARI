@@ -42,8 +42,12 @@ const judge = (bundle) => ({
  * 마크는 원본에 새기는 것이고 신청은 원본을 올리는 것이라, 견본에는 둘 다 없습니다.
  */
 function stripLiveParts(scope) {
-  scope.querySelectorAll('[data-watermark], .top-actions, .end-actions, [data-apply]')
-    .forEach((el) => el.remove());
+  /* 받기 칸은 통째로 뗍니다. 견본에는 원본 파일이 없어 마크를 새길 수도,
+     등록할 파일을 올릴 수도 없습니다. 안내만 남겨 두면 눌러도 아무 일이
+     일어나지 않는 버튼이 됩니다 — 이 페이지에는 걸음을 옮길 것이 없습니다. */
+  scope.querySelectorAll(
+    '[data-claim-body], .claim-cta, .claim-panel, [data-watermark], .top-actions, .end-actions, [data-apply]',
+  ).forEach((el) => el.remove());
 }
 
 function paint(id) {
@@ -59,8 +63,9 @@ function paint(id) {
   stripLiveParts(out);
   out.insertAdjacentHTML('beforeend', `
     <p class="demo-tail">
-      실제 화면에는 여기에 인증 마크 내려받기와 상세 검사 신청서가 붙습니다.
-      둘 다 원본 파일이 있어야 하는 자리라 견본에서는 떼어 냈습니다.
+      실제 화면에는 여기에 인증 마크 내려받기와, 아카이브에 등록하고 배분받을
+      계좌를 적는 칸이 붙습니다. 둘 다 원본 파일이 있어야 하는 자리라
+      견본에서는 떼어 냈습니다.
       <a href="/verify">직접 파일을 올려 보시려면 검증 화면으로</a>.
     </p>`);
   paintIcons(out);

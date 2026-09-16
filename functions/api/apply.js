@@ -74,6 +74,17 @@ export async function onRequestPost({ request, env }) {
   }
 
   const note = safeText(form.get('note'), LIMITS.maxNote);
+
+  /* 배분받을 계좌. 셋을 다 적었을 때만 기록합니다.
+     한둘만 적힌 계좌는 정산할 때 쓰지 못하므로 남겨 둘 이유가 없고,
+     남겨 두면 "계좌를 받아 뒀다"고 잘못 세게 됩니다. */
+  const payoutHolder = safeText(form.get('payoutHolder'), LIMITS.maxPayoutHolder);
+  const payoutBank = safeText(form.get('payoutBank'), LIMITS.maxPayoutBank);
+  const payoutAccount = safeText(form.get('payoutAccount'), LIMITS.maxPayoutAccount);
+  const payout = (payoutHolder && payoutBank && payoutAccount)
+    ? { holder: payoutHolder, bank: payoutBank, account: payoutAccount }
+    : null;
+
   const summary = safeText(form.get('summary'), LIMITS.maxNote);
   const fingerprint = safeText(form.get('fingerprint'), 80);
 
@@ -137,6 +148,7 @@ export async function onRequestPost({ request, env }) {
     status: reviewed ? 'received' : 'archived',
     contact,
     note,
+    payout,
     summary,
     fingerprint,
     file: {

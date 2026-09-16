@@ -75,6 +75,18 @@
       </div>
 
       <section data-verifier>
+
+        <!-- 한 화면에 한 걸음만 둡니다. 고르기 → 검사 → 결과가 같은 자리에서
+             갈아 끼워지고, 되돌아갈 자리를 이 막대가 들고 있습니다.
+             스크립트가 단계를 옮기므로 스크립트가 없으면 내놓지 않습니다. -->
+        <div class="stepbar" data-stepbar hidden>
+          <button class="stepbar-back" type="button" data-action="back">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M19 12H6M11 18l-6-6 6-6"/></svg>
+            <span data-step-back>뒤로</span>
+          </button>
+          <span class="stepbar-now" data-step-label></span>
+        </div>
+
         <div data-lanes>
 
         <!-- 파일을 고르기 전에 먼저 눌러 볼 자리입니다. 그래서 투입구보다
@@ -158,7 +170,7 @@
 
         <div data-output></div>
 
-        <details class="fold fold--lookup" id="lookup" data-lookup>
+        <details class="fold fold--lookup" id="lookup" data-lookup data-extra>
           <summary>상세 검사 현황 조회<span class="hint">신청할 때 적은 연락처와 비밀번호로</span></summary>
           <div class="fold-body">
             <div class="apply-grid">
@@ -180,7 +192,7 @@
         </details>
       </section>
 
-      <div class="folds">
+      <div class="folds" data-extra>
         <p class="folds-title">더 알고 싶으시면</p>
 
         <details class="fold">
