@@ -23,111 +23,125 @@
         <div class="nav-drop" data-nav-drop>
           <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-apply">신청<span class="chev" aria-hidden="true"></span></button>
           <div class="nav-panel" id="nav-apply" data-nav-panel>
-            <div class="shell nav-panel-inner">
-              <div class="nav-col">
-                <p class="nav-col-title">검증</p>
-                <a href="/verify">간단 검사<span class="sub">30초 · 기계가 판정 · 최대 3등급</span></a>
-                <a href="/verify?mode=deep">상세 검사<span class="sub">심사자가 직접 봅니다 · 최대 1등급</span></a>
-                <a href="/verify#lookup">현황 조회<span class="sub">신청한 건이 어디까지 왔는지</span></a>
-              </div>
-              <div class="nav-col">
-                <p class="nav-col-title">기준</p>
-                <a href="/how">검증 원리<span class="sub">무엇을 왜 재는가</span></a>
-                <a href="/grades">등급<span class="sub">1·2·3등급의 차이</span></a>
-                <a href="/limits">한계<span class="sub">이 검증이 못 하는 것</span></a>
-              </div>
-              <div class="nav-col">
-                <p class="nav-col-title">원본</p>
-                <a href="/archive">오리지널 아카이브<span class="sub">맡기면 나중에 몫이 생깁니다</span></a>
-                <a href="/roadmap">로드맵<span class="sub">다음에 만드는 것</span></a>
-              </div>
-              <div class="nav-col">
-                <p class="nav-col-title">읽을거리</p>
-                <a href="/articles">글 목록<span class="sub">매체별로 묶어 두었습니다</span></a>
-                <a href="/privacy">개인정보 처리방침</a>
-                <a href="/terms">이용약관</a>
-              </div>
+            <div class="shell nav-panel-inner nav-panel-inner--apply">
+            <div class="nav-col" style="--i:0">
+              <p class="nav-col-title">검증</p>
+              <a href="/verify">간단 검사</a>
+              <a href="/verify?mode=deep">상세 검사</a>
+              <a href="/verify#lookup">현황 조회</a>
+            </div>
+            <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">기준</p>
+              <a href="/how">검증 원리</a>
+              <a href="/grades">등급</a>
+              <a href="/limits">한계</a>
+            </div>
+            <div class="nav-col" style="--i:2">
+              <p class="nav-col-title">원본</p>
+              <a href="/archive">오리지널 아카이브</a>
+            </div>
             </div>
           </div>
         </div>
-        <a href="/about" aria-current="page">소개</a>
+        <div class="nav-drop is-here" data-nav-drop>
+          <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-about">소개<span class="chev" aria-hidden="true"></span></button>
+          <div class="nav-panel" id="nav-about" data-nav-panel>
+            <div class="shell nav-panel-inner nav-panel-inner--about">
+            <div class="nav-col" style="--i:0">
+              <p class="nav-col-title">울타리</p>
+              <a href="/about" aria-current="page">어바웃 어스</a>
+              <a href="/roadmap">로드맵</a>
+              <a href="/articles">읽을거리</a>
+            </div>
+            <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">문서</p>
+              <a href="/privacy">개인정보 처리방침</a>
+              <a href="/terms">이용약관</a>
+            </div>
+            </div>
+          </div>
+        </div>
       </nav>
     </div>
   </header>
 
-  <main id="main">
-    <div class="shell">
+  <main id="main" class="main--about">
 
-      <div class="about-head">
-        <p class="kicker">ABOUT US</p>
-        <h1>사람이 만든 것에 울타리를 칩니다</h1>
-        <p class="about-lede">사진·영상·음악에 남은 촬영과 녹음의 흔적을 재서 등급으로 돌려드립니다. <strong>직접 만들었다는 것을 남에게 보일 수 있게</strong> 만들고, 무단 학습에 맞설 근거를 남깁니다.</p>
+    <div class="shell about">
+
+      <p class="kicker">ABOUT US</p>
+      <h1 class="about-title">무단 학습을 막는<br>울타리를 제공합니다</h1>
+      <p class="about-lede">사람이 만든 것과 AI가 만든 것의 경계가 무너지는 중이고, 인간 창작물의 권리 규정은 아직 없습니다. 그 사이에 울타리를 칩니다.</p>
+
+      <ol class="about-flow">
+        <li>
+          <span class="n">01</span>
+          <p><b>울타리를 칩니다</b>인간의 창작물을 무단으로 학습해 가는 것을 막는 울타리입니다. 누가 언제 무엇을 만들었고 어떤 쓰임을 거부했는지가 기록으로 남습니다.</p>
+        </li>
+        <li>
+          <span class="n">02</span>
+          <p><b>AI에게도 좋지 않습니다</b>울타리가 없는 창작물을 광범위하게 무작위로 긁어 학습하면 출처도, 권리도, 품질도 알 수 없습니다. 생성물로 학습한 생성물이 쌓이면 모델은 무너집니다.</p>
+        </li>
+        <li>
+          <span class="n">03</span>
+          <p><b>울타리 안의 것을 모아 팝니다</b>창작자가 허락한 범위에서, 학습에 쓸 수 있도록 묶어 냅니다. 출처가 확인되고 권리가 정리된 원본입니다.</p>
+        </li>
+        <li>
+          <span class="n">04</span>
+          <p><b>수익은 사람에게 돌아갑니다</b>창작자의 권리에 맞는 비용을 청구해, 만든 사람에게 돌려줍니다. 한쪽이 이기는 구조가 아닙니다.</p>
+        </li>
+      </ol>
+
+      <div class="about-go">
+        <a class="btn" href="/verify">검증하기</a>
+        <a class="btn btn--ghost" href="/archive">원본 맡기기</a>
       </div>
 
-      <section class="about-part">
-        <h2>지금</h2>
-        <p class="about-say">AI 기업은 이미 자기 울타리를 세웠습니다.</p>
-        <p>사람들의 창작물을 학습시켜 그 안에서 시장을 만들고 있습니다. 그런데 인간 창작물의 권리에 대한 규정은 아직 명확하지 않고, AI가 만든 2차 창작물과 사람의 창작물의 경계도 무너지는 중입니다. 지금은 그 경계에 서 있는 시점입니다.</p>
-        <p>규정이 생긴 뒤에 시작하면 늦습니다. 그때 필요한 것은 “누가 언제 무엇을 만들었는가”의 기록인데, 그 기록은 소급해서 만들 수 없습니다. 그래서 사람의 창작물을 검증하는 일을 <strong>먼저 시작합니다.</strong></p>
+    </div>
+
+    <!-- 세부는 작은 글씨로 아래에 둡니다. 위에서 한 눈에 보고 나가도
+         되고, 더 볼 사람만 내려오면 됩니다. -->
+    <div class="shell about-fine">
+
+      <section>
+        <h2>무엇을 재나</h2>
+        <p>사진·영상·음악에 남은 촬영과 녹음의 흔적을 잽니다. 유리를 지난 빛에만 생기는 결함, 빛이 알갱이라서 생기는 노이즈, 마이크 앞의 공기.</p>
+        <p>흉내 내기 어려운 것만 씁니다. 그레인을 얹는 것으로는 통과하지 못합니다.</p>
+        <p><a href="/how">무엇을 왜 재는지</a> · <a href="/grades">등급이 무엇인지</a></p>
       </section>
 
-      <section class="about-part">
-        <h2>한쪽이 이기는 구조가 아닙니다</h2>
-        <div class="about-grid about-grid--two">
-          <div class="about-cell">
-            <p class="n">만든 사람</p>
-            <h3>권리를 인정받고 수익을 받습니다</h3>
-            <p>아카이브에 등록해 둔 창작물은 원본·지문·시점과 거부 의사가 함께 남습니다. 그 기록이 있으면 무단 학습을 추적할 수 있고, 정당한 대가를 요구할 수 있습니다.</p>
-          </div>
-          <div class="about-cell">
-            <p class="n">AI를 만드는 쪽</p>
-            <h3>비용을 내고 양질의 원본을 받습니다</h3>
-            <p>생성물로 학습한 생성물이 쌓이면 모델은 무너집니다. 출처가 확인되고 권리가 정리된 원본은 그때 대체할 수 없는 자원이 됩니다. 긁어 가는 것보다 계약하는 쪽이 싸지는 지점이 옵니다.</p>
-          </div>
-        </div>
-        <p class="about-note">권리를 지키는 일과 좋은 모델을 만드는 일이 같은 방향을 보는 구조입니다. 그 자리가 생기려면 누가 만들었는지가 먼저 기록돼 있어야 합니다.</p>
-      </section>
-
-      <!-- 광고 영역: AdSense 승인 후 여기에 슬롯을 넣습니다. 승인 전에는 비워 둡니다. -->
-      <div class="ad-slot" data-ad-slot="in-article"></div>
-
-      <section class="about-part">
+      <section>
         <h2>누가 운영하나</h2>
-        <p class="about-say">글로벌 이커머스와 금융권에서 품질을 검증해 온 QA가 운영합니다.</p>
-        <p>결제와 거래처럼 틀리면 안 되는 것을 검증해 온 일입니다. 이 서비스가 하는 일도 성격이 같습니다 — <strong>무엇을 어디까지 확인했는지 적고, 확인하지 못한 것은 확인하지 못했다고 적는 일.</strong> 그래서 이 사이트는 등급만 던지지 않고 잰 값을 전부 보여 주고, 못 하는 것도 따로 적어 둡니다.</p>
+        <p>글로벌 이커머스와 금융권에서 품질을 검증해 온 QA가 운영합니다. 결제와 거래처럼 틀리면 안 되는 것을 검증해 온 일입니다.</p>
+        <p>그래서 이 사이트는 등급만 던지지 않습니다. 무엇을 어디까지 확인했는지 적고, 확인하지 못한 것은 확인하지 못했다고 적습니다.</p>
+        <p><a data-contact href="mailto:hello@ultari.kr">hello@ultari.kr</a></p>
       </section>
 
-      <section class="about-part">
+      <section>
         <h2>하지 않는 것</h2>
-        <ul class="about-nots">
-          <li><b>AI 이미지를 탐지하지 않습니다.</b> 재는 것은 촬영의 흔적이고, 없는 흔적은 증거가 아닙니다.</li>
-          <li><b>정확도를 숫자로 말하지 않습니다.</b> 표본 없이 말하는 정확도는 지어낸 숫자입니다.</li>
+        <ul>
+          <li><b>AI 이미지를 탐지하지 않습니다.</b> 없는 흔적은 증거가 아닙니다.</li>
+          <li><b>정확도를 숫자로 말하지 않습니다.</b> 표본 없는 정확도는 지어낸 숫자입니다.</li>
           <li><b>학습을 기술적으로 막지 못합니다.</b> 만드는 것은 차단이 아니라 근거입니다.</li>
           <li><b>파일을 받지 않습니다.</b> 간단 검사는 브라우저 안에서 끝납니다.</li>
-          <li><b>대기열을 부풀리지 않습니다.</b> 0건이면 0건이라고 적습니다.</li>
         </ul>
-        <p style="margin-top:18px;font-size:14px"><a href="/how">무엇을 재는지</a> · <a href="/grades">등급이 무엇인지</a> · <a href="/limits">못 하는 것 전부</a></p>
+        <p><a href="/limits">못 하는 것 전부</a></p>
       </section>
 
-      <section class="about-part">
+      <section>
         <h2>지금 상태</h2>
-        <div class="panel">
-          <p class="panel-title">없는 실적을 있는 것처럼 적지 않습니다</p>
-          <dl class="def-list">
-            <div><dt>간단 검사</dt><dd>동작합니다. 지금 올려 보시면 나옵니다.</dd></div>
-            <div><dt>사람 심사</dt><dd>2등급 <span data-queue-grade2>현재 대기 0건.</span> 1등급 <span data-queue-grade1>현재 대기 0건.</span></dd></div>
-            <div><dt>아카이브</dt><dd><span data-queue-archive>현재 보관 0건.</span> 판매와 배분 이력은 아직 없습니다.</dd></div>
-            <div><dt>무단 학습 추적</dt><dd>착수한 건이 아직 없습니다. 생기면 아카이브 페이지에 적습니다.</dd></div>
-            <div><dt>연락처</dt><dd><a data-contact href="mailto:hello@ultari.kr">hello@ultari.kr</a></dd></div>
-          </dl>
-        </div>
-        <div class="end-actions">
-          <a class="btn" href="/verify">검증하기</a>
-          <a class="btn btn--ghost" href="/archive">원본 맡기기</a>
-        </div>
+        <ul>
+          <li>간단 검사 — 동작합니다</li>
+          <li>사람 심사 — 2등급 <span data-queue-grade2>현재 대기 0건.</span></li>
+          <li>아카이브 — <span data-queue-archive>현재 보관 0건.</span></li>
+          <li>판매·배분 이력 — 없습니다</li>
+          <li>추적 착수 — 없습니다</li>
+        </ul>
+        <p>없는 실적을 있는 것처럼 적지 않습니다. 0건이면 0건이라고 씁니다.</p>
       </section>
 
     </div>
+
   </main>
 
   <footer class="site-foot">

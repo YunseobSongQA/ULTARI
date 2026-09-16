@@ -23,34 +23,44 @@
         <div class="nav-drop is-here" data-nav-drop>
           <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-apply">신청<span class="chev" aria-hidden="true"></span></button>
           <div class="nav-panel" id="nav-apply" data-nav-panel>
-            <div class="shell nav-panel-inner">
-              <div class="nav-col">
-                <p class="nav-col-title">검증</p>
-                <a href="/verify">간단 검사<span class="sub">30초 · 기계가 판정 · 최대 3등급</span></a>
-                <a href="/verify?mode=deep">상세 검사<span class="sub">심사자가 직접 봅니다 · 최대 1등급</span></a>
-                <a href="/verify#lookup">현황 조회<span class="sub">신청한 건이 어디까지 왔는지</span></a>
-              </div>
-              <div class="nav-col">
-                <p class="nav-col-title">기준</p>
-                <a href="/how">검증 원리<span class="sub">무엇을 왜 재는가</span></a>
-                <a href="/grades">등급<span class="sub">1·2·3등급의 차이</span></a>
-                <a href="/limits">한계<span class="sub">이 검증이 못 하는 것</span></a>
-              </div>
-              <div class="nav-col">
-                <p class="nav-col-title">원본</p>
-                <a href="/archive" aria-current="page">오리지널 아카이브<span class="sub">맡기면 나중에 몫이 생깁니다</span></a>
-                <a href="/roadmap">로드맵<span class="sub">다음에 만드는 것</span></a>
-              </div>
-              <div class="nav-col">
-                <p class="nav-col-title">읽을거리</p>
-                <a href="/articles">글 목록<span class="sub">매체별로 묶어 두었습니다</span></a>
-                <a href="/privacy">개인정보 처리방침</a>
-                <a href="/terms">이용약관</a>
-              </div>
+            <div class="shell nav-panel-inner nav-panel-inner--apply">
+            <div class="nav-col" style="--i:0">
+              <p class="nav-col-title">검증</p>
+              <a href="/verify">간단 검사</a>
+              <a href="/verify?mode=deep">상세 검사</a>
+              <a href="/verify#lookup">현황 조회</a>
+            </div>
+            <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">기준</p>
+              <a href="/how">검증 원리</a>
+              <a href="/grades">등급</a>
+              <a href="/limits">한계</a>
+            </div>
+            <div class="nav-col" style="--i:2">
+              <p class="nav-col-title">원본</p>
+              <a href="/archive" aria-current="page">오리지널 아카이브</a>
+            </div>
             </div>
           </div>
         </div>
-        <a href="/about">소개</a>
+        <div class="nav-drop" data-nav-drop>
+          <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-about">소개<span class="chev" aria-hidden="true"></span></button>
+          <div class="nav-panel" id="nav-about" data-nav-panel>
+            <div class="shell nav-panel-inner nav-panel-inner--about">
+            <div class="nav-col" style="--i:0">
+              <p class="nav-col-title">울타리</p>
+              <a href="/about">어바웃 어스</a>
+              <a href="/roadmap">로드맵</a>
+              <a href="/articles">읽을거리</a>
+            </div>
+            <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">문서</p>
+              <a href="/privacy">개인정보 처리방침</a>
+              <a href="/terms">이용약관</a>
+            </div>
+            </div>
+          </div>
+        </div>
       </nav>
     </div>
   </header>
