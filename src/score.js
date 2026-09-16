@@ -12,6 +12,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { SYNTH_T } from './verify/synthesis.js';
+
 /** 배점. 합이 100입니다. 여기만 고치면 전체 수치가 따라 바뀝니다. */
 export const WEIGHTS = {
   exif: 25,          // 촬영 정보 — 기기와 시각이 남아 있는가
@@ -363,7 +365,7 @@ export function synthesisSignals(b) {
     const odd = sp.measurable && !sp.natural;
     rows.push({
       label: '주파수 감쇠',
-      basis: `자연 영상의 기울기 α ${1.4}~${3.2}`,
+      basis: `자연 영상의 기울기 α ${SYNTH_T.slopeNaturalLow}~${SYNTH_T.slopeNaturalHigh}`,
       got: sp.alpha == null ? '측정 불가'
         : `α=${sp.alpha.toFixed(2)}${odd ? (sp.tooSteep ? ' — 고주파가 모자람' : ' — 고주파가 과함') : ''}`,
       side: odd ? 'ai' : 'unknown',
