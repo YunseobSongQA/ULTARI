@@ -1914,22 +1914,14 @@ main.main--about { padding-block: 0; }
 }
 .claim-lead strong { color: var(--ink); font-weight: 600; }
 
-/* 배분받을 계좌. 신청서와 받기 칸이 같은 모양을 씁니다. */
-.payout {
-  border: 1px solid var(--rule-strong); background: var(--surface);
-  padding: 16px 18px 4px; margin: 4px 0 16px;
+/* 아직 없는 것을 적어 두는 줄. 있는 것처럼 보이지 않게 바탕을 깔지 않고,
+   경고 색도 쓰지 않습니다 — 잘못된 것이 아니라 아직 안 만든 것입니다. */
+.later-note {
+  margin: 4px 0 18px; padding-left: 14px;
+  border-left: 2px solid var(--rule-strong);
+  font-size: 13px; line-height: 1.7; color: var(--ink-3); max-width: 64ch;
 }
-.payout-legend {
-  font-size: 12.5px; color: var(--ink-2); padding: 0 7px; margin-left: -7px;
-}
-.payout-legend em { font-style: normal; color: var(--ink-3); margin-left: 5px; }
-.payout-note {
-  margin: 2px 0 14px; font-size: 12.5px; line-height: 1.7; color: var(--ink-3);
-  max-width: 64ch;
-}
-.payout-note strong { color: var(--warn); font-weight: 600; }
-.apply-grid--three { grid-template-columns: 1fr 1fr 1fr; }
-@media (max-width: 760px) { .apply-grid--three { grid-template-columns: 1fr; } }
+.later-note b { color: var(--ink-2); font-weight: 600; }
 
 /* ── 랜딩 첫 화면 ───────────────────────────────────────
    무엇을 받는지가 먼저 읽히고, 누를 자리가 바로 옆에 있어야 합니다. */
@@ -1992,4 +1984,41 @@ main.main--about { padding-block: 0; }
 }
 .claim-cta-line {
   margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink); max-width: 52ch;
+}
+
+/* ── 시험 운영 띠 ────────────────────────────────────────
+   모든 페이지 화면 아래에 고정. 닫히지 않습니다 — 시험 중이라는 사실은
+   한 번 읽고 넘길 것이 아니라 계속 사실이기 때문입니다.
+
+   위가 아니라 아래인 이유는 배치입니다. 랜딩의 상단 바가 fixed이고 화면들이
+   100svh로 붙어 있어서, 위에 끼우면 그 높이만큼 전부 어긋납니다. */
+.trial-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  border-top: 1px solid var(--rule-strong);
+  background: var(--tint-warn);
+}
+/* 띠가 푸터 마지막 줄을 덮지 않게 그만큼 비워 둡니다. */
+.site-foot { padding-bottom: 96px; }
+@media (max-width: 620px) { .site-foot { padding-bottom: 132px; } }
+.trial-inner {
+  display: flex; align-items: baseline; gap: 12px;
+  padding-block: 9px; flex-wrap: wrap;
+}
+.trial-tag {
+  flex: none; font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--warn); border: 1px solid var(--warn); padding: 2px 7px;
+}
+.trial-line {
+  margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-2);
+  max-width: 88ch;
+}
+.trial-line b { color: var(--ink); font-weight: 600; }
+.trial-line a { color: var(--ink-2); border-bottom-color: var(--rule-strong); }
+.trial-line a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* 랜딩은 화면을 붙여 쓰므로 띠 높이만큼 첫 화면이 밀립니다. 릴 높이는
+   그대로 두고 띠를 흐름 안에 두면 마지막 화면에서 푸터가 겹칩니다. */
+@media (max-width: 620px) {
+  .trial-inner { gap: 8px; padding-block: 8px; }
+  .trial-line { font-size: 12px; }
 }

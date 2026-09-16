@@ -58,9 +58,10 @@ export async function onRequestPost({ request, env }) {
   const rawGrade = String(form.get('grade') ?? '');
   const grade = rawGrade === '1' ? 1 : rawGrade === '3' ? 3 : 2;
   const reviewed = grade !== 3;
-  /* 등록은 기본입니다. 심사만 받고 맡기지 않겠다고 고를 수 있습니다.
-     등록만 하러 온 건(3)은 고를 것이 없습니다. */
-  const archive = reviewed ? form.get('archive') !== 'no' : true;
+  /* 검증한 것은 모두 등록됩니다. 화면에 고르개를 두지 않았고 서버도 고르지
+     않습니다. 거두실 때는 연락처로 말씀하시면 지웁니다 — 접수 순간에 고르게
+     하는 것보다 그쪽이 되돌리기 쉽습니다. */
+  const archive = true;
   const contact = safeText(form.get('contact'), LIMITS.maxContact);
   if (contact.length < 5) {
     return fail('연락받을 메일 주소나 전화번호를 적어 주세요.');
@@ -74,16 +75,6 @@ export async function onRequestPost({ request, env }) {
   }
 
   const note = safeText(form.get('note'), LIMITS.maxNote);
-
-  /* 배분받을 계좌. 셋을 다 적었을 때만 기록합니다.
-     한둘만 적힌 계좌는 정산할 때 쓰지 못하므로 남겨 둘 이유가 없고,
-     남겨 두면 "계좌를 받아 뒀다"고 잘못 세게 됩니다. */
-  const payoutHolder = safeText(form.get('payoutHolder'), LIMITS.maxPayoutHolder);
-  const payoutBank = safeText(form.get('payoutBank'), LIMITS.maxPayoutBank);
-  const payoutAccount = safeText(form.get('payoutAccount'), LIMITS.maxPayoutAccount);
-  const payout = (payoutHolder && payoutBank && payoutAccount)
-    ? { holder: payoutHolder, bank: payoutBank, account: payoutAccount }
-    : null;
 
   const summary = safeText(form.get('summary'), LIMITS.maxNote);
   const fingerprint = safeText(form.get('fingerprint'), 80);
@@ -148,7 +139,6 @@ export async function onRequestPost({ request, env }) {
     status: reviewed ? 'received' : 'archived',
     contact,
     note,
-    payout,
     summary,
     fingerprint,
     file: {

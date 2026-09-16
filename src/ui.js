@@ -706,9 +706,9 @@ export function renderResult(bundle, mode, openForm = false) {
     <div class="claim-item claim-item--archive" data-archive-box>
       <h3 class="claim-head"><span class="claim-no">${isPass ? 2 : 1}</span>아카이브에 등록하고 배분받기</h3>
       <p class="claim-lead">
-        원본과 지문, 등록 시각, 그리고 <strong>어떤 쓰임을 허락하는지</strong>가 함께 남습니다.
-        무단 학습을 추적할 근거가 되고, 학습용으로 팔리면 그 몫이 계좌로 갑니다.
-        ${isPass ? '' : '판정이 통과가 아니어도 등록하실 수 있습니다. 등록은 등급과 별개입니다.'}
+        <strong>검증한 것은 모두 아카이브에 등록됩니다.</strong> 고르실 것이 없습니다.
+        원본과 지문, 등록 시각이 함께 남아 무단 학습을 추적할 근거가 됩니다.
+        ${isPass ? '' : '판정이 통과가 아니어도 등록됩니다. 등록은 등급과 별개입니다.'}
       </p>
 
       <div class="apply-warn">
@@ -728,31 +728,14 @@ export function renderResult(bundle, mode, openForm = false) {
         </label>
       </div>
 
-      <fieldset class="payout">
-        <legend class="payout-legend">배분받을 계좌 <em>지금 비워 두셔도 됩니다</em></legend>
-        <div class="apply-grid apply-grid--three">
-          <label class="fld">
-            <span class="fld-label">예금주</span>
-            <input type="text" data-arc-holder maxlength="60" autocomplete="name">
-          </label>
-          <label class="fld">
-            <span class="fld-label">은행</span>
-            <input type="text" data-arc-bank maxlength="40" placeholder="예: 국민은행">
-          </label>
-          <label class="fld">
-            <span class="fld-label">계좌번호</span>
-            <input type="text" data-arc-account maxlength="40" inputmode="numeric" autocomplete="off">
-          </label>
-        </div>
-        <p class="payout-note">
-          정산할 때만 씁니다. 화면 어디에도 다시 표시하지 않고, 현황 조회 응답에도 넣지 않습니다.
-          <strong>아직 판매도 배분도 이루어진 적이 없습니다.</strong> 처음 정산이 생기면 이 계좌로 갑니다.
-          나중에 연락처로 말씀하시면 계좌만 따로 지워 드립니다.
-        </p>
-      </fieldset>
+      <p class="later-note">
+        <b>배분받을 계좌는 아직 받지 않습니다.</b> 로그인 기능을 붙인 뒤에 계정에서 받습니다.
+        지금 계좌를 받아 두면 로그인이 생겼을 때 어느 계정의 것인지 이어 붙일 수가 없습니다.
+        아직 판매도 배분도 이루어진 적이 없어 급한 자리도 아닙니다.
+      </p>
 
       <div class="btn-row">
-        <button class="btn" type="button" data-action="archive-send">등록하고 배분받기</button>
+        <button class="btn" type="button" data-action="archive-send">아카이브에 등록하기</button>
       </div>
       <div class="apply-bar" data-arc-bar hidden>
         <span class="apply-pct" data-arc-pct>0<small>%</small></span>
@@ -835,41 +818,14 @@ export function renderResult(bundle, mode, openForm = false) {
         나중에 <strong>이 연락처와 비밀번호로</strong> 진행 현황을 보십니다.
         서버에는 비밀번호를 늘려 섞은 값만 남으므로 저희도 원문을 알지 못하고 다시 알려 드릴 수 없습니다.
       </p>
-      <label class="fld">
-        <span class="fld-label">아카이브 등록 <em>등급과 무관하게 모두 등록됩니다</em></span>
-        <select data-apply-archive>
-          <option value="yes">등록합니다 — 학습용으로 팔리면 등급에 맞춰 배분받습니다</option>
-          <option value="no">등록하지 않습니다 — 심사만 받습니다</option>
-        </select>
-      </label>
-
-      <fieldset class="payout">
-        <legend class="payout-legend">배분받을 계좌 <em>지금 비워 두셔도 됩니다</em></legend>
-        <div class="apply-grid apply-grid--three">
-          <label class="fld">
-            <span class="fld-label">예금주</span>
-            <input type="text" data-apply-holder maxlength="60" autocomplete="name">
-          </label>
-          <label class="fld">
-            <span class="fld-label">은행</span>
-            <input type="text" data-apply-bank maxlength="40" placeholder="예: 국민은행">
-          </label>
-          <label class="fld">
-            <span class="fld-label">계좌번호</span>
-            <input type="text" data-apply-account maxlength="40" inputmode="numeric" autocomplete="off">
-          </label>
-        </div>
-        <p class="payout-note">
-          정산할 때만 씁니다. 화면 어디에도 다시 표시하지 않고, 현황 조회 응답에도 넣지 않습니다.
-          <strong>아직 판매도 배분도 이루어진 적이 없습니다.</strong>
-        </p>
-      </fieldset>
-
       <p class="apply-hint">
-        등록해 두면 원본과 지문, 등록 시각, 그리고 <strong>어떤 쓰임을 허락하는지</strong>가 함께 남습니다.
-        무단 학습을 추적할 근거가 되고, 학습용으로 팔리면 그 몫이 돌아옵니다.
-        등급이 높을수록 확인된 범위가 넓어 몫도 커집니다 — <a href="/archive#share">배분 방식</a>.
-        나중에 연락처로 말씀하시면 등록을 거두실 수 있습니다.
+        <strong>신청하신 것은 아카이브에도 함께 등록됩니다.</strong> 고르실 것이 없습니다.
+        원본과 지문, 등록 시각이 함께 남아 무단 학습을 추적할 근거가 되고, 학습용으로 팔리면
+        그 몫이 돌아옵니다. 등급이 높을수록 확인된 범위가 넓어 몫도 커집니다 —
+        <a href="/archive#share">배분 방식</a>. 나중에 연락처로 말씀하시면 등록을 거두실 수 있습니다.
+      </p>
+      <p class="later-note">
+        <b>배분받을 계좌는 아직 받지 않습니다.</b> 로그인 기능을 붙인 뒤에 계정에서 받습니다.
       </p>
       <label class="fld">
         <span class="fld-label">촬영 상황 <em>있으면 심사가 빨라집니다</em></span>
@@ -920,8 +876,8 @@ export function renderResult(bundle, mode, openForm = false) {
   const claimCta = claimPanel ? `
     <div class="claim-cta" data-claim-cta>
       <p class="claim-cta-line">${isPass
-        ? '인증 마크가 준비됐습니다. 아카이브에 등록해 두시면 팔렸을 때 몫이 계좌로 갑니다.'
-        : '판정이 통과가 아니어도 아카이브에는 등록하실 수 있습니다. 등록은 등급과 별개입니다.'}</p>
+        ? '인증 마크가 준비됐습니다. 검증한 것은 아카이브에도 함께 등록됩니다.'
+        : '판정이 통과가 아니어도 아카이브에는 등록됩니다. 등록은 등급과 별개입니다.'}</p>
       <button class="btn" type="button" data-action="claim-open">
         ${isPass ? '마크 받고 등록하기' : '아카이브에 등록하기'}
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
@@ -1817,9 +1773,8 @@ export function mountVerifier(root) {
     const password2 = applyEl('[data-apply-pw2]')?.value || '';
     const note = applyEl('[data-apply-note]')?.value?.trim() || '';
     const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
-    const payout = readPayout('apply');
-    // 등록만 하러 온 건은 고를 것이 없으므로 언제나 등록입니다.
-    const archive = grade === 3 || applyEl('[data-apply-archive]')?.value !== 'no';
+    // 검증한 것은 모두 등록됩니다. 고르개를 두지 않습니다.
+    const archive = true;
 
     const say = (text, bad = false) => {
       if (!msg) return;
@@ -1853,7 +1808,6 @@ export function mountVerifier(root) {
         contact,
         password,
         note,
-        payout,
         summary: summaryFor(current.bundle).join(String.fromCharCode(10)),
         fingerprint: current.bundle.print?.short || '',
         onProgress: (v) => {
@@ -1876,19 +1830,6 @@ export function mountVerifier(root) {
   };
 
   /**
-   * 계좌 세 칸을 하나로 모읍니다. 셋 다 비어 있으면 아무것도 보내지 않습니다 —
-   * 빈 문자열을 보내면 서버에 "계좌를 적었는데 비어 있다"는 기록이 남습니다.
-   */
-  const readPayout = (prefix) => {
-    const get = (k) => applyEl(`[data-${prefix}-${k}]`)?.value?.trim() || '';
-    const holder = get('holder');
-    const bank = get('bank');
-    const account = get('account');
-    if (!holder && !bank && !account) return null;
-    return { holder, bank, account };
-  };
-
-  /**
    * 아카이브 등록 — 결과 화면의 받기 칸에서 그대로 끝냅니다.
    *
    * 심사 신청과 같은 접수 경로(grade 3)를 씁니다. 다른 경로를 하나 더 두면
@@ -1904,7 +1845,6 @@ export function mountVerifier(root) {
     const pct = applyEl('[data-arc-pct]');
     const contact = applyEl('[data-arc-contact]')?.value?.trim() || '';
     const password = applyEl('[data-arc-pw]')?.value || '';
-    const payout = readPayout('arc');
 
     const say = (text, bad = false) => {
       if (!msg) return;
@@ -1916,10 +1856,6 @@ export function mountVerifier(root) {
     if (contact.length < 5) { say('연락받을 메일 주소나 전화번호를 적어 주세요.', true); return; }
     if (password.length < MIN_PASSWORD) {
       say(`조회 비밀번호를 ${MIN_PASSWORD}자 이상으로 정해 주세요. 이 비밀번호로 현황을 보십니다.`, true);
-      return;
-    }
-    if (payout && (!payout.holder || !payout.bank || !payout.account)) {
-      say('계좌를 적으시려면 예금주·은행·계좌번호를 모두 적어 주세요. 비워 두셔도 등록은 됩니다.', true);
       return;
     }
     if (current.file.size > MAX_UPLOAD) {
@@ -1939,7 +1875,6 @@ export function mountVerifier(root) {
         contact,
         password,
         note: '',
-        payout,
         summary: summaryFor(current.bundle).join(String.fromCharCode(10)),
         fingerprint: current.bundle.print?.short || '',
         onProgress: (v) => {
@@ -1949,7 +1884,7 @@ export function mountVerifier(root) {
         },
       });
       rememberApplication({ id: r.id, token: r.token, grade: r.grade, createdAt: r.createdAt, etaDate: r.etaDate });
-      say(payout ? '등록됐습니다. 계좌도 함께 적어 두었습니다.' : '등록됐습니다.');
+      say('아카이브에 등록됐습니다.');
       applyEl('[data-arc-done]').innerHTML = renderReceipt(r);
       // 다 적은 칸을 그대로 두면 새로고침 없이 또 보낼 수 있습니다.
       box.querySelectorAll('input').forEach((el) => { el.disabled = true; });

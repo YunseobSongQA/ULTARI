@@ -175,6 +175,40 @@ export function mountNav(scope = document) {
   });
 }
 
+/**
+ * 시험 운영 띠.
+ *
+ * 이 사이트는 아직 시험 삼아 돌리는 것입니다. 등급도 아카이브도 실제로
+ * 발급하고 등록하지만, 판매도 배분도 이루어진 적이 없고 계좌를 받는 자리도
+ * 아직 없습니다. 그 사실을 첫 화면에서 말하지 않으면 다 쓰고 난 뒤에 알게
+ * 됩니다 — 진위를 파는 서비스에서 그건 첫 번째로 깨면 안 되는 약속입니다.
+ *
+ * 모든 페이지가 site.js를 부르므로 여기 한 곳에서 붙입니다. 페이지마다
+ * 적어 두면 한 장은 반드시 빠집니다.
+ *
+ * 화면 위가 아니라 아래에 고정합니다. 랜딩의 상단 바는 position: fixed이고
+ * 화면들이 100svh에 맞춰 붙어 있어서, 위에 띠를 끼우면 그 높이만큼 전부
+ * 어긋납니다. 아래에 두면 어느 페이지의 배치도 건드리지 않습니다.
+ */
+function paintTrialBar() {
+  if (document.querySelector('[data-trial-bar]')) return;
+  const bar = document.createElement('div');
+  bar.className = 'trial-bar';
+  bar.setAttribute('data-trial-bar', '');
+  bar.innerHTML = `
+    <div class="shell trial-inner">
+      <span class="trial-tag">시험 운영</span>
+      <p class="trial-line">
+        테스트·시연용으로 열어 둔 서비스입니다. 측정과 등급은 실제로 돌아가지만,
+        <b>판매도 수익 배분도 이루어진 적이 없고</b> 계좌는 받지 않습니다 —
+        로그인 기능을 붙인 뒤에 계정에서 받습니다.
+        <a href="/roadmap">무엇이 언제 붙는지</a>
+      </p>
+    </div>`;
+  document.body.appendChild(bar);
+}
+
+paintTrialBar();
 paintShared();
 mountNav();
 revealCurrentNav();
