@@ -707,8 +707,9 @@ function renderResult(bundle, mode, openForm = false) {
         <label class="fld">
           <span class="fld-label">신청 등급</span>
           <select data-apply-grade>
-            <option value="2">2등급 — 사람이 사진을 봅니다</option>
+            <option value="2">2등급 — 사람이 직접 봅니다</option>
             <option value="1">1등급 — 센서 지문까지 대조합니다</option>
+            <option value="3">아카이브 등록만 — 사람 심사 없이 바로</option>
           </select>
         </label>
         <label class="fld">
@@ -730,6 +731,19 @@ function renderResult(bundle, mode, openForm = false) {
       <p class="apply-hint">
         나중에 <strong>이 연락처와 비밀번호로</strong> 진행 현황을 보십니다.
         서버에는 비밀번호를 늘려 섞은 값만 남으므로 저희도 원문을 알지 못하고 다시 알려 드릴 수 없습니다.
+      </p>
+      <label class="fld">
+        <span class="fld-label">아카이브 등록 <em>등급과 무관하게 모두 등록됩니다</em></span>
+        <select data-apply-archive>
+          <option value="yes">등록합니다 — 학습용으로 팔리면 등급에 맞춰 배분받습니다</option>
+          <option value="no">등록하지 않습니다 — 심사만 받습니다</option>
+        </select>
+      </label>
+      <p class="apply-hint">
+        등록해 두면 원본과 지문, 등록 시각, 그리고 <strong>어떤 쓰임을 허락하는지</strong>가 함께 남습니다.
+        무단 학습을 추적할 근거가 되고, 학습용으로 팔리면 그 몫이 돌아옵니다.
+        등급이 높을수록 확인된 범위가 넓어 몫도 커집니다 — <a href="/archive#share">배분 방식</a>.
+        나중에 연락처로 말씀하시면 등록을 거두실 수 있습니다.
       </p>
       <label class="fld">
         <span class="fld-label">촬영 상황 <em>있으면 심사가 빨라집니다</em></span>
@@ -815,6 +829,9 @@ function renderResult(bundle, mode, openForm = false) {
       ${elig.ok ? `
         <button class="btn" type="button" data-action="${mode === 'quick' ? 'swap-mode' : 'apply-open'}">
           상세 검사 신청하기
+        </button>
+        <button class="btn btn--ghost" type="button" data-action="archive-open">
+          아카이브에 등록하기
         </button>` : ''}
       <button class="btn btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
       <p class="btn-note">${elig.ok
@@ -963,15 +980,20 @@ const renderRail = (at) => `
 
 /** 접수증. 조회 열쇠는 여기서 한 번만 보여 줍니다. */
 function renderReceipt(r) {
+  const onlyArchive = r.reviewed === false;
   return `
     <div class="receipt">
-      <p class="receipt-top">신청이 접수됐습니다</p>
-      ${renderRail(0)}
+      <p class="receipt-top">${onlyArchive ? '아카이브에 등록됐습니다' : '신청이 접수됐습니다'}</p>
+      ${onlyArchive ? '' : renderRail(0)}
       <dl class="receipt-keys">
-        <div><dt>접수번호</dt><dd class="big">${escapeHtml(r.id)}</dd></div>
+        <div><dt>${onlyArchive ? '등록번호' : '접수번호'}</dt><dd class="big">${escapeHtml(r.id)}</dd></div>
         <div><dt>조회 방법</dt><dd>신청하실 때 적으신 <strong>연락처 + 비밀번호</strong></dd></div>
+        ${onlyArchive ? `
+        <div><dt>보관 중</dt><dd>원본과 지문, 등록 시각, 쓰임에 대한 의사</dd></div>
+        <div><dt>배분</dt><dd>학습용으로 팔리면 등급에 맞춰 <a href="/archive#share">배분</a>합니다</dd></div>` : `
         <div><dt>예상 완료</dt><dd>${escapeHtml(formatDate(r.etaDate))} <span class="dim">· 영업일 ${r.etaDays}일</span></dd></div>
         <div><dt>앞선 대기</dt><dd>${r.queueAhead}건</dd></div>
+        <div><dt>아카이브</dt><dd>${r.archive === false ? '등록하지 않았습니다' : '함께 등록됐습니다'}</dd></div>`}
       </dl>
       <p class="receipt-note">
         접수번호는 문의하실 때 쓰시면 빠릅니다. 현황은 번호 없이 연락처와 비밀번호만으로도 열립니다.
@@ -1120,25 +1142,48 @@ export function mountVerifier(root) {
 
   /** 같은 사진을 다른 검사 방식으로 다시 봅니다. 측정은 다시 하지 않습니다. */
   /** 신청서를 펼치고 그 자리로 옮겨 줍니다. 이미 펼쳐져 있으면 옮기기만 합니다. */
-  const openApplyForm = () => {
+  const openApplyForm = (wantGrade = null) => {
     const panel = output.querySelector('[data-apply]');
     if (!panel) return;
     panel.hidden = false;
     if (current) current.applyOpen = true;
+    if (wantGrade) {
+      const sel = output.querySelector('[data-apply-grade]');
+      if (sel) { sel.value = String(wantGrade); paintEta(); }
+    }
     bringIntoView(panel, 'start');
     output.querySelector('[data-apply-contact]')?.focus({ preventScroll: true });
   };
 
-  const swapMode = async () => {
+  /* 아카이브 등록은 검증을 마친 자리에서 한 번에 이어져야 합니다.
+     메일로 문의하고 조건을 협의하는 절차를 두면 아무도 맡기지 않습니다. */
+  const openArchive = () => {
+    if (!current || busy) return;
+    if (current.mode === 'quick') swapMode(3);
+    else openApplyForm(3);
+  };
+
+  /**
+   * 같은 작업물을 다른 검사 방식으로 다시 봅니다. 측정은 다시 하지 않습니다.
+   * wantGrade를 주면 신청 등급을 그것으로 맞춰 둡니다 — 간단 검사 결과에서
+   * "아카이브에 등록하기"를 누른 사람은 심사를 신청하러 온 것이 아닙니다.
+   */
+  const swapMode = async (wantGrade = null) => {
     if (!current || busy) return;
     current.mode = current.mode === 'quick' ? 'deep' : 'quick';
-    // 간단 검사 화면에서 "상세 검사 신청하기"를 눌러 온 것이므로 폼을 펼쳐 둡니다.
+    // 간단 검사 화면에서 신청 버튼을 눌러 온 것이므로 폼을 펼쳐 둡니다.
     if (current.mode === 'deep') current.applyOpen = true;
     const tag = fileLine.querySelector('.mode-tag');
     if (tag) tag.textContent = MODE_LABEL[current.mode];
     output.innerHTML = renderResult(current.bundle, current.mode, current.applyOpen === true);
     paintIcons(output);
-    if (current.mode === 'deep') paintEta();
+    if (current.mode === 'deep') {
+      if (wantGrade) {
+        const sel = output.querySelector('[data-apply-grade]');
+        if (sel) sel.value = String(wantGrade);
+      }
+      paintEta();
+    }
     if (current.bundle.result.grade) await refreshMarkPreview();
     bringIntoView(output, 'start');
   };
@@ -1400,6 +1445,17 @@ export function mountVerifier(root) {
     line.textContent = '대기 건수를 확인하는 중…';
     const open = await fetchQueue();
     const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
+    /* 등록만 하는 길에는 기다릴 것이 없습니다. 등록 의사 칸도 고를
+       것이 없어 잠가 둡니다. */
+    const box = applyEl('[data-apply-archive]');
+    if (box) {
+      box.disabled = grade === 3;
+      if (grade === 3) box.value = 'yes';
+    }
+    if (grade === 3) {
+      line.textContent = '사람 심사를 받지 않으므로 기다릴 것이 없습니다. 올리는 즉시 등록되고 등록증이 나옵니다.';
+      return;
+    }
     const base = grade === 1 ? 15 : 4;
     if (open == null) {
       line.textContent = `${grade}등급은 영업일 ${base}일 정도 걸립니다. 접수하면 정확한 완료 예정일이 나옵니다.`;
@@ -1420,6 +1476,8 @@ export function mountVerifier(root) {
     const password2 = applyEl('[data-apply-pw2]')?.value || '';
     const note = applyEl('[data-apply-note]')?.value?.trim() || '';
     const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
+    // 등록만 하러 온 건은 고를 것이 없으므로 언제나 등록입니다.
+    const archive = grade === 3 || applyEl('[data-apply-archive]')?.value !== 'no';
 
     const say = (text, bad = false) => {
       if (!msg) return;
@@ -1441,12 +1499,15 @@ export function mountVerifier(root) {
 
     button.disabled = true;
     bar.hidden = false;
-    say('파일을 올리고 있습니다. 이 창을 닫지 마세요.');
+    say(grade === 3
+      ? '파일을 올려 아카이브에 등록하고 있습니다. 이 창을 닫지 마세요.'
+      : '파일을 올리고 있습니다. 이 창을 닫지 마세요.');
 
     try {
       const r = await submitApplication({
         file: current.file,
         grade,
+        archive,
         contact,
         password,
         note,
@@ -1460,7 +1521,7 @@ export function mountVerifier(root) {
       });
       // 비밀번호는 적지 않습니다. 이 브라우저용 열쇠만 적습니다.
       rememberApplication({ id: r.id, token: r.token, grade: r.grade, createdAt: r.createdAt, etaDate: r.etaDate });
-      say('접수됐습니다.');
+      say(r.reviewed === false ? '아카이브에 등록됐습니다.' : '접수됐습니다.');
       applyEl('[data-apply-done]').innerHTML = renderReceipt(r);
       paintMine();
       bringIntoView(applyEl('[data-apply-done]'), 'center');
@@ -1644,7 +1705,9 @@ export function mountVerifier(root) {
       <ul class="mine-list">${mine.map((a) => `
         <li>
           <span class="mine-id">${escapeHtml(a.id)}</span>
-          <span class="dim">${a.grade}등급 · 예상 ${escapeHtml(formatDate(a.etaDate))}</span>
+          <span class="dim">${a.grade === 3
+            ? '아카이브 등록'
+            : `${a.grade}등급 · 예상 ${escapeHtml(formatDate(a.etaDate))}`}</span>
           <button class="btn btn--mini btn--ghost" type="button" data-action="check-status"
             data-id="${escapeHtml(a.id)}" data-token="${escapeHtml(a.token)}">조회</button>
         </li>`).join('')}</ul>` : '';
@@ -1664,6 +1727,7 @@ export function mountVerifier(root) {
     if (act === 'start') { e.preventDefault(); start(); }
     if (act === 'swap-mode') { e.preventDefault(); swapMode(); }
     if (act === 'apply-open') { e.preventDefault(); openApplyForm(); }
+    if (act === 'archive-open') { e.preventDefault(); openArchive(); return; }
     if (act === 'apply-send') { e.preventDefault(); sendApplication(el); }
     if (act === 'apply-summary') { e.preventDefault(); toggleSummary(); }
     if (act === 'copy-receipt') { e.preventDefault(); copyReceipt(el); }

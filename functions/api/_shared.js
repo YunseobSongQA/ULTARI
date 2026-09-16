@@ -45,6 +45,9 @@ export const STATUS = {
   waiting: { label: '추가 자료 대기', done: false },
   done: { label: '결과 발표', done: true },
   rejected: { label: '반려', done: true },
+  /* 사람 심사 없이 아카이브에만 등록한 건. 심사를 기다리는 것이 아니라
+     이미 끝난 상태이므로 done입니다. */
+  archived: { label: '보관 중', done: true },
 };
 
 /** 심사 소요. 대기 건수에 비례해 늘어납니다. 없는 속도를 약속하지 않습니다. */

@@ -55,7 +55,7 @@ export function forgetApplication(id) {
  * 접수. 업로드 진행률이 필요해서 XMLHttpRequest를 씁니다.
  * fetch는 보내는 쪽 진행률을 알려주지 않습니다.
  *
- * @param {{file:File, grade:number, contact:string, note:string,
+ * @param {{file:File, grade:number, archive?:boolean, contact:string, note:string,
  *          summary:string, fingerprint:string, onProgress?:(pct:number)=>void,
  *          signal?:AbortSignal}} opt
  */
@@ -63,6 +63,7 @@ export function submitApplication(opt) {
   const body = new FormData();
   body.append('photo', opt.file, opt.file.name || 'photo');
   body.append('grade', String(opt.grade ?? 2));
+  body.append('archive', opt.archive === false ? 'no' : 'yes');
   body.append('contact', opt.contact ?? '');
   body.append('password', opt.password ?? '');
   body.append('note', opt.note ?? '');

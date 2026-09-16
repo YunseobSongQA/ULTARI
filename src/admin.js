@@ -23,6 +23,7 @@ const STATUS_LABEL = {
   waiting: '추가 자료 대기',
   done: '결과 발표',
   rejected: '반려',
+  archived: '보관 중',
 };
 
 const escapeHtml = (value) => String(value ?? '')
@@ -132,6 +133,9 @@ function mountConsole(scope) {
     const back = undo.length ? (STATUS_LABEL[undo[undo.length - 1].status] || undo[undo.length - 1].status) : null;
     // 심사에 들어간 건은 판단 칸을 펼쳐 둡니다. 나머지는 접어 둡니다.
     const openJudge = a.status === 'reviewing' || a.status === 'waiting';
+    /* 아카이브에만 등록한 건은 심사할 것이 없습니다. 심사 버튼을 내놓으면
+       심사자가 끝난 건을 다시 열게 됩니다. */
+    const onlyArchive = a.reviewed === false || a.status === 'archived';
 
     return `
     <article class="panel adm-card${a.finished ? ' adm-card--done' : ''}"
@@ -142,9 +146,12 @@ function mountConsole(scope) {
         ${typeof a.awarded === 'number'
           ? `<span class="adm-award">${a.awarded}등급 발급</span>`
           : a.finished ? '<span class="dim">등급 없음</span>' : ''}
-        <span class="dim">${a.grade}등급 신청</span>
-        <span class="dim">신청 ${escapeHtml(formatDate(a.createdAt))}</span>
-        <span class="dim">예상 ${escapeHtml(formatDate(a.etaDate))} · 영업일 ${a.etaDays}일</span>
+        <span class="dim">${onlyArchive ? '아카이브 등록만' : `${a.grade}등급 신청`}</span>
+        <span class="dim">${onlyArchive ? '등록' : '신청'} ${escapeHtml(formatDate(a.createdAt))}</span>
+        ${onlyArchive
+          ? '<span class="dim">사람 심사 없음</span>'
+          : `<span class="dim">예상 ${escapeHtml(formatDate(a.etaDate))} · 영업일 ${a.etaDays}일</span>`}
+        ${a.archive === false ? '<span class="dim">아카이브 등록 안 함</span>' : ''}
       </p>
 
       <div class="adm-shot" data-shot>
@@ -214,8 +221,8 @@ function mountConsole(scope) {
 
       <div class="btn-row adm-actions">
         ${purged ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="photo"><span data-icon="download"></span>원본 내려받기</button>'}
-        ${a.status === 'reviewing' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="reviewing">심사 착수</button>'}
-        ${a.status === 'waiting' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="waiting">추가 자료 대기</button>'}
+        ${onlyArchive || a.status === 'reviewing' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="reviewing">심사 착수</button>'}
+        ${onlyArchive || a.status === 'waiting' ? '' : '<button class="btn btn--mini btn--ghost" type="button" data-action="move" data-status="waiting">추가 자료 대기</button>'}
         ${back ? `<button class="btn btn--mini btn--ghost" type="button" data-action="revert">되돌리기 <span class="dim">→ ${escapeHtml(back)}</span></button>` : ''}
         ${purged ? '' : '<button class="btn btn--mini btn--ghost adm-danger" type="button" data-action="purge">보관 만료 정리 <span class="dim">사진·연락처만</span></button>'}
         <button class="btn btn--mini btn--ghost adm-danger" type="button" data-action="delete">접수 삭제 <span class="dim">전부</span></button>

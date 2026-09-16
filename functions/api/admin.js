@@ -176,6 +176,9 @@ export async function onRequestGet({ request, env }) {
         ...rest,
         statusLabel: meta.label,
         finished: meta.done,
+        // 아카이브에만 등록한 건은 심사 목록에서 구분돼야 합니다.
+        archive: record.archive !== false,
+        reviewed: record.reviewed !== false,
         history: (record.history || []).map((h) => ({
           ...h, label: (STATUS[h.status] || {}).label || h.status,
         })),

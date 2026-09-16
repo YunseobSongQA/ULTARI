@@ -53,7 +53,14 @@ export async function onRequestPost({ request, env }) {
     return fail(`파일이 ${Math.round(LIMITS.maxBytes / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 신청해 주세요.`, 413);
   }
 
-  const grade = form.get('grade') === '1' ? 1 : 2;
+  /* 3은 사람 심사 없이 아카이브에만 등록하는 길입니다. 간단 검사로 등급이
+     나온 사람이 심사를 기다리지 않고 바로 맡길 수 있어야 합니다. */
+  const rawGrade = String(form.get('grade') ?? '');
+  const grade = rawGrade === '1' ? 1 : rawGrade === '3' ? 3 : 2;
+  const reviewed = grade !== 3;
+  /* 등록은 기본입니다. 심사만 받고 맡기지 않겠다고 고를 수 있습니다.
+     등록만 하러 온 건(3)은 고를 것이 없습니다. */
+  const archive = reviewed ? form.get('archive') !== 'no' : true;
   const contact = safeText(form.get('contact'), LIMITS.maxContact);
   if (contact.length < 5) {
     return fail('연락받을 메일 주소나 전화번호를 적어 주세요.');
@@ -103,7 +110,11 @@ export async function onRequestPost({ request, env }) {
     /* 처음 접수라면 색인이 없습니다. */
   }
 
-  const { days, etaISO } = etaFrom(grade, queueAhead, now.getTime());
+  /* 심사를 받지 않는 건에는 완료 예정일이 없습니다. 없는 날짜를 적어
+     두면 기다리지 않아도 되는 사람이 기다립니다. */
+  const { days, etaISO } = reviewed
+    ? etaFrom(grade, queueAhead, now.getTime())
+    : { days: 0, etaISO: null };
 
   const ext = EXT[photo.type] || 'bin';
   try {
@@ -121,7 +132,9 @@ export async function onRequestPost({ request, env }) {
     pwIterations: PW_ITERATIONS,
     contactKey: normalizeContact(contact),
     grade,
-    status: 'received',
+    archive,
+    reviewed,
+    status: reviewed ? 'received' : 'archived',
     contact,
     note,
     summary,
@@ -137,15 +150,21 @@ export async function onRequestPost({ request, env }) {
     etaDate: etaISO,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
-    history: [{ at: now.toISOString(), status: 'received', note: '접수됐습니다.' }],
+    history: [reviewed
+      ? { at: now.toISOString(), status: 'received', note: '접수됐습니다.' }
+      : { at: now.toISOString(), status: 'archived', note: '아카이브에 등록됐습니다.' }],
   };
 
   try {
     await env.ULTARI_APPS.put(`app:${id}`, JSON.stringify(record));
 
-    const open = (await env.ULTARI_APPS.get('index:open', 'json')) || [];
-    open.push(id);
-    await env.ULTARI_APPS.put('index:open', JSON.stringify(open));
+    /* 심사 대기 목록에는 심사를 받는 건만 넣습니다. 등록만 한 건을 넣으면
+       뒤에 오는 사람의 대기 건수가 실제보다 길게 나옵니다. */
+    if (reviewed) {
+      const open = (await env.ULTARI_APPS.get('index:open', 'json')) || [];
+      open.push(id);
+      await env.ULTARI_APPS.put('index:open', JSON.stringify(open));
+    }
 
     // 연락처 → 접수번호 색인. 이것이 없으면 번호를 모르는 사람은 조회할 수 없습니다.
     const byContact = await contactIndexKey(contact);
@@ -161,9 +180,11 @@ export async function onRequestPost({ request, env }) {
     id,
     token,          // 화면에 보이지 않습니다. 이 브라우저가 자기 접수를 열 때만 씁니다.
     grade,
-    status: 'received',
-    statusLabel: STATUS.received.label,
-    queueAhead,
+    archive,
+    reviewed,
+    status: reviewed ? 'received' : 'archived',
+    statusLabel: reviewed ? STATUS.received.label : STATUS.archived.label,
+    queueAhead: reviewed ? queueAhead : 0,
     etaDays: days,
     etaDate: etaISO,
     createdAt: record.createdAt,
