@@ -36,7 +36,7 @@
     <!-- 화면 눈금자 — 지금 몇 번째인지, 눌러서 옮겨 가기. 눈금은 스크립트가 만듭니다. -->
     <nav class="rail" data-rail aria-label="화면 이동"></nav>
 
-    <section class="reel" data-reel style="--slides:6">
+    <section class="reel" data-reel style="--slides:7">
 
     <!-- 첫 화면 — 이름과 마크, 그리고 이 서비스가 무엇을 하는가 -->
     <section class="slide stage--id" id="top" data-name="ULTARI">
@@ -47,7 +47,7 @@
         </div>
         <h1 class="id-word morph">ULTARI</h1>
         <p class="id-claim">사람이 들인 시간을<br>인증합니다</p>
-        <p class="id-value">사진·영상·음악을 올리면 30초 안에 등급이 나옵니다.<br>누구나 만들 수 있게 될수록, 직접 만든 것은 귀해집니다.</p>
+        <p class="id-value">사진·영상·음악을 올리면 30초 안에 등급이 나옵니다.<br>사람이 들인 시간을 증명하고, 무단 학습에 맞설 근거를 남깁니다.</p>
       </div>
       <a class="stage-next" href="#photo">
         <span>아래로</span>
@@ -138,15 +138,39 @@
       </div>
     </section>
 
+    <!-- 권리 — 인증이 저작권 쪽에서 하는 일 -->
+    <section class="slide stage--kind" id="rights" data-name="권리">
+      <div class="shell stage-inner">
+        <p class="stage-en">YOUR RIGHTS</p>
+        <span class="stage-mark" data-icon="markRights"></span>
+        <h2 class="morph">학습을 거부할 권리</h2>
+        <p class="stage-claim">인증은 상장이 아니라 기록입니다. 나중에 대조할 수 있는 근거가 남습니다.</p>
+        <dl class="stage-facts">
+          <div><dt>지문과 시점</dt><dd>언제 존재한 무엇이었는지</dd></div>
+          <div><dt>거부 의사</dt><dd>학습에 쓰지 말라는 기록</dd></div>
+          <div><dt>정황이 잡히면</dt><dd>추적하고 권리를 요구</dd></div>
+        </dl>
+        <div class="stage-row">
+          <a class="stage-go" href="/archive">
+            원본 맡기기
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="stage-go stage-go--quiet" href="/how">무엇이 남나</a>
+        </div>
+        <p class="stage-note">인증이 학습을 기술적으로 막지는 못합니다. 만드는 것은 차단이 아니라 근거입니다.</p>
+      </div>
+    </section>
+
     <!-- 왜 지금 남겨 두어야 하는가 -->
     <section class="slide stage--last" id="why" data-name="왜 지금인가">
       <div class="shell stage-inner">
         <p class="stage-en">WHY NOW</p>
         <h2 class="morph">사람이 만든 것이 귀해집니다</h2>
         <ul class="principle-list">
-          <li><b>누구나 같은 결과를 만듭니다.</b> 만든 것만 보고는 사람인지 아닌지 알 수 없는 지점에서, 서로를 믿을 구분선이 필요해집니다.</li>
-          <li><b>자본은 희소한 쪽으로 흐릅니다.</b> 시장을 움직이는 소수가 사는 것은 흔한 것이 아니라 귀한 것입니다. 금이 그렇고, 사람의 손이 닿은 작업이 그렇습니다.</li>
-          <li><b>먼저 시작한 쪽에 이력이 쌓입니다.</b> 오늘 받아 둔 등급과 맡겨 둔 원본이 몇 해 뒤에는 따라올 수 없는 근본이 됩니다.</li>
+          <li><b>누구나 같은 결과를 만듭니다.</b> 만든 것만 보고는 가릴 수 없는 지점에서, 서로를 믿을 구분선이 필요해집니다.</li>
+          <li><b>자본은 희소한 쪽으로 흐릅니다.</b> 시장을 움직이는 쪽이 사는 것은 흔한 것이 아니라 귀한 것입니다.</li>
+          <li><b>AI를 만드는 쪽에도 필요해집니다.</b> 생성물로 학습한 생성물이 쌓이면 모델은 무너집니다.</li>
+          <li><b>먼저 시작한 쪽에 이력이 쌓입니다.</b> 오늘의 등급과 맡겨 둔 원본이 몇 해 뒤의 근본이 됩니다.</li>
         </ul>
         <div class="stage-row">
           <a class="stage-go" href="/verify">

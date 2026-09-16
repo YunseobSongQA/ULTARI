@@ -55,6 +55,14 @@ export const ICONS = {
     + '<rect x="17" y="9" width="30" height="24"/>'
     + '<path d="M24 21.5l5.5 5.5L41 15.5"/>'
   ),
+  // 기록 한 장과 확인 도장. 인증이 남기는 것이 상장이 아니라 기록이라는 뜻입니다.
+  markRights: mark(
+    '<path d="M2 33h60"/>'
+    + '<rect x="13" y="7" width="23" height="26"/>'
+    + '<path d="M19 14h11M19 20h11M19 26h6"/>'
+    + '<circle cx="48" cy="26" r="7"/>'
+    + '<path d="M44.5 26l2.5 2.5L52 23"/>'
+  ),
 };
 
 export function paintIcons(scope = document) {

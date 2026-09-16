@@ -144,8 +144,11 @@ main.main--tool { padding-block: 32px 80px; }
 .site-foot a:hover { color: var(--ink); }
 .site-foot .foot-note { max-width: 64ch; color: var(--ink-3); line-height: 1.62; }
 
-/* 광고 영역은 자리만 잡아 둡니다. 승인 전에는 스크립트를 넣지 않습니다. */
+/* 광고 영역은 자리만 잡아 둡니다. 승인 전에는 스크립트를 넣지 않습니다.
+   다만 비어 있는 동안에는 자리도 잡지 않습니다 — 아무것도 없는 곳에
+   192px를 비워 두면 읽는 사람에게는 글이 끝난 것으로 보입니다. */
 .ad-slot { display: block; min-height: 96px; margin-block: 48px; }
+.ad-slot:empty { min-height: 0; margin-block: 0; }
 
 /* ── 히어로 ──────────────────────────────────────────── */
 
@@ -188,7 +191,9 @@ main.main--tool { padding-block: 32px 80px; }
   display: inline-flex; align-items: center; gap: 7px;
   font-size: 12.5px; color: var(--ink-2); margin-bottom: 10px;
 }
-.lane-tag .dot { width: 5px; height: 5px; background: var(--ink-3); }
+/* 작은 네모는 어느 화면에나 있는 기본값입니다. ULTARI 마크가 가로 띠
+   하나에 수직 요소를 얹은 모양이므로, 말머리도 같은 띠로 답니다. */
+.lane-tag .dot { width: 14px; height: 2px; background: var(--ink-3); }
 .lane--deep .lane-tag .dot { background: var(--measure); }
 
 .lane h2 { font-size: 23px; letter-spacing: var(--track-lg); }
@@ -202,12 +207,20 @@ main.main--tool { padding-block: 32px 80px; }
 
 /* 라벨이 곧 드롭존입니다. JS로 input.click()을 부르지 않습니다.
    그 방식은 클릭이 되돌아 올라와 일부 브라우저에서 선택창이 열리지 않습니다. */
+/* 점선 테두리는 어느 화면에나 있는 기본값이라 아무 뜻도 전하지 않습니다.
+   여기는 파일을 넣는 자리이므로 파 놓은 것처럼 보여야 합니다 — 실선
+   한 겹에, 바탕을 칸보다 어둡게 깔아 안으로 들어간 자리로 읽히게 합니다. */
 .drop {
   display: block; cursor: pointer; text-align: center;
-  border: 1px dashed var(--rule-strong); background: var(--raised);
-  padding: 26px 18px; transition: border-color 120ms ease, background 120ms ease;
+  border: 1px solid var(--rule-strong); background: var(--paper);
+  box-shadow: inset 0 1px 0 rgba(28, 26, 21, 0.05);
+  padding: 26px 18px;
+  transition: border-color 120ms ease, background 120ms ease;
 }
-.drop:hover, .drop.is-over { border-color: var(--measure); background: var(--tint-measure); }
+.drop:hover, .drop.is-over {
+  border-color: var(--measure); background: var(--tint-measure);
+  box-shadow: inset 0 0 0 1px var(--measure);
+}
 
 /* input은 label 바로 앞에 둡니다. label 안에 넣고 for까지 걸면
    브라우저에 따라 활성화 경로가 둘이 되어 선택창이 두 번 열릴 수 있습니다. */
@@ -651,56 +664,23 @@ main.main--tool { padding-block: 32px 80px; }
 .prose li { margin-bottom: 0.4em; }
 .prose li::marker { color: var(--ink-3); }
 
-.page-head { max-width: 66ch; margin-bottom: 44px; }
+.page-head { max-width: 66ch; margin-bottom: 36px; }
+/* 도구 화면에서는 제목이 할 일을 가리지 않게 더 붙입니다. */
+main.main--tool .page-head { margin-bottom: 22px; }
 .page-head .kicker { font-size: 13px; color: var(--ink-2); margin-bottom: 12px; }
 .page-head h1 { margin-bottom: 16px; }
 .page-head .lede { font-size: 18px; color: var(--ink-2); margin: 0; max-width: 58ch; line-height: 1.6; }
 
 .byline { font-size: 13px; color: var(--ink-3); margin-top: 14px; }
 
-/* ── 페이지 첫 화면 ─────────────────────────────────── */
-/* 모바일에서 제목이 상단 바에 바로 붙어 시작하면 페이지 전체가 위로
-   쏠려 보입니다. 랜딩 첫 화면처럼 제목에 한 화면을 통째로 내주고
-   그 안에서 가운데에 세웁니다.
-   남는 높이 = 화면 − 상단 바 − main 위 여백. 상단 바는 메뉴 글자
-   13.5px에 위아래 13px과 경계선 1px이 붙어 50px로 고정돼 있습니다. */
 @media (max-width: 720px) {
-  .page-head {
-    position: relative;
-    min-height: calc(100svh - var(--head-h) - 40px);
-    display: flex; flex-direction: column; justify-content: center;
-    /* 아래 표시가 앉을 자리. 가운데도 그만큼 올라가는데, 눈에는
-       그쪽이 가운데로 보입니다. 랜딩 첫 화면도 같은 비율입니다. */
-    padding-bottom: 52px;
-    margin-bottom: 36px;
-  }
-  main.main--tool .page-head { min-height: calc(100svh - var(--head-h) - 32px); }
-
-  /* 한 화면을 다 쓰면 아래에 더 있다는 것이 보이지 않습니다.
-     랜딩 첫 화면과 같은 표시를 둡니다. */
-  .page-head::after {
-    content: ""; position: absolute; left: 50%; bottom: 22px;
-    width: 9px; height: 9px; margin-left: -4.5px;
-    border-right: 1.5px solid var(--ink-3);
-    border-bottom: 1.5px solid var(--ink-3);
-    transform: rotate(45deg);
-    animation: nudge-down 2.4s ease-in-out infinite;
-  }
-
-  /* 심사 콘솔은 메뉴에 없는 작업 화면입니다. 열쇠 칸이 바로 나와야 합니다. */
-  .page-head--plain {
-    min-height: 0; display: block;
-    padding-bottom: 0; margin-bottom: 40px;
-  }
-  .page-head--plain::after { content: none; }
-}
-/* 45도 돌아가 있어 제 축으로 밀어야 똑바로 내려갑니다. */
-@keyframes nudge-down {
-  0%, 100% { transform: rotate(45deg) translate(0, 0); }
-  50% { transform: rotate(45deg) translate(3px, 3px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .page-head::after { animation: none; }
+  /* 제목에 한 화면을 통째로 내주던 자리입니다. 메뉴를 눌러 들어온 사람은
+     제목을 보러 온 것이 아니라 내용을 보러 온 것입니다. 제목과 설명은
+     위에 붙이고, 첫 화면에 본문이 들어오게 합니다. */
+  .page-head { margin-bottom: 26px; }
+  .page-head .kicker { margin-bottom: 8px; }
+  .page-head h1 { margin-bottom: 10px; }
+  .page-head .lede { font-size: 16px; line-height: 1.6; }
 }
 
 .sr-only {
@@ -1191,6 +1171,43 @@ main.main--tool { padding-block: 32px 80px; }
 .reel.is-reel .stage-inner { padding-block: 0; }
 .has-reel .site-foot { position: relative; z-index: 3; }
 
+/* 한 화면에 도저히 안 들어가는 내용만 그 화면 안에서 스크롤합니다.
+   여기에 overscroll-behavior를 걸면 안 됩니다. contain은 상자 끝에서
+   페이지로 넘어가는 길까지 막아 버려서, 손가락이 그 화면에 닿는 순간
+   페이지가 아예 안 내려갑니다 — 중간에 걸려 그 화면만 끌리는 것이
+   이것 때문이었습니다. 상자가 끝나면 스크롤은 페이지로 이어져야 합니다.
+   붙는 기준도 landing.js에서 넉넉히 잡습니다. 조금 넘친 것까지 상자로
+   만들면 끌 거리가 몇십 px뿐인 덫이 생깁니다. */
+.reel.is-reel .slide.is-tall { overflow-y: auto; }
+.reel.is-reel .slide.is-tall .stage-inner { padding-block: 28px; margin-block: 0; }
+
+/* ── 낮은 창 ─────────────────────────────────────────── */
+/* 창이 낮으면 큰 글씨가 한 화면에 안 들어갑니다. 스크롤 상자를 만드는
+   것보다 그 창에서만 치수를 줄이는 쪽이 낫습니다 — 상자는 손가락을
+   붙잡고, 치수는 아무도 붙잡지 않습니다. */
+@media (max-height: 780px) {
+  .stage--id .stage-inner { padding-block: 24px 88px; }
+  .id-mark { margin: 14px 0 14px; }
+  .id-mark svg { width: 78px; height: 64px; }
+  .id-word { font-size: 52px; }
+  .id-claim { font-size: 27px; margin-top: 20px; }
+  .id-value { font-size: 15.5px; margin-top: 16px; }
+
+  .stage-mark { margin: 14px 0 12px; }
+  .stage-mark svg { width: 88px; }
+  .stage--kind h2 { font-size: 40px; }
+  .stage-claim { font-size: 18px; margin-top: 14px; }
+  .stage-facts { margin-top: 22px; }
+  .stage-facts > div { padding: 11px 14px; }
+  .stage-row { margin-top: 22px; }
+  .stage-go { margin-top: 22px; padding: 12px 18px; }
+  .stage-note { margin-top: 12px; }
+
+  .stage--last h2 { font-size: 27px; margin-top: 14px; }
+  .principle-list { margin-top: 18px; }
+  .principle-list li { padding: 10px 0; font-size: 15px; line-height: 1.62; }
+}
+
 /* 글자 — 한 자씩 올라오면서 굵기가 붙습니다.
    Pretendard Variable의 wght를 그대로 움직이므로 글자 모양이 변합니다. */
 .morph span {
@@ -1369,11 +1386,6 @@ main.main--tool { padding-block: 32px 80px; }
 
 @media (max-width: 620px) {
   .stage-inner { padding-block: 56px; }
-  /* 좁은 화면에서는 글자가 커서 한 화면에 안 들어갈 수 있습니다. 그때만
-     그 화면 안에서 스크롤합니다 — landing.js가 재서 is-tall을 붙입니다.
-     넘치지도 않는데 스크롤 상자로 만들어 두면, 손가락이 그 위에서 끄는
-     동안 페이지가 아니라 상자가 먼저 받아 화면이 안 넘어갑니다. */
-  .reel.is-reel .slide.is-tall { overflow-y: auto; }
   .reel.is-reel .stage-inner { padding-block: 16px; }
   .stage--id .stage-inner { padding-block: 30px 96px; }
   .id-mark svg { width: 78px; height: 64px; }
@@ -1440,3 +1452,35 @@ main.main--tool { padding-block: 32px 80px; }
   /* 지문과 해시는 증서의 근거입니다. 잘리면 대조할 수 없습니다. */
   .hash, .copybox { max-height: none; overflow: visible; break-inside: avoid; }
 }
+
+/* ── 글머리 세 줄 요약 ──────────────────────────────── */
+/* 긴 글은 이것만 읽고 넘어갈 수 있어야 합니다. 다 읽을지 말지를
+   첫 화면에서 정할 수 있게 하는 자리입니다. */
+.tldr {
+  margin: 0 0 34px; padding: 18px 20px;
+  border: 1px solid var(--rule-strong); background: var(--surface);
+}
+.tldr-title { margin: 0 0 9px; font-size: 12.5px; color: var(--ink-3); }
+.tldr ul { margin: 0; padding-left: 1.1em; font-size: 15px; line-height: 1.65; color: var(--ink-2); }
+.tldr li { margin-bottom: 6px; }
+.tldr li:last-child { margin-bottom: 0; }
+.tldr li::marker { color: var(--ink-3); }
+.tldr b { color: var(--ink); font-weight: 600; }
+
+/* 읽을거리를 매체로 묶습니다. 시간순 한 줄기로 늘어놓으면 무엇을
+   읽어야 할지 고를 수가 없습니다. */
+.article-group { margin-top: 44px; }
+.article-group:first-of-type { margin-top: 0; }
+.article-group > h2 {
+  font-size: 13px; font-weight: 600; color: var(--ink-2);
+  letter-spacing: var(--track); margin-bottom: 4px;
+}
+
+/* 받는 형식 목록은 투입구 위에서 아래로 내렸습니다. 무엇을 받는지보다
+   어디에 넣는지가 먼저 보여야 합니다. 아래에서는 참고 줄이므로
+   한 단 낮춰 답니다. */
+.kinds--quiet { margin-top: 14px; }
+.kinds--quiet li { border-color: var(--rule); background: transparent; padding: 7px 12px; }
+.kinds--quiet b { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.kinds--quiet .kind-mark { color: var(--ink-3); }
+.kinds--quiet .kind-mark svg { width: 16px; height: 16px; }
