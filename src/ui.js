@@ -606,7 +606,7 @@ function renderScorePanel(bundle) {
     </div>`;
 }
 
-function renderResult(bundle, mode, openForm = false) {
+export function renderResult(bundle, mode, openForm = false) {
   const { result, print } = bundle;
   const isImage = bundle.kind !== 'video' && bundle.kind !== 'audio';
   const rows = isImage ? buildRows(bundle) : mediaRows(bundle);
@@ -1067,7 +1067,7 @@ function renderAward(st) {
     </div>`;
 }
 
-function renderStatus(st) {
+export function renderStatus(st) {
   // waiting(추가 자료 대기)은 심사 중의 한 상태입니다. 레일은 세 칸으로 둡니다.
   const at = st.status === 'received' ? 0
     : st.status === 'done' || st.status === 'rejected' ? 2 : 1;

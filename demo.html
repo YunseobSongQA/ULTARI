@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>데모 — 파일 없이 결과 화면 보기 | ULTARI</title>
+  <meta name="description" content="심사·시연용 데모. 견본 측정값으로 실제 결과 화면을 그려 봅니다. 파일을 올리지 않아도 됩니다.">
+  <!-- 견본 화면이라 검색에 올리지 않습니다. 본 서비스와 같은 내용이 두 벌 색인되면
+       읽는 쪽에도 검색 쪽에도 도움이 되지 않습니다. -->
+  <meta name="robots" content="noindex, follow">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <!-- 폰트는 92개 서브셋으로 쪼개져 있어 스크롤 중에도 새 파일을 받습니다.
+       연결을 미리 열어 두면 그때마다 멈칫하는 것이 줄어듭니다. -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <a class="sr-only" href="#main">본문으로 건너뛰기</a>
+
+  <header class="site-head">
+    <div class="shell">
+      <a class="brand" href="/"><svg viewBox="1 4 30 24.6" width="27" height="22" fill="currentColor" aria-hidden="true"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg><span>ULTARI</span></a>
+      <nav class="site-nav" aria-label="주요 메뉴">
+        <div class="nav-drop" data-nav-drop>
+          <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-apply">신청<span class="chev" aria-hidden="true"></span></button>
+          <div class="nav-panel" id="nav-apply" data-nav-panel>
+            <div class="shell nav-panel-inner">
+            <div class="nav-col" style="--i:0">
+              <p class="nav-col-title">검증</p>
+              <a href="/verify">간단 검사</a>
+              <a href="/verify?mode=deep">상세 검사</a>
+              <a href="/verify#lookup">현황 조회</a>
+            </div>
+            <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">수익</p>
+              <a href="/archive#apply">수익 배분받기</a>
+              <a href="/archive#share">배분은 어떻게</a>
+              <a href="/archive">아카이브란</a>
+            </div>
+            <div class="nav-col" style="--i:2">
+              <p class="nav-col-title">기준</p>
+              <a href="/how">검증 원리</a>
+              <a href="/grades">등급</a>
+              <a href="/limits">한계</a>
+            </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav-drop" data-nav-drop>
+          <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-about">소개<span class="chev" aria-hidden="true"></span></button>
+          <div class="nav-panel" id="nav-about" data-nav-panel>
+            <div class="shell nav-panel-inner">
+            <div class="nav-col" style="--i:0">
+              <p class="nav-col-title">울타리</p>
+              <a href="/about">ABOUT US</a>
+              <a href="/roadmap">로드맵</a>
+              <a href="/articles">읽을거리</a>
+            </div>
+            <div class="nav-col" style="--i:1">
+              <p class="nav-col-title">문서</p>
+              <a href="/privacy">개인정보 처리방침</a>
+              <a href="/terms">이용약관</a>
+            </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="shell shell--narrow">
+      <div class="page-head">
+        <p class="kicker">심사·시연용</p>
+        <h1>파일 없이 결과 화면을 봅니다</h1>
+        <p class="lede">견본을 고르면 검증을 마쳤을 때 나오는 화면이 그대로 나옵니다. 따로 가입하거나 파일을 준비하실 필요가 없습니다.</p>
+      </div>
+
+      <div class="note warn">
+        <strong>이 페이지의 측정값은 파일을 잰 값이 아닙니다.</strong>
+        실제 측정에서 나오는 범위에 맞춰 미리 적어 둔 견본입니다.
+        다만 등급과 판정 근거는 지어내지 않았습니다 — 그 견본 값을 실제 판정 코드에 그대로 넣어 받은 결과입니다.
+        진짜 파일을 재는 것은 <a href="/verify">검증 화면</a>에서 하시면 됩니다.
+      </div>
+
+      <div class="demo-tabs" role="tablist" aria-label="견본 고르기" data-demo-tabs></div>
+      <div data-demo-out></div>
+
+      <div class="prose" style="margin-top:56px">
+        <h2>직접 돌려 보시려면</h2>
+        <p><a href="/verify">검증 화면</a>에서 사진·영상·음악 아무 파일이나 고르시면 됩니다. 계정도 결제도 없습니다.</p>
+        <p><strong>간단 검사는 파일을 어디로도 보내지 않습니다.</strong> 측정은 전부 브라우저 안에서 일어납니다. 개발자 도구의 네트워크 탭을 켜 두고 검사를 돌려 보시면 요청이 한 건도 나가지 않는 것을 보실 수 있습니다. 네트워크를 쓰는 코드는 상세 검사 신청 버튼 뒤에만 있습니다.</p>
+        <p>카메라에서 바로 꺼낸 원본이 아니면 대개 <em>판정 불가</em>가 나옵니다. 메신저를 한 번만 거쳐도 촬영 정보가 통째로 지워지기 때문입니다. 그것도 이 서비스가 하는 말 중 하나라, 위 견본에 같이 넣어 두었습니다.</p>
+
+        <h2>접수 뒤에는 이렇게 보입니다</h2>
+        <p>상세 검사를 신청하시면 접수번호가 나오고, 연락처와 비밀번호로 현황을 여실 수 있습니다. 아래는 그 화면의 견본입니다 — 접수번호도 견본이라 실제로 조회되지 않습니다.</p>
+      </div>
+
+      <div data-demo-status style="margin-top:22px"></div>
+
+      <div class="prose" style="margin-top:56px">
+        <h2>이 데모가 보여 주지 않는 것</h2>
+        <ul>
+          <li><strong>인증 마크 새기기</strong> — 원본 사진이 있어야 새길 수 있어 견본에서는 뺐습니다. 실제 화면에서는 3등급이 나온 자리에 바로 붙습니다.</li>
+          <li><strong>상세 검사 접수</strong> — 누르면 원본 파일이 서버로 올라갑니다. 견본으로 접수 건수를 늘리지 않기 위해 이 페이지에서는 떼어 냈습니다.</li>
+          <li><strong>1·2등급 발급</strong> — 사람이 직접 보는 등급이라 며칠에서 몇 주가 걸립니다. 화면에서 즉시 나오는 것은 3등급까지입니다.</li>
+        </ul>
+        <p>대기 건수와 아카이브 보관 건수는 견본에도 넣지 않았습니다. 그 숫자는 실제 접수 건수에서만 옵니다. 0건이면 0건이라고 씁니다 — 이유는 <a href="/limits">한계</a>에 적어 두었습니다.</p>
+
+        <div class="end-actions">
+          <a class="btn" href="/verify">직접 검증해 보기</a>
+          <a class="btn btn--ghost" href="/how">무엇을 재는지</a>
+          <a class="btn btn--ghost" href="/limits">못 하는 것</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site-foot">
+    <div class="shell">
+      <nav class="foot-links" aria-label="전체 메뉴">
+          <a href="/verify">검증</a>
+          <a href="/how">검증 원리</a>
+          <a href="/grades">등급</a>
+          <a href="/archive">아카이브</a>
+          <a href="/roadmap">로드맵</a>
+          <a href="/articles">읽을거리</a>
+          <a href="/verify#lookup">현황 조회</a>
+          <a href="/limits">한계</a>
+          <a href="/privacy">개인정보 처리방침</a>
+          <a href="/terms">이용약관</a>
+      </nav>
+      <p class="foot-note">ULTARI는 사진·영상·음악에 남은 촬영과 녹음의 흔적을 재서 등급을 매깁니다. 누구나 같은 도구로 비슷한 결과를 만들게 될수록, 사람이 직접 찍고 녹음한 것은 그만큼 희소해집니다. 등급은 그 희소함을 남에게 보일 수 있게 만든 것입니다.</p>
+    </div>
+  </footer>
+  <script type="module" src="/src/demo.js"></script>
+</body>
+</html>

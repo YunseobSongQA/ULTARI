@@ -1731,3 +1731,52 @@ main.main--about { padding-block: 0; }
   .about-flow { grid-template-columns: 1fr; }
   .about-fine { grid-template-columns: 1fr; gap: 24px; padding-block: 26px 48px; }
 }
+
+/* ── 데모 (/demo) ─────────────────────────────────────
+   심사·시연용 화면. 견본을 고르는 줄과, 견본이라는 사실을 결과 아래에
+   한 번 더 적는 줄입니다. 탭은 라디오처럼 하나만 켜집니다. */
+
+.demo-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 26px 0 22px;
+}
+
+.demo-tab {
+  display: flex; flex-direction: column; gap: 3px;
+  text-align: left; padding: 11px 13px 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font: inherit; color: var(--ink-2);
+  cursor: pointer;
+  transition: border-color .14s ease, background .14s ease, color .14s ease;
+}
+
+.demo-tab b { font-size: 14.5px; font-weight: 600; color: var(--ink-2); }
+.demo-tab span { font-size: 12.5px; line-height: 1.5; color: var(--ink-3); }
+
+.demo-tab:hover { border-color: var(--rule-strong); background: var(--raised); }
+
+/* 고른 것은 측정값의 색으로 표시합니다. 색만으로 구분되지 않도록
+   왼쪽에 굵은 선을 함께 둡니다. */
+.demo-tab.is-on {
+  background: var(--tint-measure);
+  border-color: var(--measure);
+  box-shadow: inset 3px 0 0 var(--measure);
+  color: var(--ink);
+}
+.demo-tab.is-on b { color: var(--measure); }
+.demo-tab.is-on span { color: var(--ink-2); }
+
+.demo-tail {
+  margin: 20px 0 0;
+  padding: 13px 15px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 3px;
+  font-size: 13.5px; line-height: 1.7; color: var(--ink-2);
+}
+
+@media (max-width: 880px) { .demo-tabs { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .demo-tabs { grid-template-columns: 1fr; } }

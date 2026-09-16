@@ -50,6 +50,7 @@ export default defineConfig({
         limits: page('limits.html'),
         privacy: page('privacy.html'),
         admin: page('admin.html'),
+        demo: page('demo.html'),
         terms: page('terms.html'),
         articles: page('articles/index.html'),
         exifIsNotProof: page('articles/exif-is-not-proof.html'),
