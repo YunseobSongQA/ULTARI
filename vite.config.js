@@ -36,6 +36,12 @@ function cleanUrls() {
 
 export default defineConfig({
   plugins: [cleanUrls()],
+
+  /* 코드스페이스·원격 컨테이너에서 열면 브라우저는 전달 도메인으로 들어옵니다.
+     Vite 7은 모르는 호스트를 막으므로 그 도메인만 열어 둡니다.
+     개발·프리뷰 서버에만 걸리는 설정이고 빌드 결과물과는 무관합니다. */
+  server: { allowedHosts: ['.app.github.dev'] },
+  preview: { allowedHosts: ['.app.github.dev'] },
   build: {
     target: 'es2020',
     rollupOptions: {
