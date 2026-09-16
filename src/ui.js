@@ -682,7 +682,7 @@ function renderResult(bundle, mode, openForm = false) {
         ${elig.oversize ? `
           <p><strong>파일이 접수 상한 ${UPLOAD_MB}MB를 넘습니다.</strong>
             이 파일은 ${escapeHtml(formatBytes(bundle.print?.bytes) || '크기 미상')}입니다.</p>
-          <p>줄여서 올리시면 원본이 아니어서 심사할 수 없습니다. 원본 그대로 맡기셔야 한다면
+          <p>줄여서 올리시면 원본이 아니어서 심사할 수 없습니다. 원본 그대로 등록하셔야 한다면
             <a href="mailto:${CONTACT}">${CONTACT}</a>로 연락해 주십시오.</p>` : ''}
       </div>
     </div>`;
