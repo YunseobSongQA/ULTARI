@@ -20,13 +20,37 @@
     <div class="shell">
       <a class="brand" href="/"><svg viewBox="1 4 30 24.6" width="27" height="22" fill="currentColor" aria-hidden="true"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg><span>ULTARI</span></a>
       <nav class="site-nav" aria-label="주요 메뉴">
-          <a href="/verify">검증</a>
-          <a href="/how">검증 원리</a>
-          <a href="/grades">등급</a>
-          <a href="/archive">아카이브</a>
-          <a href="/roadmap" aria-current="page">로드맵</a>
-          <a href="/articles">읽을거리</a>
-          <a class="nav-lookup" href="/verify#lookup">현황 조회</a>
+        <div class="nav-drop is-here" data-nav-drop>
+          <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-apply">신청<span class="chev" aria-hidden="true"></span></button>
+          <div class="nav-panel" id="nav-apply" data-nav-panel>
+            <div class="shell nav-panel-inner">
+              <div class="nav-col">
+                <p class="nav-col-title">검증</p>
+                <a href="/verify">간단 검사<span class="sub">30초 · 기계가 판정 · 최대 3등급</span></a>
+                <a href="/verify?mode=deep">상세 검사<span class="sub">심사자가 직접 봅니다 · 최대 1등급</span></a>
+                <a href="/verify#lookup">현황 조회<span class="sub">신청한 건이 어디까지 왔는지</span></a>
+              </div>
+              <div class="nav-col">
+                <p class="nav-col-title">기준</p>
+                <a href="/how">검증 원리<span class="sub">무엇을 왜 재는가</span></a>
+                <a href="/grades">등급<span class="sub">1·2·3등급의 차이</span></a>
+                <a href="/limits">한계<span class="sub">이 검증이 못 하는 것</span></a>
+              </div>
+              <div class="nav-col">
+                <p class="nav-col-title">원본</p>
+                <a href="/archive">오리지널 아카이브<span class="sub">맡기면 나중에 몫이 생깁니다</span></a>
+                <a href="/roadmap" aria-current="page">로드맵<span class="sub">다음에 만드는 것</span></a>
+              </div>
+              <div class="nav-col">
+                <p class="nav-col-title">읽을거리</p>
+                <a href="/articles">글 목록<span class="sub">매체별로 묶어 두었습니다</span></a>
+                <a href="/privacy">개인정보 처리방침</a>
+                <a href="/terms">이용약관</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <a href="/about">소개</a>
       </nav>
     </div>
   </header>
@@ -103,7 +127,7 @@
           <a href="/archive">아카이브</a>
           <a href="/roadmap">로드맵</a>
           <a href="/articles">읽을거리</a>
-          <a class="nav-lookup" href="/verify#lookup">현황 조회</a>
+          <a href="/verify#lookup">현황 조회</a>
           <a href="/limits">한계</a>
           <a href="/privacy">개인정보 처리방침</a>
           <a href="/terms">이용약관</a>

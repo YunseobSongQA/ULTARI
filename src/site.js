@@ -108,5 +108,74 @@ export function revealCurrentNav() {
   });
 }
 
+/**
+ * 상단 메뉴의 가로 드롭박스.
+ *
+ * 마우스는 대면 열리고 떼면 닫힙니다. 손가락에는 hover가 없으니 눌러서
+ * 엽니다. 둘을 한 상태(is-open)로만 관리합니다 — CSS :hover로 열어 두면
+ * 눌러서 닫으려 할 때 hover가 그 자리에서 다시 열어 버립니다.
+ */
+export function mountNav(scope = document) {
+  const drops = [...scope.querySelectorAll('[data-nav-drop]')];
+  if (!drops.length) return;
+
+  const btn = (drop) => drop.querySelector('[data-nav-toggle]');
+  const close = (drop) => {
+    drop.classList.remove('is-open');
+    btn(drop)?.setAttribute('aria-expanded', 'false');
+  };
+  const open = (drop) => {
+    drops.forEach((d) => { if (d !== drop) close(d); });
+    drop.classList.add('is-open');
+    btn(drop)?.setAttribute('aria-expanded', 'true');
+  };
+
+  drops.forEach((drop) => {
+    /* 펼친 칸은 상단 바 전체에 걸려 있어 버튼과 칸 사이에 빈 띠가 있습니다.
+       마우스가 그 띠를 지나는 동안 잠깐 둘 다에서 벗어나므로, 바로 닫으면
+       칸에 닿기 전에 사라집니다. 조금 기다렸다 닫고, 그 사이에 다시
+       들어오면 취소합니다. */
+    let shut = 0;
+    const later = () => { clearTimeout(shut); shut = setTimeout(() => close(drop), 140); };
+    const now = () => { clearTimeout(shut); open(drop); };
+
+    drop.classList.add('is-live');
+    btn(drop)?.addEventListener('click', () => {
+      clearTimeout(shut);
+      if (drop.classList.contains('is-open')) close(drop);
+      else open(drop);
+    });
+
+    drop.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') now(); });
+    drop.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') later(); });
+
+    // 키보드로 들어오면 열고, 칸 밖으로 나가면 닫습니다.
+    drop.addEventListener('focusin', now);
+    drop.addEventListener('focusout', (e) => {
+      if (!drop.contains(e.relatedTarget)) close(drop);
+    });
+
+    /* 같은 페이지 안의 자리로 가는 링크(#lookup 같은 것)는 페이지가
+       바뀌지 않으므로 칸이 열린 채로 남습니다. 눌렀으면 닫습니다. */
+    drop.querySelector('[data-nav-panel]')?.addEventListener('click', (e) => {
+      if (e.target.closest('a')) close(drop);
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    drops.forEach((drop) => { if (!drop.contains(e.target)) close(drop); });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    drops.forEach((drop) => {
+      if (!drop.classList.contains('is-open')) return;
+      close(drop);
+      btn(drop)?.focus();
+    });
+  });
+}
+
 paintShared();
+mountNav();
 revealCurrentNav();
