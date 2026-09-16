@@ -2102,3 +2102,21 @@ main.main--about { padding-block: 0; }
   .id-fine { margin-top: 16px; }
   .stage--id .stage-next { margin-top: 18px; }
 }
+
+/* ── 동의 한 칸 ──────────────────────────────────────────
+   검사 시작과 같은 자리에 둡니다. 다른 화면으로 넘겨 놓으면 동의를 받은
+   자리와 누르는 자리가 달라져, 무엇에 동의했는지가 흐려집니다. */
+.consent {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 16px 0 18px; padding: 14px 16px;
+  border: 1px solid var(--rule-strong); background: var(--raised);
+  cursor: pointer;
+}
+.consent input {
+  flex: none; width: 17px; height: 17px; margin: 2px 0 0;
+  accent-color: var(--measure); cursor: pointer;
+}
+.consent-text {
+  font-size: 13px; line-height: 1.68; color: var(--ink-2); max-width: 66ch;
+}
+.consent-text b { color: var(--ink); font-weight: 600; }

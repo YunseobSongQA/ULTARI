@@ -682,7 +682,7 @@ export function renderResult(bundle, mode, openForm = false) {
         <button class="btn" type="button" data-action="dl-photo"><span data-icon="download"></span>마크 넣은 사진 내려받기</button>
         <button class="btn btn--ghost" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
       </div>
-      <p class="btn-note">이 기기에서 만듭니다. 파일은 어디로도 가지 않습니다.</p>
+      <p class="btn-note">마크는 이 기기에서 그립니다.</p>
     </div>` : `
     <div class="claim-item" data-watermark>
       <h3 class="claim-head"><span class="claim-no">1</span>인증 마크</h3>
@@ -696,57 +696,39 @@ export function renderResult(bundle, mode, openForm = false) {
       <div class="btn-row">
         <button class="btn" type="button" data-action="dl-mark">마크만 내려받기 (투명 PNG)</button>
       </div>
-      <p class="btn-note">이 기기에서 만듭니다. 파일은 어디로도 가지 않습니다.</p>
+      <p class="btn-note">마크는 이 기기에서 그립니다.</p>
     </div>`;
 
   /* 아카이브 등록 — 배분받을 계좌를 여기서 함께 받습니다.
      등록과 정산 계좌를 다른 화면으로 나누면, 등록만 해 두고 계좌를 안 적은
      사람에게 나중에 다시 연락해야 합니다. 그 연락은 대부분 닿지 않습니다. */
+  /* 아카이브 등록 — 검사 화면에서 동의하셨으면 검사가 끝나는 대로 자동으로
+     끝납니다. 여기는 그 결과를 보여 주는 자리이지 무언가를 더 적는 자리가
+     아닙니다. 동의를 한 번 받았는데 여기서 연락처와 비밀번호를 또 받으면
+     자동이 아닙니다. */
   const archiveBlock = !elig.ok ? '' : `
     <div class="claim-item claim-item--archive" data-archive-box>
-      <h3 class="claim-head"><span class="claim-no">${isPass ? 2 : 1}</span>아카이브에 등록하고 배분받기</h3>
+      <h3 class="claim-head"><span class="claim-no">${isPass ? 2 : 1}</span>아카이브 등록</h3>
+
       <ol class="steps-now">
         <li class="is-done"><span class="steps-mark" data-icon="check"></span>검사 완료<em>방금 이 기기에서 쟀습니다</em></li>
-        <li data-arc-step><span class="steps-mark"></span>아카이브 등록<em>아래 버튼을 누르면 끝납니다</em></li>
+        <li data-arc-step><span class="steps-mark"></span><span data-arc-label>아카이브 등록</span><em data-arc-sub>동의하셨으면 곧 끝납니다</em></li>
       </ol>
-      <p class="claim-lead">
-        <strong>등록 여부는 고르지 않습니다.</strong> 올리신 것은 모두 등록됩니다.
-        원본과 지문, 등록 시각이 함께 남아 무단 학습을 추적할 근거가 됩니다.
-        ${isPass ? '' : '판정이 통과가 아니어도 등록됩니다. 등록은 등급과 별개입니다.'}
-      </p>
 
-      <div class="apply-warn">
-        <p><strong>이 버튼을 누르면 원본 파일이 서버로 올라갑니다.</strong>
-           보관할 원본이 없으면 등록이 성립하지 않습니다.
-           무엇을 보관하고 언제 지우는지는 <a href="/privacy">개인정보 처리방침</a>에 적어 두었습니다.</p>
-      </div>
-
-      <div class="apply-grid">
-        <label class="fld">
-          <span class="fld-label">연락받을 곳 <em>필수 · 현황 조회에도 씁니다</em></span>
-          <input type="text" data-arc-contact placeholder="메일 주소 또는 전화번호" maxlength="200" autocomplete="email">
-        </label>
-        <label class="fld">
-          <span class="fld-label">조회 비밀번호 <em>필수 · ${MIN_PASSWORD}자 이상</em></span>
-          <input type="password" data-arc-pw maxlength="72" autocomplete="new-password">
-        </label>
-      </div>
-
-      <p class="later-note">
-        <b>배분받을 계좌는 아직 받지 않습니다.</b> 로그인 기능을 붙인 뒤에 계정에서 받습니다.
-        지금 계좌를 받아 두면 로그인이 생겼을 때 어느 계정의 것인지 이어 붙일 수가 없습니다.
-        아직 판매도 배분도 이루어진 적이 없어 급한 자리도 아닙니다.
-      </p>
-
-      <div class="btn-row">
-        <button class="btn" type="button" data-action="archive-send">아카이브에 등록하기</button>
-      </div>
       <div class="apply-bar" data-arc-bar hidden>
         <span class="apply-pct" data-arc-pct>0<small>%</small></span>
         <div class="bar"><i data-arc-fill></i></div>
       </div>
       <p class="apply-msg" data-arc-msg hidden></p>
       <div data-arc-done></div>
+
+      <p class="claim-lead" data-arc-lead>
+        원본과 지문, 등록 시각이 함께 남아 나중에 "언제 존재한 무엇"인지를 댈 근거가 됩니다.
+        ${isPass ? '' : '판정이 통과가 아니어도 등록됩니다. 등록은 등급과 별개입니다.'}
+      </p>
+      <p class="later-note">
+        <b>배분받을 계좌는 아직 받지 않습니다.</b> 로그인 기능을 붙인 뒤에 계정에서 받습니다.
+      </p>
     </div>`;
 
   const claimPanel = (markBlock || archiveBlock) ? `
@@ -867,8 +849,8 @@ export function renderResult(bundle, mode, openForm = false) {
     <div class="section-head">
       <h2>간단 검사 결과</h2>
       <p>${elig.ok
-        ? '방금 이 기기에서 계산한 값입니다. 신청하시면 이 측정값이 신청서와 함께 올라갑니다.'
-        : '방금 이 기기에서 계산한 값입니다. 접수되지 않으므로 어디로도 올라가지 않습니다.'}</p>
+        ? '방금 계산한 값입니다. 신청하시면 이 측정값이 신청서와 함께 올라갑니다.'
+        : '방금 계산한 값입니다.'}</p>
     </div>`;
 
   /* ── 결과 화면의 순서 ─────────────────────────────────
@@ -880,13 +862,13 @@ export function renderResult(bundle, mode, openForm = false) {
   const claimCta = claimPanel ? `
     <div class="claim-cta" data-claim-cta>
       <div class="claim-cta-text">
-        <p class="claim-cta-line"><b>검사는 끝났습니다. 아카이브 등록은 아직입니다.</b></p>
-        <p class="claim-cta-sub">${isPass
-          ? '다음 화면에서 등록을 누르시면 그 자리에서 끝납니다. 인증 마크도 거기서 받으십시오.'
-          : '판정이 통과가 아니어도 등록됩니다. 다음 화면에서 누르시면 그 자리에서 끝납니다.'}</p>
+        <p class="claim-cta-line" data-cta-line><b>검사가 끝났습니다.</b></p>
+        <p class="claim-cta-sub" data-cta-sub>${isPass
+          ? '인증 마크와 아카이브 등록 결과를 다음 화면에서 보십시오.'
+          : '판정이 통과가 아니어도 아카이브에는 등록됩니다. 다음 화면에서 보십시오.'}</p>
       </div>
       <button class="btn" type="button" data-action="claim-open">
-        ${isPass ? '마크 받고 등록하기' : '아카이브에 등록하기'}
+        ${isPass ? '인증 마크 받기' : '등록 결과 보기'}
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
       </button>
     </div>` : '';
@@ -1063,7 +1045,7 @@ function renderEligibility(bundle, elig) {
       </p>
       ${elig.ok ? `
         <p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>
-        <p class="elig-note">아래 버튼을 누르면 신청서가 열립니다. 파일은 신청서 안의 전송 버튼을 누를 때 올라갑니다.</p>` : ''}
+        <p class="elig-note">아래 버튼을 누르면 신청서가 열립니다.</p>` : ''}
 
       <div class="top-actions">
         ${elig.ok ? `
@@ -1231,6 +1213,9 @@ export function mountVerifier(root) {
   const output = root.querySelector('[data-output]');
   const readyBox = root.querySelector('[data-ready]');
   const readyNote = root.querySelector('[data-ready-note]');
+  /* 동의 한 칸. 검사 시작과 같은 자리에 있고, 체크돼 있으면 검사가 끝나는
+     대로 등록까지 이어집니다. 고른 값은 그대로 두어 다음 파일에도 씁니다. */
+  const consentBox = root.querySelector('[data-auto-archive]');
 
   const stepbar = root.querySelector('[data-stepbar]');
   const stepLabel = root.querySelector('[data-step-label]');
@@ -1540,6 +1525,13 @@ export function mountVerifier(root) {
       paintIcons(output);
       stripSampleApply();
       goStep('result');
+
+      /* 여기서 등록까지 잇습니다. 동의는 검사 시작 화면에서 이미 받았으므로
+         더 물어보지 않습니다. 견본은 남의 사진이라 등록하지 않습니다. */
+      if (!sample && mode === 'quick') {
+        if (consentBox?.checked) autoArchive();
+        else paintArchiveSkipped();
+      }
       if (mode === 'deep') paintEta();
       if (bundle.result.grade) await refreshMarkPreview();
     } catch (err) {
@@ -1847,23 +1839,40 @@ export function mountVerifier(root) {
     }
   };
 
+  /** 등록 칸의 걸음 줄을 고쳐 씁니다. 상태가 바뀌는 자리는 여기 하나뿐입니다. */
+  const paintArchiveStep = (box, { done = false, label, sub }) => {
+    const step = box.querySelector('[data-arc-step]');
+    if (!step) return;
+    step.classList.toggle('is-done', done);
+    const mark = step.querySelector('.steps-mark');
+    if (mark) {
+      mark.innerHTML = '';
+      if (done) { mark.setAttribute('data-icon', 'check'); paintIcons(step); }
+      else mark.removeAttribute('data-icon');
+    }
+    const l = step.querySelector('[data-arc-label]');
+    const sb = step.querySelector('[data-arc-sub]');
+    if (l && label) l.textContent = label;
+    if (sb && sub != null) sb.textContent = sub;
+  };
+
   /**
-   * 아카이브 등록 — 결과 화면의 받기 칸에서 그대로 끝냅니다.
+   * 아카이브 자동 등록.
    *
-   * 심사 신청과 같은 접수 경로(grade 3)를 씁니다. 다른 경로를 하나 더 두면
-   * 접수번호 체계와 대기 색인이 갈립니다.
+   * 검사 시작 화면에서 동의하셨으면 검사가 끝나는 대로 여기가 이어서 돕니다.
+   * 연락처도 비밀번호도 받지 않습니다 — 동의를 한 번 받아 놓고 다시 폼을
+   * 내밀면 자동이 아닙니다. 서버가 조회 열쇠를 돌려주고, 그것을 이 브라우저에
+   * 적어 두어 나중에 자기 등록을 엽니다.
    */
-  const sendArchive = async (button) => {
-    if (!current) return;
+  const autoArchive = async () => {
+    if (!current || current.sample || current.archived) return;
     const box = output.querySelector('[data-archive-box]');
     if (!box) return;
-    const msg = applyEl('[data-arc-msg]');
-    const bar = applyEl('[data-arc-bar]');
-    const fill = applyEl('[data-arc-fill]');
-    const pct = applyEl('[data-arc-pct]');
-    const contact = applyEl('[data-arc-contact]')?.value?.trim() || '';
-    const password = applyEl('[data-arc-pw]')?.value || '';
 
+    const msg = box.querySelector('[data-arc-msg]');
+    const bar = box.querySelector('[data-arc-bar]');
+    const fill = box.querySelector('[data-arc-fill]');
+    const pct = box.querySelector('[data-arc-pct]');
     const say = (text, bad = false) => {
       if (!msg) return;
       msg.hidden = false;
@@ -1871,60 +1880,77 @@ export function mountVerifier(root) {
       msg.classList.toggle('is-bad', bad);
     };
 
-    if (contact.length < 5) { say('연락받을 메일 주소나 전화번호를 적어 주세요.', true); return; }
-    if (password.length < MIN_PASSWORD) {
-      say(`조회 비밀번호를 ${MIN_PASSWORD}자 이상으로 정해 주세요. 이 비밀번호로 현황을 보십니다.`, true);
-      return;
-    }
     if (current.file.size > MAX_UPLOAD) {
-      say(`파일이 ${Math.round(MAX_UPLOAD / 1024 / 1024)}MB를 넘습니다. 더 작은 파일로 등록해 주세요.`, true);
+      paintArchiveStep(box, { label: '등록하지 못했습니다', sub: `파일이 ${UPLOAD_MB}MB를 넘습니다` });
+      say(`파일이 ${UPLOAD_MB}MB를 넘어 등록하지 못했습니다. 검사 결과는 그대로 보실 수 있습니다.`, true);
       return;
     }
 
-    button.disabled = true;
-    bar.hidden = false;
-    say('파일을 올려 아카이브에 등록하고 있습니다. 이 창을 닫지 마세요.');
+    paintArchiveStep(box, { label: '아카이브 등록', sub: '원본을 올리는 중입니다…' });
+    if (bar) bar.hidden = false;
 
     try {
       const r = await submitApplication({
         file: current.file,
         grade: 3,
         archive: true,
-        contact,
-        password,
+        contact: '',
+        password: '',
         note: '',
         summary: summaryFor(current.bundle).join(String.fromCharCode(10)),
         fingerprint: current.bundle.print?.short || '',
         onProgress: (v) => {
-          const n = Math.round(v);
-          fill.style.width = `${n}%`;
-          pct.innerHTML = `${n}<small>%</small>`;
+          const k = Math.round(v);
+          if (fill) fill.style.width = `${k}%`;
+          if (pct) pct.innerHTML = `${k}<small>%</small>`;
         },
       });
       rememberApplication({ id: r.id, token: r.token, grade: r.grade, createdAt: r.createdAt, etaDate: r.etaDate });
-      say('아카이브에 등록됐습니다.');
-      applyEl('[data-arc-done]').innerHTML = renderReceipt(r);
+      current.archived = r;
 
-      /* 지금이 등록이 끝난 시점입니다. 걸음 표시를 완료로 바꾸고 버튼과
-         입력 칸을 잠급니다 — 끝났는데 누를 수 있는 버튼이 남아 있으면
-         끝난 것인지 아닌지가 화면에서 읽히지 않습니다. */
-      const stepNow = box.querySelector('[data-arc-step]');
-      if (stepNow) {
-        stepNow.classList.add('is-done');
-        stepNow.innerHTML = '<span class="steps-mark" data-icon="check"></span>등록 완료'
-          + `<em>등록번호 ${escapeHtml(r.id)}</em>`;
-        paintIcons(stepNow);
-      }
-      box.querySelectorAll('input').forEach((el) => { el.disabled = true; });
-      button.textContent = '등록 완료';
-      box.querySelector('.later-note')?.remove();
+      if (bar) bar.hidden = true;
+      paintArchiveStep(box, {
+        done: true,
+        label: '등록 완료',
+        sub: `등록번호 ${r.id} · ${formatStamp(r.createdAt)}`,
+      });
+      say('아카이브에 등록됐습니다. 이 브라우저에 등록번호를 적어 두었습니다.');
+      box.querySelector('[data-arc-done]').innerHTML = renderReceipt(r);
+      box.querySelector('[data-arc-lead]')?.remove();
+      paintIcons(box);
       paintMine();
-      bringIntoView(applyEl('[data-arc-done]'), 'center');
+      paintCtaArchived(r);
     } catch (err) {
-      button.disabled = false;
-      bar.hidden = true;
-      say(err.message || '등록에 실패했습니다.', true);
+      if (bar) bar.hidden = true;
+      paintArchiveStep(box, { label: '등록하지 못했습니다', sub: '검사 결과는 그대로입니다' });
+      say(err.message || '등록에 실패했습니다. 검사 결과는 그대로 보실 수 있습니다.', true);
     }
+  };
+
+  /** 결과 화면의 안내도 끝난 것으로 고쳐 적습니다. 두 화면이 다른 말을 하면 안 됩니다. */
+  const paintCtaArchived = (r) => {
+    const line = output.querySelector('[data-cta-line]');
+    const sub = output.querySelector('[data-cta-sub]');
+    if (line) line.innerHTML = '<b>검사와 아카이브 등록이 모두 끝났습니다.</b>';
+    if (sub) sub.textContent = `등록번호 ${r.id} · ${formatStamp(r.createdAt)}. 다음 화면에서 확인하십시오.`;
+  };
+
+  /** 동의를 빼셨으면 등록하지 않았다는 사실을 그 자리에 적습니다. */
+  const paintArchiveSkipped = () => {
+    const box = output.querySelector('[data-archive-box]');
+    if (!box) return;
+    paintArchiveStep(box, { label: '등록하지 않았습니다', sub: '검사 시작 화면에서 동의를 빼셨습니다' });
+    const lead = box.querySelector('[data-arc-lead]');
+    if (lead) {
+      lead.textContent = '다시 검사하실 때 동의에 체크하시면, 검사가 끝나는 대로 등록됩니다.';
+    }
+    box.querySelector('.later-note')?.remove();
+
+    // 결과 화면도 같은 말을 해야 합니다. 두 화면이 다르면 어느 쪽이 맞는지 모릅니다.
+    const line = output.querySelector('[data-cta-line]');
+    const sub = output.querySelector('[data-cta-sub]');
+    if (line) line.innerHTML = '<b>검사가 끝났습니다.</b> 아카이브에는 등록하지 않았습니다.';
+    if (sub) sub.textContent = '동의를 빼고 검사하셨습니다. 인증 마크는 다음 화면에서 받으실 수 있습니다.';
   };
 
   const copyReceipt = async (el) => {
@@ -2133,7 +2159,6 @@ export function mountVerifier(root) {
     if (act === 'apply-open') { e.preventDefault(); openApplyForm(); }
     if (act === 'archive-open') { e.preventDefault(); openArchive(); return; }
     if (act === 'apply-send') { e.preventDefault(); sendApplication(el); }
-    if (act === 'archive-send') { e.preventDefault(); sendArchive(el); }
     if (act === 'apply-summary') { e.preventDefault(); toggleSummary(); }
     if (act === 'copy-receipt') { e.preventDefault(); copyReceipt(el); }
     if (act === 'check-status') { e.preventDefault(); showStatus(el.dataset.id, el.dataset.token); }

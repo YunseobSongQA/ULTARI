@@ -178,9 +178,12 @@ export function mountNav(scope = document) {
 /**
  * 시험 운영 띠.
  *
- * 이 사이트는 아직 시험 삼아 돌리는 것입니다. 등급도 아카이브도 실제로
- * 발급하고 등록하지만 수익 배분은 아직 없습니다. 그 사실을 첫 화면에서
- * 말하지 않으면 다 쓰고 난 뒤에 알게 됩니다.
+ * 이 사이트는 아직 시험 삼아 돌리는 것입니다. 검사와 등급과 아카이브 등록은
+ * 실제로 돌아가고, 사람 심사와 수익 배분과 로그인은 아직 없습니다. 그 사실을
+ * 먼저 말하지 않으면 다 쓰고 난 뒤에 알게 됩니다.
+ *
+ * 띠에서 다른 데로 보내지 않습니다. 안 되는 것을 세 개로 적고 끝냅니다 —
+ * 눌러야 알 수 있게 해 두면 대부분은 누르지 않습니다.
  *
  * 모든 페이지가 site.js를 부르므로 여기 한 곳에서 붙입니다. 페이지마다
  * 적어 두면 한 장은 반드시 빠집니다.
@@ -216,8 +219,8 @@ function paintTrialBar() {
     <div class="shell trial-inner">
       <span class="trial-tag">시험 운영</span>
       <p class="trial-line">
-        테스트용으로 열어 둔 서비스입니다. 검사와 등급은 진짜로 돌아가지만
-        <b>수익 배분은 아직 없습니다.</b> <a href="/roadmap">언제 되나</a>
+        <b>테스트 페이지입니다.</b> 검사와 등급은 실제로 돌아갑니다.
+        사람 심사 · 수익 배분 · 로그인은 아직 안 됩니다.
       </p>
       <button class="trial-x" type="button" aria-label="이 안내 닫기" data-trial-close>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>

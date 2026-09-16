@@ -70,8 +70,8 @@
   <main id="main" class="main--tool">
     <div class="shell">
       <div class="page-head page-head--tool">
-        <h1>올려 보시면 바로 나옵니다</h1>
-        <p class="lede">파일을 고르면 30초 안에 등급이 나옵니다. 통과하면 인증 마크를 그 자리에서 받으십니다.</p>
+        <h1>간단 검사</h1>
+        <p class="lede">파일을 고르면 30초 안에 등급이 나옵니다. <strong>기계가 가릴 수 있는 것을 1차로 거르는 검사</strong>이고, 통과하면 인증 마크를 그 자리에서 받으십니다.</p>
       </div>
 
       <section data-verifier>
@@ -99,8 +99,9 @@
           <p class="samples-head"><b>지금은 시연용 페이지입니다.</b> 이걸로 먼저 테스트해 보십시오.</p>
           <div class="sample-row" data-sample-row></div>
           <p class="samples-note">
-            견본도 아래와 같은 검사를 이 자리에서 실제로 돌립니다. 화면에 나오는 숫자는 방금 이 기기에서 잰 값입니다.
+            견본도 아래와 같은 검사를 이 자리에서 실제로 돌립니다. 화면에 나오는 숫자는 방금 잰 값입니다.
             AI로 만든 견본을 눌러도 화면은 “AI입니다”라고 하지 않습니다 — 촬영 정보가 없어 판정 불가로 나옵니다.
+            견본은 남의 사진이라 아카이브에 등록하지 않습니다.
           </p>
         </div>
 
@@ -150,8 +151,19 @@
               <span><strong>사진을 불러왔습니다.</strong> <span data-ready-note></span></span>
             </p>
             <p class="ready-note">아직 계산하지 않았습니다. 검사 시작을 누르시면 30초 걸립니다.</p>
+
+            <label class="consent">
+              <input type="checkbox" data-auto-archive checked>
+              <span class="consent-text">
+                <b>검사가 끝나면 아카이브에 등록합니다.</b>
+                등록하면 원본과 지문, 등록 시각이 보관돼 나중에 "언제 존재한 무엇"인지를
+                댈 근거가 됩니다. 등록번호는 이 브라우저에 적어 둡니다.
+                체크를 빼시면 검사만 하고 끝냅니다.
+              </span>
+            </label>
+
             <div class="btn-row">
-              <button class="btn" type="button" data-action="start">검사 시작</button>
+              <button class="btn" type="button" data-action="start">동의하고 검사 시작</button>
               <button class="btn btn--ghost" type="button" data-action="reset">다른 사진 고르기</button>
             </div>
           </div>
@@ -192,112 +204,6 @@
         </details>
       </section>
 
-      <div class="folds" data-extra>
-        <p class="folds-title">더 알고 싶으시면</p>
-
-        <details class="fold">
-          <summary>무엇을 재는가<span class="hint">매체마다 다릅니다</span></summary>
-          <div class="fold-body">
-            <p class="fold-lead">사진</p>
-            <dl class="def-list">
-              <div><dt>촬영 정보</dt><dd>제조사, 모델, 렌즈, 조리개, 셔터, ISO, 촬영 시각. 고칠 수 있는 텍스트라 그 자체로는 증거가 아닙니다. 대조할 주장으로 씁니다. GPS는 존재 여부만 보고 좌표는 읽지 않습니다.</dd></div>
-              <div><dt>ISO 대 노이즈</dt><dd>어두운 영역의 노이즈 크기를 재서 기록된 ISO와 맞는지 봅니다.</dd></div>
-              <div><dt>노이즈-신호 관계</dt><dd>빛은 알갱이로 도착합니다. 밝을수록 노이즈가 커지는 곡선이 나와야 합니다.</dd></div>
-              <div><dt>렌즈 흔적</dt><dd>비네팅과 색수차. 유리를 지난 빛에만 생깁니다.</dd></div>
-              <div><dt>압축 이력</dt><dd>JPEG 8×8 격자를 읽어 몇 번 저장됐는지 추정합니다.</dd></div>
-              <div><dt>화면 재촬영 신호</dt><dd>모아레와 평면성. 기계가 확정할 수 없어 사람 심사로 넘깁니다.</dd></div>
-            </dl>
-
-            <p class="fold-lead">영상</p>
-            <dl class="def-list">
-              <div><dt>컨테이너 기록</dt><dd>MOV·MP4 상자에 적힌 기기, 촬영 시각, 촬영 메타 트랙(노출·자이로). 아이폰 원본에서는 다섯 가지가 나오고 메신저를 거치면 전부 사라집니다 — 실제 파일로 재서 확인한 값입니다.</dd></div>
-              <div><dt>프레임의 광학 흔적</dt><dd>프레임을 다섯 장 떼어 사진과 같은 자로 비네팅과 색수차를 잽니다. 렌즈를 거치지 않은 그림에는 남지 않습니다.</dd></div>
-              <div><dt>압축 이력</dt><dd>변환 도구 기록과 겹친 압축 격자. 다시 만든 파일의 흔적입니다.</dd></div>
-              <div><dt>재지 않는 것</dt><dd>베이어 흔적과 모아레는 영상에서 쓰지 않습니다. 크로마 서브샘플링이 베이어 잔차를 지우고, 모아레 검출기는 아이폰 원본에서도 잡혀 오탐했습니다.</dd></div>
-            </dl>
-
-            <p class="fold-lead">음악·소리</p>
-            <dl class="def-list">
-              <div><dt>태그 기록</dt><dd>WAV의 방송용 덩어리(bext), 녹음기 메타데이터(iXML), 기기 이름. 녹음기는 적고 생성 도구는 적지 않습니다.</dd></div>
-              <div><dt>대역 한계</dt><dd>어느 주파수에서 에너지가 끊기는가. 실측 14.0~20.1kHz로 갈립니다. 여러 번 압축될수록 일찍 끊깁니다.</dd></div>
-              <div><dt>노이즈 플로어</dt><dd>조용한 구간에 남은 방과 마이크의 소리. 곡 앞뒤의 무음은 빼고 잽니다.</dd></div>
-              <div><dt>다이내믹과 스테레오</dt><dd>크레스트 팩터와 두 채널의 상관. 눌린 마스터와 가짜 스테레오를 가립니다.</dd></div>
-            </dl>
-            <p style="margin-top:18px;font-size:14px"><a href="/how">무엇을 왜 재는지 적어 둔 페이지</a></p>
-          </div>
-        </details>
-
-        <details class="fold">
-          <summary>등급은 세 단계<span class="hint">위로 갈수록 사람이 봅니다</span></summary>
-          <div class="fold-body">
-            <table class="grade-table">
-              <thead><tr><th style="width:12%">등급</th><th style="width:22%">누가 판단</th><th>무엇을 확인</th><th style="width:16%">소요</th></tr></thead>
-              <tbody>
-                <tr><td><span class="g">1</span></td><td>기계 + 사람</td><td>이 사람의 이 카메라가 맞는지. 센서 지문 대조와 표본 감사.<div class="queue" data-queue-grade1>현재 대기 0건.</div></td><td>몇 주</td></tr>
-                <tr><td><span class="g">2</span></td><td>사람</td><td>찍힌 대상도 실제인지. 화면을 다시 찍은 것은 아닌지.<div class="queue" data-queue-grade2>현재 대기 0건.</div></td><td>며칠</td></tr>
-                <tr><td><span class="g">3</span></td><td>기계</td><td>실제 카메라로 촬영됐는지. 간단 검사에서 바로 발급됩니다.</td><td>30초</td></tr>
-              </tbody>
-            </table>
-            <p style="margin-top:18px;font-size:14px">대기 건수는 실제 접수 건수입니다. <a href="/grades">등급 체계 자세히</a></p>
-          </div>
-        </details>
-
-        <details class="fold">
-          <summary>인증 마크는 어떻게 쓰나<span class="hint">3등급부터</span></summary>
-          <div class="fold-body">
-            <p>간단 검사를 통과하면 결과 화면에 마크가 새겨진 미리보기가 바로 뜹니다. 마크에는 울타리 도형과 등급, 원본 지문 앞자리가 들어갑니다.</p>
-            <p>내려받는 방법은 두 가지입니다. <strong>마크를 얹은 사진</strong>을 원본 해상도로 받거나, <strong>마크만 담은 투명 PNG</strong>를 받아 편집 프로그램에서 직접 배치하실 수 있습니다. 마크 위치는 좌측 하단, 우측 하단, 좌측 상단, 우측 상단 중에 고르시면 됩니다.</p>
-            <p>SNS나 포트폴리오에 그대로 올리시면 됩니다. 보는 사람은 마크에 적힌 지문으로 원본과 대조할 수 있습니다.</p>
-            <p style="color:var(--ink-2);font-size:14.5px">마크를 넣으면 파일의 바이트가 달라지므로 지문도 달라집니다. 그래서 마크 안에 원본 지문을 같이 새깁니다. 원본은 따로 보관해 두십시오.</p>
-          </div>
-        </details>
-
-        <details class="fold">
-          <summary>오리지널 아카이브<span class="hint">등록해 두면 팔릴 때 몫을 받습니다</span></summary>
-          <div class="fold-body">
-            <p><strong>검증만 하시면 등록됩니다.</strong> 결과 화면의 “등록하고 배분받기”를 누르시면 사람 심사 없이 그 자리에서 원본과 지문, 등록 시각이 보관됩니다. 따로 문의하거나 조건을 협의하실 필요가 없습니다.</p>
-            <p>등급이 무엇이든 받습니다. 나중에 학습용으로 팔리면 <strong>등급에 맞춰</strong> 나눕니다 — 3등급은 기본 몫, 1등급은 가장 큰 몫입니다. 3등급으로 등록해 두고 나중에 상세 검사로 올리셔도 몫이 따라 올라갑니다.</p>
-            <p style="color:var(--ink-2);font-size:14.5px">아직 판매된 적이 없고, 그래서 배분된 적도 없습니다. 없는 수익을 약속하지 않습니다. 등록은 언제든 거두실 수 있습니다.</p>
-            <p style="margin-top:16px;font-size:14px"><a href="/archive">무엇이 함께 남는지</a> · <a href="/archive#share">배분은 어떻게</a></p>
-          </div>
-        </details>
-
-        <details class="fold">
-          <summary>이 검증이 못 하는 것<span class="hint">알고 쓰셔야 합니다</span></summary>
-          <div class="fold-body">
-            <p>AI 이미지를 탐지하지 않고, AI 학습을 막지 못하며, 정확도를 숫자로 말하지 않습니다. 생성된 이미지를 모니터에 띄우고 카메라로 찍으면 간단 검사는 통과합니다. 그래서 확정 인증은 사람이 보는 2등급부터입니다.</p>
-            <p>반대로 진짜 사진이 떨어지는 경우가 훨씬 많습니다. 메신저를 한 번만 거쳐도 촬영 정보가 사라지고, 요즘 휴대폰은 셔터를 누르는 순간 강한 보정을 넣어 노이즈의 물리를 지웁니다. 그래서 “AI로 보입니다” 같은 문장은 어떤 경우에도 출력하지 않습니다.</p>
-            <p style="margin-top:16px;font-size:14px"><a href="/limits">놓치는 경우를 전부 적어 둔 페이지</a></p>
-          </div>
-        </details>
-      </div>
-
-      <!-- 광고 영역: AdSense 승인 후 여기에 슬롯을 넣습니다. 승인 전에는 비워 둡니다. -->
-      <div class="ad-slot" data-ad-slot="in-article"></div>
-
-      <div class="prose">
-        <h2>읽을거리</h2>
-        <p style="color:var(--ink-2)">무엇을 왜 그렇게 재는지 적어 둔 글입니다.</p>
-      </div>
-      <ul class="article-list" style="margin-top:22px">
-        <li><a href="/articles/exif-is-not-proof">EXIF는 증거가 아닙니다. 그래서 더 쓸모가 있습니다</a>
-          <p>메모장으로도 고칠 수 있는 텍스트를 왜 아직도 읽는가.</p></li>
-        <li><a href="/articles/noise-physics">노이즈는 왜 밝은 곳에서 더 큰가</a>
-          <p>빛이 알갱이로 도착하기 때문입니다. 포아송 통계가 사진에 남기는 곡선.</p></li>
-        <li><a href="/articles/lens-traces">렌즈가 남기는 세 가지 흔적</a>
-          <p>비네팅, 색수차, 초점의 연속성. 유리를 통과한 빛에만 생기는 결함들.</p></li>
-      </ul>
-
-      <div class="prose" style="margin-top:56px">
-        <div class="end-actions">
-          <a class="btn" href="/verify">검증하기</a>
-          <a class="btn btn--ghost" href="/archive">수익 배분받기</a>
-          <a class="btn btn--ghost" href="/archive#share">수익 배분은 어떻게</a>
-          <p class="btn-note">검증 화면에서 아카이브 등록까지 한 번에 됩니다. 등급이 무엇이든 등록되고, 팔리면 등급에 맞춰 몫이 돌아옵니다. 아직 성사된 건은 없고 그 사실도 아카이브에 적어 두었습니다.</p>
-        </div>
-      </div>
-
-    </div>
   </main>
 
   <footer class="site-foot">

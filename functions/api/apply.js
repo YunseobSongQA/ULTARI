@@ -63,15 +63,26 @@ export async function onRequestPost({ request, env }) {
      하는 것보다 그쪽이 되돌리기 쉽습니다. */
   const archive = true;
   const contact = safeText(form.get('contact'), LIMITS.maxContact);
-  if (contact.length < 5) {
-    return fail('연락받을 메일 주소나 전화번호를 적어 주세요.');
-  }
   const password = String(form.get('password') ?? '');
-  if (password.length < LIMITS.minPassword) {
-    return fail(`조회 비밀번호를 ${LIMITS.minPassword}자 이상으로 정해 주세요.`);
-  }
-  if (password.length > LIMITS.maxPassword) {
-    return fail(`조회 비밀번호가 ${LIMITS.maxPassword}자를 넘습니다.`);
+
+  /* 아카이브 등록만 하는 건(3)은 연락처 없이 받습니다.
+     검사 화면에서 동의 한 번으로 자동 등록되는 길이라, 그 자리에서 연락처와
+     비밀번호를 받으면 자동이 아닙니다. 대신 조회 열쇠를 응답으로 돌려주고
+     등록한 브라우저가 그것으로 자기 등록을 엽니다(localStorage).
+
+     사람 심사(1·2등급)는 결과를 알려 드려야 하므로 연락처를 받습니다. */
+  const anonymous = !reviewed && contact.length === 0 && password.length === 0;
+
+  if (!anonymous) {
+    if (contact.length < 5) {
+      return fail('연락받을 메일 주소나 전화번호를 적어 주세요.');
+    }
+    if (password.length < LIMITS.minPassword) {
+      return fail(`조회 비밀번호를 ${LIMITS.minPassword}자 이상으로 정해 주세요.`);
+    }
+    if (password.length > LIMITS.maxPassword) {
+      return fail(`조회 비밀번호가 ${LIMITS.maxPassword}자를 넘습니다.`);
+    }
   }
 
   const note = safeText(form.get('note'), LIMITS.maxNote);
@@ -100,7 +111,7 @@ export async function onRequestPost({ request, env }) {
   const id = newId();
   const token = newToken();
   const tokenHash = await sha256Hex(token);
-  const pwHash = await derivePassword(password, contact);
+  const pwHash = anonymous ? null : await derivePassword(password, contact);
   const now = new Date();
 
   // 대기 건수는 아직 끝나지 않은 접수만 셉니다.
@@ -131,13 +142,14 @@ export async function onRequestPost({ request, env }) {
     id,
     tokenHash,
     pwHash,
-    pwIterations: PW_ITERATIONS,
-    contactKey: normalizeContact(contact),
+    pwIterations: anonymous ? null : PW_ITERATIONS,
+    anonymous,
+    contactKey: anonymous ? null : normalizeContact(contact),
     grade,
     archive,
     reviewed,
     status: reviewed ? 'received' : 'archived',
-    contact,
+    contact: anonymous ? '' : contact,
     note,
     summary,
     fingerprint,
@@ -168,11 +180,15 @@ export async function onRequestPost({ request, env }) {
       await env.ULTARI_APPS.put('index:open', JSON.stringify(open));
     }
 
-    // 연락처 → 접수번호 색인. 이것이 없으면 번호를 모르는 사람은 조회할 수 없습니다.
-    const byContact = await contactIndexKey(contact);
-    const mine = (await env.ULTARI_APPS.get(byContact, 'json')) || [];
-    if (!mine.includes(id)) mine.push(id);
-    await env.ULTARI_APPS.put(byContact, JSON.stringify(mine.slice(-50)));
+    /* 연락처 → 접수번호 색인. 이것이 없으면 번호를 모르는 사람은 조회할 수
+       없습니다. 익명 등록은 연락처가 없으므로 색인을 만들지 않습니다 —
+       등록한 브라우저가 들고 있는 조회 열쇠가 유일한 길입니다. */
+    if (!anonymous) {
+      const byContact = await contactIndexKey(contact);
+      const mine = (await env.ULTARI_APPS.get(byContact, 'json')) || [];
+      if (!mine.includes(id)) mine.push(id);
+      await env.ULTARI_APPS.put(byContact, JSON.stringify(mine.slice(-50)));
+    }
   } catch {
     return fail('접수를 기록하지 못했습니다. 잠시 뒤에 다시 시도해 주세요.', 502);
   }

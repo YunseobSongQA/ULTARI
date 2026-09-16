@@ -63,9 +63,8 @@ function paint(id) {
   stripLiveParts(out);
   out.insertAdjacentHTML('beforeend', `
     <p class="demo-tail">
-      실제 화면에는 여기에 인증 마크 내려받기와, 아카이브에 등록하고 배분받을
-      계좌를 적는 칸이 붙습니다. 둘 다 원본 파일이 있어야 하는 자리라
-      견본에서는 떼어 냈습니다.
+      실제 화면에는 여기에 인증 마크 내려받기와 아카이브 등록 결과가 붙습니다.
+      둘 다 원본 파일이 있어야 하는 자리라 견본에서는 떼어 냈습니다.
       <a href="/verify">직접 파일을 올려 보시려면 검증 화면으로</a>.
     </p>`);
   paintIcons(out);
