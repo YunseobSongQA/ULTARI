@@ -76,6 +76,22 @@
 
       <section data-verifier>
         <div data-lanes>
+
+        <!-- 파일을 고르기 전에 먼저 눌러 볼 자리입니다. 그래서 투입구보다
+             위에 둡니다 — 아래에 두면 올릴 파일을 못 찾은 사람은 여기까지
+             내려오지 않고 떠납니다.
+             견본은 실제 파일이고, 누르면 같은 검사를 그 자리에서 그대로
+             돌립니다. 버튼은 스크립트가 그립니다 — 스크립트가 없으면 눌러도
+             아무 일이 일어나지 않으므로, 그때는 이 칸을 내놓지 않습니다. -->
+        <div class="samples" data-samples hidden>
+          <p class="samples-head"><b>지금은 시연용 페이지입니다.</b> 이걸로 먼저 테스트해 보십시오.</p>
+          <div class="sample-row" data-sample-row></div>
+          <p class="samples-note">
+            견본도 아래와 같은 검사를 이 자리에서 실제로 돌립니다. 화면에 나오는 숫자는 방금 이 기기에서 잰 값입니다.
+            AI로 만든 견본을 눌러도 화면은 “AI입니다”라고 하지 않습니다 — 촬영 정보가 없어 판정 불가로 나옵니다.
+          </p>
+        </div>
+
         <div class="lanes">
 
           <section class="lane">

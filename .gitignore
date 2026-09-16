@@ -1,5 +1,8 @@
 node_modules/
 dist/
+# 견본으로 쓸지 고르는 중인 원본 사진들. public/ 밖이라 배포되지 않습니다.
+# 고른 것만 public/samples/로 옮겨 씁니다.
+.cand/
 .DS_Store
 *.local
 .wrangler/

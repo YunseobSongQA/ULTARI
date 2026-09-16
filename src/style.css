@@ -48,7 +48,7 @@
   /* 움직임은 한 곡선만 씁니다. 랜딩에서 화면이 갈리는 것과 메뉴가
      펼쳐지는 것이 서로 다른 곡선으로 움직이면 같은 사이트로 느껴지지
      않습니다. 하나씩 늦게 나오는 간격도 같은 값을 씁니다. */
-  --ease: var(--ease);
+  --ease: cubic-bezier(0.19, 0.84, 0.3, 1);
   --step: 26ms;
 
   --shell: 1000px;
@@ -223,8 +223,11 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
 }
 
 /* 칸 수가 둘이든 셋이든 왼쪽부터 같은 폭으로 섭니다. 1fr로 나누면
-   두 칸일 때 글자 사이가 허전하게 벌어집니다. */
-.nav-panel-inner {
+   두 칸일 때 글자 사이가 허전하게 벌어집니다.
+   선택자에 .nav-panel을 얹는 이유: 이 판도 .shell이라서 상단 바를 가로로
+   벌리는 `.site-head .shell`(flex, space-between)이 클래스 하나짜리보다
+   특정도가 높습니다. 그대로 두면 칸이 양쪽 끝으로 벌어집니다. */
+.nav-panel .nav-panel-inner {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(150px, 210px);
@@ -259,10 +262,24 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
 .nav-drop.is-open .nav-col a:nth-of-type(3) { animation-delay: calc(var(--i, 0) * var(--step) + 158ms); }
 
 .nav-col-title {
-  align-self: stretch;
+  position: relative; align-self: stretch;
   margin: 0 0 15px; padding-bottom: 11px;
-  border-bottom: 1px solid var(--rule);
   font-size: 12px; color: var(--ink-3);
+}
+/* 제목 아래 선은 글자가 선 다음에 왼쪽에서 그어집니다. border로 두면
+   판이 내려오는 동안 선만 미리 완성돼 있어 제목보다 먼저 도착합니다. */
+.nav-col-title::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: var(--rule);
+  transform: scaleX(0); transform-origin: left center;
+}
+.nav-drop.is-open .nav-col-title::after {
+  animation: nav-rule-in 420ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * var(--step) + 90ms);
+}
+@keyframes nav-rule-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 .nav-col a {
   position: relative; padding: 8px 0;
@@ -285,6 +302,8 @@ code { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); p
   .nav-panel { transition: opacity 0s, visibility 0s; transform: none; filter: none; }
   .nav-drop.is-open .nav-col-title,
   .nav-drop.is-open .nav-col a { animation: none; }
+  .nav-col-title::after { transform: scaleX(1); }
+  .nav-drop.is-open .nav-col-title::after { animation: none; }
   .nav-top::after, .nav-top .chev, .nav-col a, .nav-col a::after { transition: none; }
 }
 
@@ -385,6 +404,51 @@ main.main--tool { padding-block: 32px 80px; }
 .drop svg { color: var(--ink-3); display: block; margin: 0 auto 10px; }
 .drop .drop-main { display: block; font-size: 15px; font-weight: 500; }
 .drop .drop-sub { display: block; font-size: 12.5px; color: var(--ink-3); margin-top: 5px; }
+
+/* ── 견본 ────────────────────────────────────────────
+   투입구보다 위에 둡니다. 시연 단계에서는 이 자리가 먼저 눌리는 자리라
+   아래에 두면 올릴 파일을 못 찾은 사람이 보지 못하고 떠납니다.
+
+   테두리를 점선으로 둡니다. 실선 칸은 이 사이트에서 실제로 쓰는 자리이고,
+   점선은 견본이라는 뜻으로 이미 /demo의 견본 줄에서 쓰고 있습니다.
+
+   미리보기를 글보다 앞에 둡니다. 어떤 사진이 들어가는지는 글로 적는 것보다
+   사진을 보여 주는 것이 빠릅니다. */
+.samples {
+  margin: 0 0 22px; padding: 15px 16px 16px;
+  border: 1px dashed var(--rule-strong);
+}
+.samples-head { margin: 0 0 12px; font-size: 14px; color: var(--ink-2); }
+.samples-head b { font-weight: 600; color: var(--ink); }
+
+.sample-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sample {
+  display: flex; align-items: center; gap: 13px;
+  text-align: left; padding: 10px 14px 10px 10px;
+  border: 1px solid var(--rule); background: var(--surface);
+  font: inherit; color: var(--ink-2); cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.sample:hover, .sample:focus-visible { border-color: var(--measure); background: var(--tint-measure); }
+.sample img {
+  width: 78px; height: 78px; object-fit: cover; flex: none;
+  border: 1px solid var(--rule-strong); background: #fff;
+}
+.sample-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sample b { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.sample-note { font-size: 12.5px; line-height: 1.5; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.sample-state { font-size: 12.5px; line-height: 1.5; color: var(--measure); }
+.sample-state:empty { display: none; }
+.sample-state.is-bad { color: var(--warn); }
+.sample.is-loading { border-color: var(--measure); background: var(--tint-measure); cursor: progress; }
+.samples-note { margin: 13px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--ink-3); }
+
+/* 견본이 들어갔다는 사실은 결과가 나온 뒤에도 파일 줄에 남아 있어야
+   합니다. 무엇을 쟀는지 모르는 채로 보는 등급은 아무 뜻이 없습니다. */
+.file-sample { margin-top: 4px; font-size: 12.5px; line-height: 1.55; color: var(--ink-3); }
+.mode-tag--sample { color: var(--measure); border-color: var(--measure); }
+
+@media (max-width: 560px) { .sample-row { grid-template-columns: 1fr; } }
 
 /* ── 진행 / 파일 ─────────────────────────────────────── */
 
@@ -592,6 +656,10 @@ main.main--tool { padding-block: 32px 80px; }
 
 /* 두 값이 100을 나눠 갖는 막대. 조각 사이 2px는 바탕색으로 띄웁니다. */
 .sbar { display: flex; gap: 2px; height: 10px; }
+/* 한 방향만 그릴 때. 남은 칸이 빈자리로 보이면 안 되므로 바탕을 깔고,
+   칸이 하나뿐이라 모서리를 양쪽 다 굽힙니다. */
+.sbar--one { background: var(--rule); }
+.sbar--one .sbar-seg--trace { border-radius: 4px; }
 .sbar-seg { display: block; height: 100%; min-width: 0; }
 .sbar-seg--trace { background: var(--measure); border-radius: 4px 0 0 4px; }
 .sbar-seg--ai { background: var(--warn); border-radius: 0 4px 4px 0; }
@@ -887,7 +955,10 @@ main.main--tool .page-head { margin-bottom: 22px; }
 
   /* 펼친 칸이 화면보다 길면 칸 안에서만 스크롤합니다. */
   .nav-panel { max-height: calc(100svh - var(--head-h)); overflow-y: auto; }
-  .nav-panel-inner {
+  /* 좁은 화면에서도 같은 이유로 .nav-panel을 얹습니다. 여기서는
+     `.site-head .shell`이 flex-wrap: nowrap까지 걸어 칸을 한 줄에
+     밀어 넣습니다. */
+  .nav-panel .nav-panel-inner {
     grid-auto-flow: row;
     grid-auto-columns: auto;
     grid-template-columns: 1fr 1fr;
@@ -1372,14 +1443,14 @@ main.main--tool .page-head { margin-bottom: 22px; }
   font-variation-settings: 'wght' 200;
   transition:
     opacity 380ms ease,
-    transform 520ms cubic-bezier(0.19, 0.84, 0.3, 1),
+    transform 520ms var(--ease),
     font-variation-settings 620ms ease;
 }
 .reel.is-reel .slide.is-on .morph span {
   opacity: 1;
   transform: none;
   font-variation-settings: 'wght' 600;
-  transition-delay: calc(var(--i, 0) * 26ms);
+  transition-delay: calc(var(--i, 0) * var(--step));
 }
 
 /* 나머지 요소도 조금 늦게 따라옵니다. 한꺼번에 나타나면 툭 바뀝니다. */

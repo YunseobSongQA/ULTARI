@@ -29,6 +29,7 @@ import {
   POSITIONS, DEFAULT_POSITION,
 } from './watermark.js';
 import { paintIcons } from './site.js';
+import { SAMPLES } from './samples.js';
 import { CHECK_LABEL, CHECK_STATES } from './review-criteria.js';
 import { escapeHtml, stripTags, fold } from './html.js';
 import { readContainer } from './verify/container.js';
@@ -443,11 +444,17 @@ const NO_GUARANTEE = `
  * 두 값이 100을 나눠 갖는 막대. 조각 사이는 2px 띄우고, 바깥쪽 끝만 둥글게.
  * 색만으로 구분하지 않도록 양쪽에 직접 라벨을 답니다.
  */
-function splitBar(trace, ai) {
+/**
+ * 촬영 흔적 한 방향만 그립니다.
+ *
+ * 전에는 반대쪽에 AI 환산을 붙여 두 칸으로 그렸습니다. 두 숫자는 서로의
+ * 나머지(ai = 100 - trace)라 같이 적어 알게 되는 것이 없고, 통과한 사진
+ * 옆에 붙은 주황색 칸이 통과가 무슨 뜻인지를 흐립니다.
+ */
+function traceBar(trace) {
   return `
-    <div class="sbar" role="img" aria-label="촬영 흔적 ${trace}%, AI 생성 환산 ${ai}%">
+    <div class="sbar sbar--one" role="img" aria-label="촬영 흔적 ${trace}%">
       <span class="sbar-seg sbar-seg--trace" style="width:${trace}%"></span>
-      <span class="sbar-seg sbar-seg--ai" style="width:${ai}%"></span>
     </div>`;
 }
 
@@ -482,7 +489,8 @@ function renderProvenanceFacts(prov) {
 }
 
 function renderScorePanel(bundle) {
-  const { trace, ai, categories, declared } = scoreTraces(bundle);
+  // ai(= 100 - trace)는 쓰지 않습니다. 한 방향만 적기로 했습니다.
+  const { trace, categories, declared } = scoreTraces(bundle);
   const { result, pixels } = bundle;
 
   const bars = categories.map((c) => {
@@ -504,11 +512,24 @@ function renderScorePanel(bundle) {
      접어 두지 않습니다 — 판별 근거는 눌러야 나오면 근거 구실을 못 합니다. */
   const prov = bundle.provenance;
   const signals = [...aiSignals(bundle), ...synthesisSignals(bundle)];
-  const tally = { camera: 0, unknown: 0, ai: 0 };
-  signals.forEach((r) => { tally[r.side] += 1; });
 
-  // 근거가 나온 기준은 펼쳐 두고, 잴 수 없었던 기준은 접어 둡니다.
-  const found = signals.filter((r) => r.side !== 'unknown');
+  /**
+   * 판정이 간 방향만 펼쳐 둡니다.
+   *
+   * 전에는 카메라 쪽·AI 쪽·판단 보류를 한 줄에 같이 세워 놓았습니다.
+   * 그래서 3등급을 받은 사진 옆에 "AI 쪽 1건"이 붙고, 떨어진 파일 옆에
+   * "카메라 쪽 4건"이 붙었습니다. 둘 다 사실이지만 한 화면에서 서로를
+   * 지웁니다 — 통과한 사진은 왜 통과했는지, 떨어진 파일은 왜 떨어졌는지가
+   * 읽히지 않습니다.
+   *
+   * 그래서 통과면 카메라 쪽 근거를, 그 밖이면 반대로 나온 기준을 펼쳐
+   * 둡니다. 반대 방향은 지우지 않고 접어 둡니다. 측정한 것을 화면에서
+   * 없애면 이 서비스가 파는 것이 없어집니다.
+   */
+  const onCamera = result.verdict === VERDICT.PASS;
+  const side = onCamera ? 'camera' : 'ai';
+  const shown = signals.filter((r) => r.side === side);
+  const opposite = signals.filter((r) => r.side !== side && r.side !== 'unknown');
   const quiet = signals.filter((r) => r.side === 'unknown');
 
   const sigRow = (r) => `
@@ -535,61 +556,56 @@ function renderScorePanel(bundle) {
 
   return `
     <div class="panel score-panel">
-      <p class="panel-title">환산 수치</p>
+      ${onCamera ? `
+        <p class="panel-title">환산 수치</p>
 
-      <div class="score-hero">
-        <div class="score-figure">
-          <span class="score-num score-num--trace">${trace}<small>%</small></span>
-          <span class="score-cap">촬영 흔적</span>
+        <div class="score-hero">
+          <div class="score-figure">
+            <span class="score-num score-num--trace">${trace}<small>%</small></span>
+            <span class="score-cap">촬영 흔적</span>
+          </div>
         </div>
-        <div class="score-figure score-figure--end">
-          <span class="score-num score-num--ai">${ai}<small>%</small></span>
-          <span class="score-cap">AI 생성 환산</span>
-        </div>
-      </div>
-      ${splitBar(trace, ai)}
-      <p class="score-caveat">
-        ${declared
-          ? '파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다. 배점을 계산한 값이 아닙니다.'
-          : `학습된 분류기의 판단이 아닙니다. 아래 항목에 사람이 정한 배점을 곱해 더한 값이라
-             배점을 바꾸면 숫자도 바뀝니다.`}
-      </p>
+        ${traceBar(trace)}
+        <p class="score-caveat">
+          학습된 분류기의 판단이 아닙니다. 아래 항목에 사람이 정한 배점을 곱해 더한 값이라
+          배점을 바꾸면 숫자도 바뀝니다.
+        </p>` : ''}
 
-      <p class="panel-title score-sub">AI 판별 기준</p>
+      <p class="panel-title${onCamera ? ' score-sub' : ''}">AI 판별 기준</p>
 
       <p class="sig-lead">
         아래 <strong>${signals.length}가지</strong> 기준으로 검사했고,
-        그중 <strong>${found.length}가지</strong>에서 근거가 나왔습니다.
+        ${onCamera
+          ? `그중 <strong>${shown.length}가지</strong>에서 카메라를 거친 흔적이 나왔습니다.`
+          : `그중 <strong>${shown.length}가지</strong>가 반대로 나왔습니다.`}
       </p>
       <p class="sig-list">${signals.map((r) => escapeHtml(r.label)).join(' · ')}</p>
 
-      <div class="sigbar" role="img"
-           aria-label="카메라 쪽 ${tally.camera}건, AI 쪽 ${tally.ai}건, 판단 보류 ${tally.unknown}건">
-        ${tally.camera ? `<span class="sigbar-seg sigbar-seg--camera" style="flex:${tally.camera}"></span>` : ''}
-        ${tally.ai ? `<span class="sigbar-seg sigbar-seg--ai" style="flex:${tally.ai}"></span>` : ''}
-        ${tally.unknown ? `<span class="sigbar-seg sigbar-seg--none" style="flex:${tally.unknown}"></span>` : ''}
-      </div>
-      <ul class="sigkey">
-        <li><i class="k k--camera"></i>카메라 쪽 <b>${tally.camera}</b></li>
-        <li><i class="k k--ai"></i>AI 쪽 <b>${tally.ai}</b></li>
-        <li><i class="k k--none"></i>판단 보류 <b>${tally.unknown}</b></li>
-      </ul>
+      ${shown.length
+        ? `<ul class="sig">${shown.map(sigRow).join('')}</ul>`
+        : `<p class="tally-read is-none">${onCamera
+            ? '카메라를 거친 흔적이 <strong>한 건도</strong> 잡히지 않았습니다.'
+            : '반대로 나온 기준은 <strong>한 건도</strong> 없습니다. 잴 것이 모자랐을 뿐입니다.'}</p>`}
 
-      <p class="tally-read${tally.camera === 0 ? ' is-none' : ''}">
-        ${tally.camera === 0
-          ? `카메라를 거친 흔적이 <strong>한 건도</strong> 잡히지 않았습니다.
-             메신저를 거친 사진과 스크린샷에서도 같은 결과가 나옵니다.`
-          : `카메라를 거친 흔적이 <strong>${tally.camera}건</strong> 잡혔습니다.
-             ${tally.ai > 0 ? `다만 ${tally.ai}건은 반대 방향입니다.` : ''}`}
-      </p>
+      ${onCamera ? '' : `
+        <p class="score-caveat">
+          ${declared
+            ? '파일에 AI 생성 기록이 적혀 있습니다. 위 기준을 재서 나온 판단이 아니라 파일이 스스로 밝힌 사실입니다.'
+            : `흔적이 없다는 것과 AI가 만들었다는 것은 같은 말이 아닙니다.
+               메신저를 거친 사진과 스크린샷에서도 같은 기준이 걸립니다.`}
+        </p>`}
 
-      ${found.length ? `<ul class="sig">${found.map(sigRow).join('')}</ul>` : ''}
+      ${opposite.length
+        ? fold(onCamera ? '반대로 나온 기준' : '카메라 쪽으로 나온 기준',
+          `${opposite.length}가지 · 판정을 뒤집지 못했습니다`,
+          `<ul class="sig">${opposite.map(sigRow).join('')}</ul>`)
+        : ''}
       ${quiet.length
         ? fold('판단이 서지 않은 기준', `${quiet.length}가지 · 이 파일에서는 잴 수 없었습니다`,
           `<ul class="sig sig--quiet">${quiet.map(sigRow).join('')}</ul>`)
         : ''}
 
-      ${declared ? '' : fold('환산 수치는 어떻게 나왔나', '여섯 항목의 배점',
+      ${declared || !onCamera ? '' : fold('환산 수치는 어떻게 나왔나', '여섯 항목의 배점',
         `<div class="cats">${bars}</div>`)}
 
       <p class="panel-title score-sub">인증 마크</p>
@@ -601,7 +617,7 @@ function renderScorePanel(bundle) {
       <p class="score-caveat">
         발급 조건은 다섯입니다 — AI 생성 표식 없음 · 촬영 정보(제조사·모델 + 촬영 시각) 있음 ·
         정합성 모순 0건 · 약한 신호 ${GATE.softSignalsForHold}건 미만 · 화소 ${GATE.minMegapixels}MP 이상.
-        환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.
+        ${onCamera ? `환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.` : ''}
       </p>
     </div>`;
 }
@@ -927,7 +943,9 @@ function eligibility(bundle) {
  */
 function renderEligibility(bundle, elig) {
   const { result } = bundle;
-  const { trace, ai } = traceOf(bundle);
+  // 환산 수치는 통과한 파일에만 적습니다. 판정 패널과 같은 규칙입니다.
+  const { trace } = traceOf(bundle);
+  const onCamera = result.verdict === VERDICT.PASS;
 
   const verdict = result.verdict === VERDICT.PASS ? '3등급 발급'
     : result.verdict === VERDICT.HOLD ? '보류'
@@ -948,8 +966,7 @@ function renderEligibility(bundle, elig) {
       </ul>
 
       <p class="elig-quick">
-        간단 검사 판정 <b>${escapeHtml(verdict)}</b> ·
-        촬영 흔적 <b>${trace}%</b> <span class="dim">AI 생성 환산 ${ai}%</span>
+        간단 검사 판정 <b>${escapeHtml(verdict)}</b>${onCamera ? ` · 촬영 흔적 <b>${trace}%</b>` : ''}
       </p>
       ${elig.ok ? `
         <p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>
@@ -1137,6 +1154,8 @@ export function mountVerifier(root) {
     if (stepList) stepList.innerHTML = '';
     lanes.hidden = false;
     root.querySelectorAll('input[type="file"]').forEach((i) => { i.value = ''; });
+    // 견본을 못 받았다는 줄이 다음 사람에게 남아 있으면 안 됩니다.
+    root.querySelectorAll('[data-sample-state]').forEach((el) => { el.textContent = ''; });
     bringIntoView(lanes, 'nearest');
   };
 
@@ -1177,6 +1196,7 @@ export function mountVerifier(root) {
     if (tag) tag.textContent = MODE_LABEL[current.mode];
     output.innerHTML = renderResult(current.bundle, current.mode, current.applyOpen === true);
     paintIcons(output);
+    stripSampleApply();
     if (current.mode === 'deep') {
       if (wantGrade) {
         const sel = output.querySelector('[data-apply-grade]');
@@ -1219,12 +1239,39 @@ export function mountVerifier(root) {
     if (runNote) runNote.hidden = true;
   };
 
+  /**
+   * 견본 결과에서는 신청 자리를 떼어 냅니다.
+   *
+   * 대기 건수는 실제 접수만 세야 하는 숫자입니다. 견본을 눌러 본 사람이
+   * 신청서까지 보내면 그 숫자가 실제 접수가 아닌 것으로 불어나고, 남의
+   * 사진으로 낸 신청은 접수해도 심사할 수가 없습니다.
+   *
+   * 마크는 남깁니다. 견본도 파일이 실제로 있으므로 새겨서 내려받는 것까지
+   * 됩니다 — 여기서 떼어 내면 통과하면 무엇을 받는지 보여 주지 못합니다.
+   */
+  const stripSampleApply = () => {
+    if (!current || !current.sample) return;
+    output.querySelectorAll('[data-apply]').forEach((el) => el.remove());
+    output.querySelectorAll(
+      '[data-action="swap-mode"], [data-action="apply-open"], [data-action="archive-open"]',
+    ).forEach((el) => el.remove());
+
+    const end = output.querySelector('.end-actions');
+    if (!end) return;
+    const note = end.querySelector('.btn-note')
+      || end.appendChild(Object.assign(document.createElement('p'), { className: 'btn-note' }));
+    note.textContent = '견본에는 신청서를 붙이지 않습니다. 대기 건수는 실제 접수만 세는 숫자이고, 남의 사진으로 낸 신청은 심사할 수 없습니다. 직접 올리시면 이 자리에 상세 검사 신청과 아카이브 등록이 붙습니다.';
+  };
+
   /* 1단계 — 받았다는 사실만 알립니다. 측정은 사용자가 누를 때 시작합니다.
-     파일이 들어왔는지 모르는 채로 기다리게 하지 않기 위한 단계입니다. */
-  const stage = (file, mode) => {
+     파일이 들어왔는지 모르는 채로 기다리게 하지 않기 위한 단계입니다.
+     sample이 붙어 오면 견본 버튼으로 들어온 파일입니다. 어느 견본이
+     들어갔는지 화면에 적어야 합니다 — 무엇을 재는지 모르는 채로 결과만
+     보면 그 결과도 믿을 수 없습니다. */
+  const stage = (file, mode, sample = null) => {
     if (busy || !file) return;
     revoke();
-    pending = { file, mode };
+    pending = { file, mode, sample };
     current = null;
     lanes.hidden = true;
     runArea.hidden = false;
@@ -1248,13 +1295,16 @@ export function mountVerifier(root) {
     fileLine.innerHTML = `
       ${preview}
       <div class="meta">
-        <div class="name">${escapeHtml(file.name || '이름 없는 파일')}<span class="mode-tag">${MODE_LABEL[mode]}</span><span class="kind-tag">${KIND_LABEL[kind] || '알 수 없는 형식'}</span></div>
+        <div class="name">${escapeHtml(file.name || '이름 없는 파일')}<span class="mode-tag">${MODE_LABEL[mode]}</span><span class="kind-tag">${KIND_LABEL[kind] || '알 수 없는 형식'}</span>${sample ? '<span class="mode-tag mode-tag--sample">견본</span>' : ''}</div>
         <div>${escapeHtml(file.type || '형식 미상')} · ${escapeHtml(formatBytes(file.size) || '')}</div>
+        ${sample ? `<div class="file-sample">${escapeHtml(sample.label)} — ${escapeHtml(sample.detail)}</div>` : ''}
         ${kind === 'audio' ? `<audio controls src="${previewUrl}" style="margin-top:6px;max-width:280px"></audio>` : ''}
       </div>`;
     readyNote.textContent = kind === 'unknown'
       ? '이 형식은 검사하지 못합니다. 사진, 영상, 소리 파일을 올려 주십시오.'
-      : `${KIND_LABEL[kind]} · ${MODE_LABEL[mode]}로 ${steps.length}단계를 잰 뒤 판정합니다.`;
+      : sample
+        ? `견본이지만 측정은 실제로 합니다. ${steps.length}단계를 잰 뒤 판정합니다.`
+        : `${KIND_LABEL[kind]} · ${MODE_LABEL[mode]}로 ${steps.length}단계를 잰 뒤 판정합니다.`;
     readyBox.hidden = false;
     paintIcons(runArea);
     bringIntoView(runArea, 'start');
@@ -1263,7 +1313,7 @@ export function mountVerifier(root) {
   /* 2단계 — 실제 측정. 진행이 보이고, 끝나면 결과가 남습니다. */
   const start = async () => {
     if (busy || !pending) return;
-    const { file, mode } = pending;
+    const { file, mode, sample } = pending;
     busy = true;
     readyBox.hidden = true;
     output.innerHTML = '';
@@ -1277,10 +1327,11 @@ export function mountVerifier(root) {
 
     try {
       const bundle = await verifyAny(file, showProgress);
-      current = { file, mode, bundle, position: DEFAULT_POSITION };
+      current = { file, mode, bundle, position: DEFAULT_POSITION, sample };
       finishProgress(performance.now() - startedAt);
       output.innerHTML = renderResult(bundle, mode);
       paintIcons(output);
+      stripSampleApply();
       if (mode === 'deep') paintEta();
       if (bundle.result.grade) await refreshMarkPreview();
     } catch (err) {
@@ -1317,6 +1368,62 @@ export function mountVerifier(root) {
       zone.addEventListener(type, (e) => { e.preventDefault(); zone.classList.remove('is-over'); }));
     zone.addEventListener('drop', (e) => stage(e.dataTransfer?.files?.[0], mode));
   });
+
+  /* ── 견본 ─────────────────────────────────────────────
+     올릴 파일이 없어도 한 번은 돌려 볼 수 있어야 합니다. 받아 온 파일을
+     실제 검사에 그대로 넣습니다. 견본 측정값을 미리 적어 두지 않습니다 —
+     그러면 /demo와 같은 것이 되고, 여기서는 방금 잰 값이라고 적을 수가
+     없습니다. */
+  const samplesBox = root.querySelector('[data-samples]');
+  const sampleRow = root.querySelector('[data-sample-row]');
+
+  if (samplesBox && sampleRow) {
+    sampleRow.innerHTML = SAMPLES.map((s) => `
+      <button class="sample" type="button" data-sample="${escapeHtml(s.id)}">
+        <img src="${escapeHtml(s.thumb)}" alt="${escapeHtml(s.alt)}" width="78" height="78" loading="lazy" decoding="async">
+        <span class="sample-text">
+          <b>${escapeHtml(s.label)}</b>
+          <span class="sample-note">${escapeHtml(s.note)}</span>
+          <span class="sample-state" data-sample-state></span>
+        </span>
+      </button>`).join('');
+    samplesBox.hidden = false;
+  }
+
+  /**
+   * 견본 파일을 받아 투입구에 넣습니다. 여기 있는 fetch는 이 사이트의
+   * 견본 파일을 내려받는 것뿐입니다. 사용자의 파일은 여전히 어디로도
+   * 가지 않습니다.
+   */
+  const loadSample = async (id, btn) => {
+    if (busy) return;
+    const sample = SAMPLES.find((s) => s.id === id);
+    if (!sample) return;
+
+    const state = btn.querySelector('[data-sample-state]');
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+    if (state) { state.className = 'sample-state'; state.textContent = '견본을 받는 중…'; }
+
+    try {
+      const res = await fetch(sample.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      if (state) state.textContent = '';
+      stage(new File([blob], sample.name, { type: sample.type }), 'quick', sample);
+    } catch (err) {
+      // 견본을 못 받았다는 사실을 버튼 자리에 그대로 적습니다. 조용히
+      // 아무 일도 일어나지 않으면 버튼이 고장 난 것으로 보입니다.
+      console.error('[ultari] 견본을 받지 못했습니다', err);
+      if (state) {
+        state.className = 'sample-state is-bad';
+        state.textContent = '견본을 받지 못했습니다. 다시 눌러 주십시오.';
+      }
+    } finally {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+    }
+  };
 
   const PREVIEW_EDGE = 1100;   // 미리보기는 이 크기로 줄여 그립니다. 비율은 같습니다.
 
@@ -1721,6 +1828,8 @@ export function mountVerifier(root) {
   root.addEventListener('click', (e) => {
     const pos = e.target.closest('.seg-btn');
     if (pos) { e.preventDefault(); choosePosition(pos); return; }
+    const sampleBtn = e.target.closest('[data-sample]');
+    if (sampleBtn) { e.preventDefault(); loadSample(sampleBtn.dataset.sample, sampleBtn); return; }
     const el = e.target.closest('[data-action]');
     if (!el) return;
     const act = el.dataset.action;
