@@ -131,12 +131,11 @@ export function mountNav(scope = document) {
   };
 
   drops.forEach((drop) => {
-    /* 펼친 칸은 상단 바 전체에 걸려 있어 버튼과 칸 사이에 빈 띠가 있습니다.
-       마우스가 그 띠를 지나는 동안 잠깐 둘 다에서 벗어나므로, 바로 닫으면
-       칸에 닿기 전에 사라집니다. 조금 기다렸다 닫고, 그 사이에 다시
-       들어오면 취소합니다. */
+    /* 이름이 바 높이를 그대로 쓰고 칸이 바로 그 아래 붙으므로 둘 사이에
+       빈 자리는 없습니다. 그래도 비스듬히 지나가면 한 프레임쯤 둘 다에서
+       벗어납니다. 조금 기다렸다 닫고, 그 사이에 다시 들어오면 취소합니다. */
     let shut = 0;
-    const later = () => { clearTimeout(shut); shut = setTimeout(() => close(drop), 140); };
+    const later = () => { clearTimeout(shut); shut = setTimeout(() => close(drop), 100); };
     const now = () => { clearTimeout(shut); open(drop); };
 
     drop.classList.add('is-live');

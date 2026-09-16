@@ -831,7 +831,7 @@ function renderResult(bundle, mode, openForm = false) {
           상세 검사 신청하기
         </button>
         <button class="btn btn--ghost" type="button" data-action="archive-open">
-          아카이브에 등록하기
+          등록하고 배분받기
         </button>` : ''}
       <button class="btn btn--ghost" type="button" data-action="reset">다른 작업물 검사하기</button>
       <p class="btn-note">${elig.ok
@@ -1166,7 +1166,7 @@ export function mountVerifier(root) {
   /**
    * 같은 작업물을 다른 검사 방식으로 다시 봅니다. 측정은 다시 하지 않습니다.
    * wantGrade를 주면 신청 등급을 그것으로 맞춰 둡니다 — 간단 검사 결과에서
-   * "아카이브에 등록하기"를 누른 사람은 심사를 신청하러 온 것이 아닙니다.
+   * "등록하고 배분받기"를 누른 사람은 심사를 신청하러 온 것이 아닙니다.
    */
   const swapMode = async (wantGrade = null) => {
     if (!current || busy) return;
