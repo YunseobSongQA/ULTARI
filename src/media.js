@@ -405,15 +405,14 @@ export function gradeMedia(bundle) {
   const noRecord = (bundle.container?.cameraSigns?.length || 0) === 0;
   const noRecordSlot = kind === 'audio' && noRecord
     && !RECORD_SLOT.test(bundle.container?.format || '');
-  /* 기기 기록이 없어도 렌즈와 센서의 물리가 둘 다 남아 있으면 그것으로
-     갈음합니다. 편집해서 내보낸 영상에는 촬영 기기 기록이 남지 않는데,
-     그렇다고 촬영하지 않은 것은 아닙니다. 비네팅과 색수차는 유리를 지난
-     빛에만 생기고, 밝을수록 커지는 노이즈는 빛이 알갱이로 도착해서
-     생깁니다. 둘 다 나오면 카메라를 지난 그림으로 봅니다.
-     소리에는 아직 이만큼 확실한 물리가 없어 영상에만 둡니다. */
+  /* 짧은 세로 영상은 메신저·갤러리를 거치며 기기 기록이 사라지는 일이
+     흔합니다. 그 경우에도 비네팅이나 색수차처럼 실제로 검출된 촬영 흔적이
+     하나 있고, 환산 수치가 영상 문턱을 넘으면 통과시킵니다. 노이즈 곡선은
+     HDR과 노이즈 제거에 쉽게 뒤집혀 둘을 모두 요구하면 실제 영상이 탈락합니다.
+     소리에는 같은 물리 근거가 없어 이 완화 규칙을 적용하지 않습니다. */
   const physicsProof = kind === 'video'
-    && score.categories.optics === 'match'
-    && score.categories.noise === 'match';
+    && cameraSide >= requiredSigns
+    && score.trace >= requiredTrace;
   const measurable = kind === 'audio'
     ? Boolean(bundle.sound)
     : Boolean(bundle.frames?.frameCount);
@@ -451,7 +450,7 @@ export function gradeMedia(bundle) {
       title: '기기 기록이 없습니다',
       detail: kind === 'audio'
         ? '녹음기나 기기 이름이 파일에 적혀 있지 않습니다. 파형만으로는 발급하지 않습니다 — 실제 음원이면 대부분 통과하는 값이라 생성물도 통과할 수 있습니다.'
-        : '촬영 기기 기록이 파일에 남아 있지 않습니다. 편집해서 내보내면 지워집니다. 기록이 없어도 렌즈 흔적(비네팅·색수차)과 노이즈-밝기 곡선이 함께 나오면 그것으로 갈음하는데, 이 파일에서는 둘 중 하나가 나오지 않았습니다.',
+        : '촬영 기기 기록이 파일에 남아 있지 않습니다. 편집해서 내보내면 지워집니다. 기록이 없어도 실제로 검출된 광학 흔적과 충분한 촬영 흔적 점수가 함께 나오면 그것으로 갈음합니다.',
     });
   } else if (cameraSide >= requiredSigns && score.trace >= requiredTrace) {
     verdict = VERDICT.PASS;
