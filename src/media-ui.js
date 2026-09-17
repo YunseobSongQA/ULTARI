@@ -202,6 +202,8 @@ export function renderMediaScore(bundle) {
     </li>`;
 
   const what = bundle.kind === 'audio' ? '녹음' : '촬영';
+  const requiredSigns = bundle.kind === 'audio' ? MEDIA_GATE.signs : MEDIA_GATE.videoSigns;
+  const requiredTrace = bundle.kind === 'audio' ? MEDIA_GATE.trace : MEDIA_GATE.videoTrace;
   const eligible = result.verdict === VERDICT.PASS;
   /* 가릴 수 없다고 해 놓고 "AI 생성 환산 40%"를 크게 적으면, 읽는 사람에게는
      40%만 남습니다. 판정하지 않은 화면에서는 숫자를 내걸지 않습니다.
@@ -271,7 +273,7 @@ export function renderMediaScore(bundle) {
       </p>
       <p class="score-caveat">
         발급 조건은 넷입니다 — AI 생성 기록 없음 · ${bundle.kind === 'audio' ? '녹음기·기기' : '촬영 기기'} 기록 있음 ·
-        ${what} 쪽 근거 ${MEDIA_GATE.signs}건 이상 · 환산 수치 ${MEDIA_GATE.trace}% 이상.
+        ${what} 쪽 근거 ${requiredSigns}건 이상 · 환산 수치 ${requiredTrace}% 이상.
       </p>
     </div>`;
 }

@@ -72,18 +72,18 @@ function videoCategories(bundle) {
         0건 (실측). 있으면 강한 근거지만, 없는 것은 근거가 아닙니다.
         편집해서 내보내면 지워지므로 없다고 반대쪽으로 세면 손을 댄 작업일수록
         감점부터 받습니다. 발급 문턱은 따로 잠가 두었습니다. */
-  const record = c.cameraSigns?.length >= 2 ? 'match' : 'unknown';
+  // 영상 컨테이너는 기기 이름 하나만 남기는 경우가 많습니다. 기기 기록 한 건은
+  // 촬영 쪽 근거로 읽되, 다른 물리 신호와 함께 등급 문턱에서 다시 확인합니다.
+  const record = c.cameraSigns?.length >= 1 ? 'match' : 'unknown';
 
   /* 2. 광학 흔적 — 렌즈를 거친 그림에만 남습니다.
         편집 영상 720p만 5/5로 전무했습니다. */
   const opticsHit = (s.vignetteFrames || 0) + (s.caFrames || 0);
-  const optics = opticsHit >= 3 ? 'match'
-    : s.noOpticalTrace >= n && n > 0 ? 'against' : 'unknown';
+  const optics = opticsHit >= 3 ? 'match' : 'unknown';
 
   /* 3. 하이라이트 날림 — 실제 빛에서 생깁니다. 전 파일에서 4~5/5로 나와
         판별력이 약합니다. 그래서 가중치를 낮게 두었습니다. */
-  const light = (s.clipFrames || 0) >= n && n > 0 ? 'match'
-    : (s.clipFrames || 0) === 0 ? 'against' : 'unknown';
+  const light = (s.clipFrames || 0) >= n && n > 0 ? 'match' : 'unknown';
 
   /* 4. 압축 이력 — 변환 도구 기록은 다시 만든 파일의 흔적입니다.
         겹친 격자만으로는 "편집을 거쳤다"까지입니다. 편집한 영상은 전부
@@ -95,8 +95,7 @@ function videoCategories(bundle) {
   /* 5. 노이즈-밝기 곡선 — 프레임 절반 이상에서 밝을수록 노이즈가 커지면
         센서를 지난 그림입니다. 뒤집힌 곡선은 센서에서 나오지 않습니다. */
   const mostFrames = Math.max(1, Math.ceil(n / 2));
-  const noise = (s.noiseRising || 0) >= mostFrames ? 'match'
-    : (s.noiseInverted || 0) >= mostFrames ? 'against' : 'unknown';
+  const noise = (s.noiseRising || 0) >= mostFrames ? 'match' : 'unknown';
 
   return { record, optics, light, history, noise };
 }
@@ -301,8 +300,8 @@ export function mediaSignals(bundle) {
       `프레임 ${s.caFrames}/${n}에서 색이 ${s.caShiftPx.toFixed(2)}화소 어긋납니다. 유리를 통과한 빛에서만 생깁니다.`);
   }
   if (n > 0 && (s.noOpticalTrace || 0) >= n) {
-    push(SIDE.ai, '광학 흔적이 전혀 없음',
-      `프레임 ${n}장 모두에서 비네팅도 색수차도 나오지 않았습니다. 렌즈를 거치지 않은 그림입니다.`);
+    push(SIDE.unknown, '광학 흔적을 찾지 못함',
+      `프레임 ${n}장 모두에서 비네팅과 색수차를 찾지 못했습니다. 휴대폰 보정과 압축으로도 사라집니다.`);
   }
   if ((s.clipFrames || 0) >= n && n > 0) {
     push(SIDE.camera, '하이라이트 날림',
@@ -318,8 +317,8 @@ export function mediaSignals(bundle) {
     push(SIDE.camera, '밝을수록 커지는 노이즈',
       `프레임 ${s.noiseRising}/${n}에서 밝은 구간일수록 노이즈가 큽니다(상관 ${s.noiseCorr.toFixed(2)}). 빛이 알갱이로 도착해서 생기는 곡선이라 센서를 지난 그림에만 남습니다.`);
   } else if ((s.noiseInverted || 0) >= Math.ceil(n / 2)) {
-    push(SIDE.ai, '뒤집힌 노이즈 곡선',
-      `밝은 구간일수록 노이즈가 줄어듭니다(상관 ${s.noiseCorr.toFixed(2)}). 실제 센서에서는 일어나지 않습니다.`);
+    push(SIDE.unknown, '뒤집힌 노이즈 곡선',
+      `밝은 구간일수록 노이즈가 줄어듭니다(상관 ${s.noiseCorr.toFixed(2)}). HDR·노이즈 제거를 거친 실제 영상에서도 생깁니다.`);
   } else if ((s.noiseFrames || 0) > 0) {
     push(SIDE.unknown, '노이즈가 밝기와 무관',
       `상관 ${s.noiseCorr != null ? s.noiseCorr.toFixed(2) : '—'}, 퍼짐 ${s.noiseSpread != null ? s.noiseSpread.toFixed(2) : '—'}. 균일하게 얹은 그레인도, 강한 노이즈 제거를 거친 실제 영상도 이렇게 나옵니다.`);
@@ -361,8 +360,8 @@ const HEADLINE = {
  * 통과 조건
  *   1. 파일이 스스로 AI라고 적지 않았고
  *   2. 기기·녹음 기록이 남아 있으며 (없으면 발급하지 않습니다)
- *   3. 촬영·녹음 쪽 근거가 2건 이상이며
- *   4. 환산 수치가 60% 이상
+ *   3. 영상은 촬영 쪽 근거 1건·환산 수치 50% 이상,
+ *      소리는 녹음 쪽 근거 2건·환산 수치 60% 이상이며
  *
  * 이 넷을 모두 넘어야 3등급입니다. 하나라도 걸리면 보류입니다.
  * 보류는 "AI"가 아니라 "자동으로는 못 가렸다"는 뜻입니다.
@@ -372,7 +371,15 @@ const HEADLINE = {
  * 잘 만든 생성물도 통과할 수 있는 값입니다. 사진에서 촬영 정보(제조사·모델)가
  * 없으면 발급하지 않는 것과 같은 자리이므로 같은 규칙을 둡니다.
  */
-export const MEDIA_GATE = { signs: 2, trace: 60, requireRecord: true };
+export const MEDIA_GATE = {
+  // 영상은 기기 기록 한 건만 남는 경우가 흔합니다. 소리는 별도 녹음기 기록이
+  // 상대적으로 잘 남아 기존 문턱을 유지합니다.
+  videoSigns: 1,
+  videoTrace: 50,
+  signs: 2,
+  trace: 60,
+  requireRecord: true,
+};
 
 export function gradeMedia(bundle) {
   const kind = bundle.kind === 'audio' ? 'audio' : 'video';
@@ -380,6 +387,8 @@ export function gradeMedia(bundle) {
   const signals = mediaSignals(bundle);
   const cameraSide = signals.filter((r) => r.side === SIDE.camera).length;
   const aiSide = signals.filter((r) => r.side === SIDE.ai).length;
+  const requiredSigns = kind === 'video' ? MEDIA_GATE.videoSigns : MEDIA_GATE.signs;
+  const requiredTrace = kind === 'video' ? MEDIA_GATE.videoTrace : MEDIA_GATE.trace;
 
   const blockers = [];
   /* 변환 도구만 적혀 있고 기기 기록이 없는 파일 — 유튜브에서 받았거나 다시
@@ -444,20 +453,20 @@ export function gradeMedia(bundle) {
         ? '녹음기나 기기 이름이 파일에 적혀 있지 않습니다. 파형만으로는 발급하지 않습니다 — 실제 음원이면 대부분 통과하는 값이라 생성물도 통과할 수 있습니다.'
         : '촬영 기기 기록이 파일에 남아 있지 않습니다. 편집해서 내보내면 지워집니다. 기록이 없어도 렌즈 흔적(비네팅·색수차)과 노이즈-밝기 곡선이 함께 나오면 그것으로 갈음하는데, 이 파일에서는 둘 중 하나가 나오지 않았습니다.',
     });
-  } else if (cameraSide >= MEDIA_GATE.signs && score.trace >= MEDIA_GATE.trace) {
+  } else if (cameraSide >= requiredSigns && score.trace >= requiredTrace) {
     verdict = VERDICT.PASS;
   } else {
     verdict = VERDICT.HOLD;
-    if (cameraSide < MEDIA_GATE.signs) {
+    if (cameraSide < requiredSigns) {
       blockers.push({
         title: `${kind === 'audio' ? '녹음' : '촬영'} 쪽 근거가 ${cameraSide}건`,
-        detail: `${MEDIA_GATE.signs}건 이상이어야 발급합니다. 메신저나 편집을 거치면 흔적이 지워집니다.`,
+        detail: `${requiredSigns}건 이상이어야 발급합니다. 메신저나 편집을 거치면 흔적이 지워집니다.`,
       });
     }
-    if (score.trace < MEDIA_GATE.trace) {
+    if (score.trace < requiredTrace) {
       blockers.push({
         title: `환산 수치 ${score.trace}%`,
-        detail: `${MEDIA_GATE.trace}% 이상이어야 발급합니다.`,
+        detail: `${requiredTrace}% 이상이어야 발급합니다.`,
       });
     }
   }
