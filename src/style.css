@@ -1872,6 +1872,7 @@ main.main--about { padding-block: 0; }
    그대로 있습니다 — 숨긴 것이 아니라 한 번 눌러서 여는 것입니다. */
 
 .score-panel--hero { background: var(--raised); }
+.score-panel--hero + .claim-item--archive { margin-top: 38px; }
 .score-panel--hero .score-num { font-size: 64px; }
 .score-panel--hero .score-num small { font-size: 24px; }
 .score-panel--hero .score-cap { font-size: 14px; }

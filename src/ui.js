@@ -986,10 +986,12 @@ const summaryFor = (bundle) =>
  * 요청을 직접 보내는 것으로 지나갈 수 있고, 그러면 막았다고 말할 수 없습니다.
  */
 function eligibility(bundle) {
+  const { result } = bundle;
   const prov = bundle.provenance;
   const bytes = bundle.print?.bytes ?? 0;
   // 사진은 provenance, 영상·음악은 container가 선언을 읽습니다.
-  const declared = Boolean(prov?.declaresAi || bundle.container?.declaresAi);
+  const declared = result?.verdict === VERDICT.DECLARED_AI
+    || Boolean(prov?.declaresAi || bundle.container?.declaresAi);
   const generator = prov?.generator || bundle.container?.generator || null;
   const oversize = bytes > MAX_UPLOAD;
 
@@ -1379,7 +1381,9 @@ export function mountVerifier(root) {
    */
   const swapMode = async (wantGrade = null) => {
     if (!current || busy) return;
-    current.mode = current.mode === 'quick' ? 'deep' : 'quick';
+    const nextMode = current.mode === 'quick' ? 'deep' : 'quick';
+    if (nextMode === 'deep' && !eligibility(current.bundle).ok) return;
+    current.mode = nextMode;
     // 간단 검사 화면에서 신청 버튼을 눌러 온 것이므로 폼을 펼쳐 둡니다.
     if (current.mode === 'deep') current.applyOpen = true;
     const tag = fileLine.querySelector('.mode-tag');
@@ -1799,6 +1803,11 @@ export function mountVerifier(root) {
       msg.textContent = text;
       msg.classList.toggle('is-bad', bad);
     };
+
+    if (!eligibility(current.bundle).ok) {
+      say('이 파일은 상세 검사를 신청할 수 없습니다. 파일의 AI 생성 기록 또는 접수 조건을 확인해 주세요.', true);
+      return;
+    }
 
     if (contact.length < 5) { say('연락받을 메일 주소나 전화번호를 적어 주세요.', true); return; }
     if (password.length < MIN_PASSWORD) {
