@@ -11,28 +11,28 @@
      잉크는 한 통입니다. 흐린 글자는 다른 회색이 아니라 같은 잉크를
      종이 쪽으로 묽힌 것입니다. 종이는 따뜻한데 글자만 푸른 회색이면
      서로 다른 두 장을 겹쳐 놓은 것처럼 보입니다. */
-  --paper: #F7F8F8;
-  --surface: #FFFFFF;
+  --paper: #F5F3EE;
+  --surface: #FCFBF8;
   --raised: #FFFFFF;
-  --ink: #17212B;
-  --ink-2: #53616D;
-  --ink-3: #7A8792;
-  --ink-press: #0E4E65;
+  --ink: #24211D;
+  --ink-2: #686158;
+  --ink-3: #918A80;
+  --ink-press: #3A342C;
 
   /* 액센트는 둘뿐 */
-  --measure: #176B87;   /* 측정값 */
-  --warn: #A34B32;      /* 경고·모순 */
+  --measure: #63584B;   /* 측정값 */
+  --warn: #974C3C;      /* 경고·모순 */
 
   /* 액센트를 바탕에 깔 때. 종이의 온도를 남겨 둡니다. */
-  --tint-measure: #EAF4F6;
-  --tint-warn: #FBEFEA;
-  --code-bg: #EDF0F1;
+  --tint-measure: #ECE8E0;
+  --tint-warn: #F6E9E5;
+  --code-bg: #EEEAE3;
 
-  --rule: #E2E7E9;
-  --rule-strong: #C7D0D5;
+  --rule: #E3DED5;
+  --rule-strong: #CCC4B8;
   /* 링크 밑줄은 칸을 나누는 선이 아니라 글자의 일부입니다.
      그래서 선 색이 아니라 잉크를 묽혀 씁니다. */
-  --link-rule: rgba(23, 33, 43, 0.30);
+  --link-rule: rgba(36, 33, 29, 0.30);
 
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
@@ -83,7 +83,7 @@ body {
 
 /* 끌어서 고른 글자. 기본값은 브라우저가 고른 파랑이고, 그 파랑은
    이 화면에서 측정값이 쓰는 파랑과 부딪칩니다. */
-::selection { background: rgba(36, 84, 140, 0.17); color: var(--ink); }
+::selection { background: rgba(99, 88, 75, 0.18); color: var(--ink); }
 
 /* 스크롤 막대도 이 종이 위에 있습니다. */
 html { scrollbar-color: var(--rule-strong) transparent; }

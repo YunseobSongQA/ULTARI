@@ -3,194 +3,57 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>한계 — 이 검증이 못 하는 것 | ULTARI</title>
-  <meta name="description" content="AI 이미지를 탐지하지 않고, AI 학습을 막지 못하며, 정확도를 숫자로 말하지 않습니다. 자동 검증이 놓치는 경우를 정리했습니다.">
+  <title>검사 범위 | ULTARI</title>
+  <meta name="description" content="ULTARI 자동 검사와 상세 검사가 확인하는 범위를 안내합니다.">
   <meta name="color-scheme" content="light">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <!-- 폰트는 92개 서브셋으로 쪼개져 있어 스크롤 중에도 새 파일을 받습니다.
-       연결을 미리 열어 두면 그때마다 멈칫하는 것이 줄어듭니다. -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
   <a class="sr-only" href="#main">본문으로 건너뛰기</a>
-
   <header class="site-head">
     <div class="shell">
-      <a class="brand" href="/"><svg viewBox="1 4 30 24.6" width="27" height="22" fill="currentColor" aria-hidden="true"><path d="M3.4 27.6 L3.4 11 Q3.4 9.8 4.6 9.8 Q5.8 9.8 5.8 11 L5.8 27.6 Z" transform="rotate(-1 4.6 27.6)"/><path d="M9.2 27.6 L9.2 6.3 Q9.2 5.2 10.3 5.2 Q11.4 5.2 11.4 6.3 L11.4 27.6 Z" transform="rotate(0.7 10.3 27.6)"/><path d="M15 27.6 L15 13.65 Q15 12.4 16.25 12.4 Q17.5 12.4 17.5 13.65 L17.5 27.6 Z" transform="rotate(-0.5 16.25 27.6)"/><path d="M20.8 27.6 L20.8 7.7 Q20.8 6.6 21.9 6.6 Q23 6.6 23 7.7 L23 27.6 Z" transform="rotate(1.1 21.9 27.6)"/><path d="M26.6 27.6 L26.6 11.6 Q26.6 10.4 27.8 10.4 Q29 10.4 29 11.6 L29 27.6 Z" transform="rotate(-0.8 27.8 27.6)"/><rect x="2.3" y="17.3" width="27.3" height="1.9" rx="0.55" transform="rotate(-1.2 16 18.25)"/></svg><span>ULTARI</span></a>
+      <a class="brand" href="/"><span>ULTARI</span></a>
       <nav class="site-nav" aria-label="주요 메뉴">
-        <div class="nav-drop is-here" data-nav-drop>
-          <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-apply">신청<span class="chev" aria-hidden="true"></span></button>
-          <div class="nav-panel" id="nav-apply" data-nav-panel>
-            <div class="shell nav-panel-inner">
-            <div class="nav-col" style="--i:0">
-              <p class="nav-col-title">검증</p>
-              <a href="/verify">간단 검사</a>
-              <a href="/verify?mode=deep">상세 검사</a>
-              <a href="/verify#lookup">현황 조회</a>
-            </div>
-            <div class="nav-col" style="--i:1">
-              <p class="nav-col-title">수익</p>
-              <a href="/archive#apply">수익 배분받기</a>
-              <a href="/archive#share">배분은 어떻게</a>
-              <a href="/archive">아카이브란</a>
-            </div>
-            <div class="nav-col" style="--i:2">
-              <p class="nav-col-title">기준</p>
-              <a href="/how">검증 원리</a>
-              <a href="/grades">등급</a>
-              <a href="/limits" aria-current="page">한계</a>
-            </div>
-            </div>
-          </div>
-        </div>
-        <div class="nav-drop" data-nav-drop>
-          <button class="nav-top" type="button" data-nav-toggle aria-expanded="false" aria-controls="nav-about">소개<span class="chev" aria-hidden="true"></span></button>
-          <div class="nav-panel" id="nav-about" data-nav-panel>
-            <div class="shell nav-panel-inner">
-            <div class="nav-col" style="--i:0">
-              <p class="nav-col-title">울타리</p>
-              <a href="/about">ABOUT US</a>
-              <a href="/roadmap">로드맵</a>
-              <a href="/articles">읽을거리</a>
-            </div>
-            <div class="nav-col" style="--i:1">
-              <p class="nav-col-title">문서</p>
-              <a href="/privacy">개인정보 처리방침</a>
-              <a href="/terms">이용약관</a>
-            </div>
-            </div>
-          </div>
-        </div>
+        <a href="/verify">검증</a>
+        <a href="/about">소개</a>
       </nav>
     </div>
   </header>
-
   <main id="main">
     <div class="shell shell--narrow">
       <div class="page-head">
-        <p class="kicker">한계</p>
-        <h1>이 검증이 못 하는 것</h1>
-        <p class="lede">못 하는 것을 적어 두는 쪽이 결과적으로 더 쓸모가 있습니다. 어디까지 믿어도 되는지 알아야 쓸 수 있기 때문입니다.</p>
+        <p class="kicker">검사 범위</p>
+        <h1>파일에서 확인하는 범위</h1>
+        <p class="lede">ULTARI는 파일에 남은 촬영·녹음 흔적을 측정합니다. 결과는 파일의 출처나 촬영자, 장면 자체를 확정하는 증명이 아닙니다.</p>
       </div>
-
-      <div class="note measure">
-        이 페이지는 못 하는 것을 모아 둔 곳입니다. 고치고 있는 것과 앞으로 할 것은
-        <a href="/roadmap">로드맵</a>에 따로 적어 두었습니다. 불편한 점은 거기서 바로 보내실 수 있습니다.
-      </div>
-
       <div class="prose">
-        <h2>하지 않는 세 가지 주장</h2>
-
-        <h3>AI 이미지를 탐지하지 않습니다</h3>
-        <p>ULTARI는 이미지가 어떻게 만들어졌는지 판별하지 않습니다. 카메라를 지난 흔적이 남아 있는지만 봅니다. 이 둘은 다릅니다. 흔적이 없는 사진이 전부 생성된 것도 아니고, 흔적이 있는 사진이 전부 촬영된 것도 아닙니다.</p>
-        <p>생성 모델을 탐지하겠다는 접근은 구조적으로 따라잡기 게임입니다. 새 모델이 나올 때마다 탐지기를 다시 학습시켜야 하고, 그 사이에 나온 이미지는 통과합니다. 그래서 방향을 반대로 잡았습니다. 무엇이 아닌지가 아니라, 무엇을 지나왔는지를 봅니다.</p>
-
-        <h3>AI 학습을 막지 못합니다</h3>
-        <p>막을 방법이 없습니다. 공개된 이미지를 수집해 학습에 쓰는 일을 기술로 차단하는 수단은 현재 존재하지 않습니다. 워터마크도, 적대적 노이즈도, 메타데이터 태그도 마찬가지입니다. 지우거나 우회하는 쪽이 훨씬 쉽습니다.</p>
-        <p>이 서비스가 하는 일은 차단이 아니라 기록입니다. 사람이 만들었다는 흔적을 남겨 두는 것.</p>
-
-        <h3>100% 정확하지 않습니다</h3>
-        <p>정확도를 숫자로 적지 않는 이유는 그 숫자를 만들 방법이 없기 때문입니다. 정확도를 말하려면 정답이 붙은 표본 집합이 있어야 하는데, “실제로 촬영된 사진”과 “그렇지 않은 사진”을 충분히 모아 정답을 확정하는 일 자체가 이 서비스가 풀려는 문제와 같습니다. 그래서 “99% 정확” 같은 문구는 여기에 없습니다.</p>
-
-        <h2>기계가 놓치는 경우</h2>
-
-        <h3>화면을 다시 찍은 사진</h3>
-        <p>가장 크게 뚫려 있는 곳입니다. 생성된 이미지를 좋은 모니터에 띄우고 삼각대에 올린 카메라로 찍으면, EXIF도 진짜고 노이즈도 진짜고 렌즈 흔적도 진짜입니다. 3등급 검사를 그대로 통과합니다.</p>
-        <p>모아레와 평면성으로 의심 신호를 잡긴 하지만, 잘 찍으면 둘 다 나오지 않습니다. 확정은 2등급에서 사람이 합니다.</p>
-
-        <h3>진짜 사진 위에 얹은 합성</h3>
-        <p>실제로 촬영한 사진의 일부만 바꾼 경우입니다. 배경은 진짜고 가운데 물체만 다른 것. 압축 격자의 영역별 편차로 일부 잡히지만, 전체를 다시 저장하면 격자가 새로 덮여 흔적이 지워집니다.</p>
-
-        <h3>EXIF를 정교하게 맞춘 경우</h3>
-        <p>실제로 찍은 사진에서 EXIF를 통째로 복사해 다른 이미지에 붙이고, 노이즈까지 밝기에 맞춰 얹으면 정합성 검사를 통과할 수 있습니다. 번거롭지만 불가능하지 않습니다. 자동 검증은 우회 가능합니다.</p>
-
-      <!-- 광고 영역: AdSense 승인 후 여기에 슬롯을 넣습니다. 승인 전에는 비워 둡니다. -->
-      <div class="ad-slot" data-ad-slot="in-article"></div>
-
-        <h2>영상에서 못 하는 것</h2>
-        <p><strong>프레임 다섯 장만 봅니다.</strong> 영상 전체를 재지 않습니다. 중간 한 장면만 바꿔 넣은 영상은 뽑은 자리에 걸리지 않으면 놓칩니다. 이건 성능 문제가 아니라 간단 검사의 범위를 정한 결과입니다.</p>
-        <p><strong>사진에서 되는 측정 두 개가 영상에서는 안 됩니다.</strong> 센서 컬러필터 흔적은 아이폰 원본에서도 검출되지 않았습니다 — 색 정보를 절반으로 줄여 저장하고 프레임 사이 압축을 거치면서 지워집니다. 모아레 검출기는 아이폰 원본에서 오탐했습니다. 둘 다 지웠고, 그래서 영상은 사진보다 잴 수 있는 것이 적습니다.</p>
-        <p><strong>화면 녹화는 메타데이터로 구별되지 않습니다.</strong> 실측에서 게임 화면 녹화 파일은 촬영 기록도 변환 도구 기록도 하나도 없었습니다. 메타데이터가 지워진 실제 영상과 같은 자리에 놓입니다. 프레임에서 겹친 압축 격자가 나왔지만 그것만으로 확정하지 않습니다.</p>
-        <p><strong>브라우저가 못 여는 영상이 있습니다.</strong> ProRes, 일부 HEVC처럼 브라우저에 코덱이 없는 형식은 프레임을 떼어낼 수 없습니다. 그때는 판정하지 않고 판정 불가로 돌려드립니다.</p>
-        <p><strong>상세 검사는 20MB까지만 받습니다.</strong> 영상은 대부분 이 상한을 넘습니다. 저장소를 옮기면 풀리는 제약이고, 그전까지는 넘는 파일을 접수처로 안내합니다.</p>
-
-        <h2>소리에서 못 하는 것</h2>
-        <p><strong>마스터링을 거치면 녹음의 흔적이 많이 지워집니다.</strong> 소리를 눌러 올리고 잡음을 지우는 과정이 노이즈 플로어와 다이내믹을 모두 바꿉니다. 편집 전 원본이 있으면 그쪽이 정확합니다.</p>
-        <p><strong>기기 기록이 없으면 발급하지 않습니다.</strong> 유통을 거친 MP3에는 기기 이름이 남지 않으므로, 실제 사람이 녹음한 음원도 이 조건에서 떨어집니다. 파형 값만으로 등급을 주면 생성물도 함께 통과하기 때문에 고른 선입니다.</p>
-        <p><strong>보이지 않는 워터마크는 읽지 못합니다.</strong> 생성 도구가 소리에 심는 워터마크는 발행사의 검출기가 있어야 읽을 수 있습니다. 이 사이트에는 그 검출기가 없습니다.</p>
-        <p><strong>표본율을 못 맞추는 브라우저가 있습니다.</strong> 그때는 대역 한계 값을 믿을 수 없다고 화면에 표시하고, 그 항목을 판정에서 뺍니다.</p>
-
-        <h2>아직 확인하지 못한 것</h2>
-        <p>솔직히 적어 둡니다. <strong>영상과 소리의 판정은 AI 생성물 표본으로 검증하지 못했습니다.</strong></p>
-        <p>지금 구조는 “촬영·녹음의 흔적이 있는가”를 재고 없으면 AI 환산을 올립니다. 그래서 생성물 표본이 없어도 판정 자체는 성립합니다. 실제 파일 스물한 개로 재서 흔적이 있는 쪽과 없는 쪽이 갈리는 것도 확인했습니다.</p>
-        <p>확인하지 못한 것은 <strong>생성물에서 어떤 값이 나오는가</strong>입니다. 예를 들어 생성 영상이 비네팅을 흉내 내는지, 생성 음원의 노이즈 플로어가 실제 녹음과 구별되는지는 재보지 않았습니다. 표본을 구해 재는 즉시 이 페이지를 고치겠습니다.</p>
-        <p>GoPro의 텔레메트리 트랙, 안드로이드 촬영 기록, WAV 녹음기의 방송용 덩어리도 판독 코드는 있지만 표본이 없어 검출을 확인하지 못했습니다. 결정론적으로 읽는 값이라 오탐은 없지만, 확인하지 않은 것을 확인했다고 적지는 않겠습니다.</p>
-
-        <p><strong>주파수 감쇠 기준은 잠정값입니다.</strong> 자연 영상의 스펙트럼 기울기 α를 1.4~3.2로 잡아 두었다가 4.6까지 넓혔습니다. 3.2는 자연 영상 통계 문헌에서 온 값인데, 카메라가 저장하는 JPEG은 그 문헌의 대상이 아닙니다 — 기기 안에서 노이즈를 지우고 크기를 줄이면 고주파가 먼저 깎입니다. 실제로 재 본 카메라 원본 넉 장이 2.94 · 3.24 · 3.86 · 4.11이었고, 그중 셋이 옛 기준을 넘어 “AI 쪽”으로 찍히고 있었습니다. 진짜 사진에 그 딱지를 붙이는 기준은 없느니만 못합니다.</p>
-        <p>같은 자리에서 잰 AI 생성물은 3.83이었습니다. 카메라 원본 두 장 사이에 들어가는 값이라, <strong>이 기준은 그 파일을 가려내지 못합니다.</strong> 넓힌다고 잃은 탐지력이 없다는 뜻이기도 합니다. 다만 넉 장으로 잡은 값이므로 표본이 쌓이면 다시 잡아야 합니다. 지금 적어 둘 수 있는 것은 여기까지입니다.</p>
-
-        <h2>사람이 찍은 사진이 떨어지는 경우</h2>
-        <p>이쪽이 훨씬 흔합니다. 실제로 “판정 불가”와 “보류”의 대부분은 여기에 해당합니다.</p>
-
-        <h3>메신저나 소셜 앱을 거친 파일</h3>
-        <p>카카오톡, 인스타그램, 페이스북, 대부분의 메신저는 이미지를 다시 압축하고 메타데이터를 통째로 지웁니다. 긴 변을 1280이나 2048픽셀로 줄이기도 합니다. 그 순간 잴 것이 거의 남지 않습니다. 사진에 문제가 있는 것이 아니라 파일이 바뀐 것입니다. 이 경우 결과는 “판정 불가”이고, 원본으로 다시 시도해 달라는 안내가 나갑니다.</p>
-
-        <h3>휴대폰으로 찍은 사진</h3>
-        <p>요즘 휴대폰은 셔터를 누르는 순간 여러 장을 찍어 합치고, 노이즈를 지우고, 하늘과 피부와 글자를 따로 처리합니다. 그 과정에서 노이즈와 밝기의 관계가 깨집니다. 카메라가 만든 진짜 사진인데도 센서의 물리와 맞지 않는 화면이 나옵니다. 이 경우 “보류”가 나올 수 있습니다. 보류는 의심이 아니라 “기계가 답을 못 냈다”는 뜻입니다.</p>
-
-        <h3>크롭하거나 리사이즈한 사진</h3>
-        <p>잘라내면 주변부가 사라지므로 비네팅과 색수차가 같이 사라집니다. 크기를 줄이면 인접 화소가 평균되면서 노이즈와 압축 격자가 지워집니다. 둘 다 사진을 다루는 사람이라면 매일 하는 일입니다.</p>
-
-        <h3>보정을 많이 한 사진</h3>
-        <p>라이트룸이나 캡처원을 거친 파일에는 후보정 도구 이름이 기록됩니다. 이건 감점 사유가 아닙니다. 보정은 촬영의 일부입니다. 다만 노이즈 제거를 강하게 걸면 정합성 검사가 흔들릴 수 있습니다.</p>
-
-        <h3>필름 스캔, 중형, 오래된 기종</h3>
-        <p>필름을 스캔한 파일에는 촬영 정보가 카메라의 것이 아니라 스캐너의 것으로 들어갑니다. 노이즈의 성질도 센서가 아니라 필름 입자의 것입니다. 지금의 3등급 검사는 이런 파일을 제대로 다루지 못합니다.</p>
-
-        <h3>브라우저가 열지 못하는 파일</h3>
-        <p>RAW 파일(.cr3, .nef, .arw 등)과 일부 HEIC는 브라우저가 직접 디코딩하지 못해 검사할 수 없습니다. 카메라나 편집 프로그램에서 화질을 낮추지 않고 JPEG로 내보낸 뒤 시도해 주십시오. 영상의 ProRes와 일부 HEVC도 같은 이유로 열리지 않습니다.</p>
-
-        <h2>3등급이 보증하지 않는 것</h2>
-        <ul>
-          <li>무엇이 찍혔는지 — 피사체가 실제 존재하는지는 확인하지 않았습니다.</li>
-          <li>누가 찍었는지 — 촬영자와 제출자가 같은 사람인지 확인하지 않았습니다.</li>
-          <li>언제 찍었는지 — 촬영 시각은 파일에 적힌 주장이고, 등록 시각은 기기 시계입니다. 둘 다 바꿀 수 있습니다.</li>
-          <li>어디서 찍었는지 — GPS는 존재 여부만 보고 좌표는 읽지 않습니다.</li>
-          <li>보정 여부 — 보정된 사진도 3등급을 받습니다. 보정은 촬영의 일부입니다.</li>
-        </ul>
-
-        <h2>우회 방법을 적어 두는 이유</h2>
-        <p>위에 적힌 것들은 조금만 들여다보면 누구나 알아낼 수 있습니다. 적어 두지 않는다고 막히지 않습니다. 적어 두지 않으면 대신, 이 등급을 실제보다 강한 것으로 믿는 사람이 생깁니다. 그쪽이 훨씬 위험합니다.</p>
-        <p>인증의 값어치는 “뚫리지 않는다”에서 나오지 않습니다. 어디가 뚫려 있는지를 정확히 아는 상태에서 나옵니다.</p>
-      </div>
-
-      <div class="prose" style="margin-top:56px">
+        <h2>자동 검사</h2>
+        <p>사진·영상·음악 파일의 기록과 촬영·녹음 흔적을 확인해 3등급까지 결과를 냅니다. 파일이 편집되거나 메신저를 거치면 필요한 기록이 사라져 판정할 수 없을 수 있습니다.</p>
+        <h2>상세 검사</h2>
+        <p>파일과 함께 제출한 촬영 경위를 사람이 검토합니다. 자동 검사에서 확인할 수 없는 지점은 심사 결과에 별도로 적습니다.</p>
+        <h2>기록과 권리</h2>
+        <p>등록 동의가 있는 3등급 원본은 지문과 등록 시각, 이용 의사와 함께 보관합니다. 이 기록은 같은 파일인지 대조하는 근거이며, 이용을 기술적으로 차단하지는 않습니다.</p>
         <div class="end-actions">
-          <a class="btn" href="/verify">검증하기</a>
-          <a class="btn btn--ghost" href="/archive">수익 배분받기</a>
-          <a class="btn btn--ghost" href="/archive#share">수익 배분은 어떻게</a>
-          <p class="btn-note">검증 화면에서 3등급을 받으면 아카이브 등록까지 한 번에 됩니다. 아직 성사된 건은 없고 그 사실도 아카이브에 적어 두었습니다.</p>
+          <a class="btn" href="/verify">파일 검증 시작</a>
+          <a class="btn btn--ghost" href="/how">검증 원리</a>
         </div>
       </div>
-
     </div>
   </main>
-
   <footer class="site-foot">
     <div class="shell">
       <nav class="foot-links" aria-label="전체 메뉴">
-          <a href="/verify">검증</a>
-          <a href="/how">검증 원리</a>
-          <a href="/grades">등급</a>
-          <a href="/archive">아카이브</a>
-          <a href="/roadmap">로드맵</a>
-          <a href="/articles">읽을거리</a>
-          <a href="/verify#lookup">현황 조회</a>
-          <a href="/limits">한계</a>
-          <a href="/privacy">개인정보 처리방침</a>
-          <a href="/terms">이용약관</a>
+        <a href="/verify">검증</a>
+        <a href="/how">검증 원리</a>
+        <a href="/grades">등급</a>
+        <a href="/archive">아카이브</a>
+        <a href="/roadmap">로드맵</a>
+        <a href="/articles">읽을거리</a>
+        <a href="/privacy">개인정보 처리방침</a>
+        <a href="/terms">이용약관</a>
       </nav>
       <p class="foot-note">ULTARI는 사진·영상·음악 파일에 남은 촬영과 녹음의 흔적을 측정합니다. 등급은 자동 검사 또는 사람 심사에서 확인된 범위를 기록합니다.</p>
     </div>
