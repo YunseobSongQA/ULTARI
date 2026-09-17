@@ -447,8 +447,6 @@ main.main--tool { padding-block: 32px 80px; }
 .sample-state:empty { display: none; }
 .sample-state.is-bad { color: var(--warn); }
 .sample.is-loading { border-color: var(--measure); background: var(--tint-measure); cursor: progress; }
-.samples-note { margin: 13px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--ink-3); }
-
 /* 견본이 들어갔다는 사실은 결과가 나온 뒤에도 파일 줄에 남아 있어야
    합니다. 무엇을 쟀는지 모르는 채로 보는 등급은 아무 뜻이 없습니다. */
 .file-sample { margin-top: 4px; font-size: 12.5px; line-height: 1.55; color: var(--ink-3); }
