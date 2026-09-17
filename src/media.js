@@ -172,7 +172,19 @@ export function mediaScore(bundle) {
   const categories = kind === 'audio' ? audioCategories(bundle) : videoCategories(bundle);
 
   if (bundle.container?.declaresAi) {
-    return { trace: 0, ai: 100, declared: true, categories, weights };
+      return { trace: 0, ai: 100, declared: true, categories, weights };
+  }
+
+  /* 영상에서 비네팅·색수차가 충분히 검출됐다면 렌즈를 지난 빛이라는
+     양성 근거가 이미 있습니다. 기기 기록이 지워졌거나 HDR이 노이즈 곡선을
+     바꿔 나머지 항목을 재지 못한 것을 50%씩 깎으면, 실제 촬영본이 68%처럼
+     보이는 거짓된 빈칸 점수가 됩니다. 이 경우 'unknown'은 반대 증거가
+     아니므로 촬영 흔적 계산에서는 확인된 쪽으로 채웁니다. 변환 도구처럼
+     실제 반대 이력이 있는 'against'는 그대로 남습니다. */
+  if (kind === 'video' && categories.optics === 'match') {
+    for (const key of Object.keys(categories)) {
+      if (categories[key] === 'unknown') categories[key] = 'match';
+    }
   }
 
   let got = 0;
