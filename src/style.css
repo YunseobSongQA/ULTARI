@@ -11,28 +11,28 @@
      잉크는 한 통입니다. 흐린 글자는 다른 회색이 아니라 같은 잉크를
      종이 쪽으로 묽힌 것입니다. 종이는 따뜻한데 글자만 푸른 회색이면
      서로 다른 두 장을 겹쳐 놓은 것처럼 보입니다. */
-  --paper: #F4F2EC;
-  --surface: #FAF8F3;
-  --raised: #FFFEFB;
-  --ink: #1C1A15;
-  --ink-2: #5C574C;
-  --ink-3: #7A7468;
-  --ink-press: #0F0E0A;
+  --paper: #F7F8F8;
+  --surface: #FFFFFF;
+  --raised: #FFFFFF;
+  --ink: #17212B;
+  --ink-2: #53616D;
+  --ink-3: #7A8792;
+  --ink-press: #0E4E65;
 
   /* 액센트는 둘뿐 */
-  --measure: #24548C;   /* 측정값 */
-  --warn: #A64A24;      /* 경고·모순 */
+  --measure: #176B87;   /* 측정값 */
+  --warn: #A34B32;      /* 경고·모순 */
 
   /* 액센트를 바탕에 깔 때. 종이의 온도를 남겨 둡니다. */
-  --tint-measure: #EDF1F8;
-  --tint-warn: #FBF2EC;
-  --code-bg: #EAE6DB;
+  --tint-measure: #EAF4F6;
+  --tint-warn: #FBEFEA;
+  --code-bg: #EDF0F1;
 
-  --rule: #E6E1D6;
-  --rule-strong: #CCC6B8;
+  --rule: #E2E7E9;
+  --rule-strong: #C7D0D5;
   /* 링크 밑줄은 칸을 나누는 선이 아니라 글자의 일부입니다.
      그래서 선 색이 아니라 잉크를 묽혀 씁니다. */
-  --link-rule: rgba(28, 26, 21, 0.32);
+  --link-rule: rgba(23, 33, 43, 0.30);
 
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
@@ -40,10 +40,10 @@
 
   /* 자간은 글자 크기를 따라갑니다. 클수록 더 조여야 같은 밀도로 보입니다.
      제목마다 값을 따로 눈대중하면 페이지끼리 조판이 어긋납니다. */
-  --track: -0.011em;     /* 본문 */
-  --track-lg: -0.022em;  /* 17–24px */
-  --track-xl: -0.032em;  /* 26–40px */
-  --track-2xl: -0.038em; /* 그보다 큰 것 */
+  --track: -0.008em;     /* 본문 */
+  --track-lg: -0.016em;  /* 17–24px */
+  --track-xl: -0.024em;  /* 26–40px */
+  --track-2xl: -0.030em; /* 그보다 큰 것 */
 
   /* 움직임은 한 곡선만 씁니다. 랜딩에서 화면이 갈리는 것과 메뉴가
      펼쳐지는 것이 서로 다른 곡선으로 움직이면 같은 사이트로 느껴지지
@@ -51,7 +51,7 @@
   --ease: cubic-bezier(0.19, 0.84, 0.3, 1);
   --step: 26ms;
 
-  --shell: 1000px;
+  --shell: 1080px;
   --pad: 32px;
   /* 고정된 상단 바의 높이. 랜딩의 화면들은 이만큼 가려지므로, 가운데를
      잡을 때 이 값을 빼야 눈에 보이는 자리의 가운데가 됩니다.
@@ -72,7 +72,7 @@ body {
   color: var(--ink);
   font-family: var(--font);
   font-size: 16px;
-  line-height: 1.7;
+  line-height: 1.74;
   font-weight: 400;
   letter-spacing: var(--track);
   -webkit-font-smoothing: antialiased;
@@ -100,7 +100,7 @@ a.plain { border-bottom: none; }
 
 /* 제목이 마지막 줄에 한 어절만 떨구지 않게 합니다. */
 h1, h2, h3 {
-  font-weight: 600; letter-spacing: var(--track-lg);
+  font-weight: 650; letter-spacing: var(--track-lg);
   line-height: 1.3; margin: 0; text-wrap: balance;
 }
 h1 { font-size: 32px; letter-spacing: var(--track-xl); line-height: 1.24; }
@@ -1339,7 +1339,7 @@ main.main--tool .page-head { margin-bottom: 22px; }
      띄워 두면 여섯 화면이 처음부터 같은 자리에 섭니다. 가려지는 만큼은
      화면마다 padding-top으로 비워 둡니다. */
   position: fixed; left: 0; right: 0; top: 0; z-index: 20;
-  background: rgba(244, 242, 236, 0.84); backdrop-filter: blur(8px);
+  background: rgba(247, 248, 248, 0.88); backdrop-filter: blur(12px);
 }
 
 .landing { padding: 0; overflow-x: clip; }
@@ -1520,11 +1520,11 @@ main.main--tool .page-head { margin-bottom: 22px; }
 .id-mark { color: var(--ink); margin: 26px 0 22px; }
 .id-mark svg { width: 104px; height: 85px; display: block; }
 .id-word {
-  font-size: 68px; font-weight: 600; letter-spacing: 0.1em;
+  font-size: 64px; font-weight: 650; letter-spacing: 0.075em;
   line-height: 1; margin: 0;
 }
 .id-claim {
-  font-size: 34px; font-weight: 600; letter-spacing: var(--track-xl);
+  font-size: 36px; font-weight: 650; letter-spacing: var(--track-xl);
   line-height: 1.28; margin: 30px 0 0; color: var(--ink);
 }
 .id-value {
@@ -1533,7 +1533,7 @@ main.main--tool .page-head { margin-bottom: 22px; }
 }
 
 .stage-en {
-  font-size: 12px; font-weight: 600; letter-spacing: 0.18em;
+  font-size: 11px; font-weight: 650; letter-spacing: 0.14em;
   color: var(--ink-3); margin: 0;
 }
 
@@ -1562,10 +1562,10 @@ main.main--tool .page-head { margin-bottom: 22px; }
   .stage-mark { margin: 16px 0 12px; }
 }
 .stage--kind h2 {
-  font-size: 52px; font-weight: 600; letter-spacing: var(--track-2xl); line-height: 1.1; margin: 0;
+  font-size: 48px; font-weight: 650; letter-spacing: var(--track-2xl); line-height: 1.14; margin: 0;
 }
 .stage-claim {
-  font-size: 21px; color: var(--ink-2); margin: 18px 0 0; max-width: 40ch; line-height: 1.55;
+  font-size: 19px; color: var(--ink-2); margin: 18px 0 0; max-width: 42ch; line-height: 1.62;
 }
 .stage-facts {
   margin: 34px 0 0; display: grid; gap: 1px;
@@ -1573,9 +1573,9 @@ main.main--tool .page-head { margin-bottom: 22px; }
   background: var(--rule); border: 1px solid var(--rule);
   max-width: 720px;
 }
-.stage-facts > div { background: var(--paper); padding: 15px 17px; }
-.stage-facts dt { font-size: 12.5px; color: var(--ink-3); }
-.stage-facts dd { margin: 5px 0 0; font-size: 14.5px; color: var(--ink); }
+.stage-facts > div { background: var(--surface); padding: 16px 18px 17px; }
+.stage-facts dt { font-size: 11.5px; font-weight: 600; letter-spacing: 0.025em; color: var(--ink-3); }
+.stage-facts dd { margin: 6px 0 0; font-size: 14.5px; font-weight: 500; color: var(--ink); }
 
 .stage-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 34px; }
 .stage-row .stage-go { margin-top: 0; }
@@ -1583,17 +1583,20 @@ main.main--tool .page-head { margin-bottom: 22px; }
 .stage-go {
   display: inline-flex; align-items: center; gap: 9px;
   margin-top: 34px; padding: 14px 22px;
-  background: var(--ink); color: var(--paper);
-  font-size: 15px; font-weight: 500; border-bottom: none;
+  background: var(--measure); color: #fff;
+  font-size: 14.5px; font-weight: 600; border-bottom: none;
 }
-.stage-go:hover { background: var(--ink-press); border-bottom: none; color: var(--paper); }
+.stage-go:not(.stage-go--quiet):hover { background: var(--ink-press); border-bottom: none; color: #fff; }
 .stage-go svg { transition: transform 140ms ease; }
 .stage-go:hover svg { transform: translateX(3px); }
 .stage-go--quiet {
-  background: transparent; color: var(--ink);
+  background: var(--surface); color: var(--ink);
   border: 1px solid var(--rule-strong);
 }
-.stage-go--quiet:hover { background: transparent; color: var(--ink); border-color: var(--ink); }
+.stage-go--quiet:hover {
+  background: var(--tint-measure); color: var(--ink); border-color: var(--measure);
+  border-bottom: 1px solid var(--measure);
+}
 
 .stage-note { margin: 16px 0 0; font-size: 13px; color: var(--ink-3); }
 
