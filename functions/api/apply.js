@@ -58,10 +58,16 @@ export async function onRequestPost({ request, env }) {
   const rawGrade = String(form.get('grade') ?? '');
   const grade = rawGrade === '1' ? 1 : rawGrade === '3' ? 3 : 2;
   const reviewed = grade !== 3;
-  /* 검증한 것은 모두 등록됩니다. 화면에 고르개를 두지 않았고 서버도 고르지
-     않습니다. 거두실 때는 연락처로 말씀하시면 지웁니다 — 접수 순간에 고르게
-     하는 것보다 그쪽이 되돌리기 쉽습니다. */
-  const archive = true;
+  // 간단 검사 화면이 최종 통과한 경우에만 이 표식을 붙입니다. 예전 화면이나
+  // 실패 파일이 3등급 등록 요청을 보내더라도 서버에서 아카이브로 저장하지
+  // 않도록, 화면의 조건과 별개로 한 번 더 막습니다.
+  if (grade === 3 && String(form.get('verifiedGrade') ?? '') !== '3') {
+    return fail('3등급을 받은 파일만 아카이브에 등록할 수 있습니다.', 422);
+  }
+  // 심사 접수와 아카이브 등록은 별개입니다. 간단 검사에서 3등급을 받은
+  // 원본만 자동 등록하며, 상세 심사 접수는 원본을 보관하지 않는다고 명시한
+  // 요청일 때 아카이브 색인에 넣지 않습니다.
+  const archive = String(form.get('archive') ?? 'yes') !== 'no';
   const contact = safeText(form.get('contact'), LIMITS.maxContact);
   const password = String(form.get('password') ?? '');
 

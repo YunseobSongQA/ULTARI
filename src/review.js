@@ -55,7 +55,7 @@ export function forgetApplication(id) {
  * 접수. 업로드 진행률이 필요해서 XMLHttpRequest를 씁니다.
  * fetch는 보내는 쪽 진행률을 알려주지 않습니다.
  *
- * @param {{file:File, grade:number, archive?:boolean, contact:string, note:string,
+ * @param {{file:File, grade:number, archive?:boolean, verifiedGrade?:number, contact:string, note:string,
  *          summary:string, fingerprint:string, onProgress?:(pct:number)=>void,
  *          signal?:AbortSignal}} opt
  */
@@ -64,6 +64,9 @@ export function submitApplication(opt) {
   body.append('photo', opt.file, opt.file.name || 'photo');
   body.append('grade', String(opt.grade ?? 2));
   body.append('archive', opt.archive === false ? 'no' : 'yes');
+  // 3등급 아카이브 자동 등록은 최종 통과 판정을 받은 화면에서만 보냅니다.
+  // 서버도 이 값이 없으면 등록 요청을 받지 않습니다.
+  body.append('verifiedGrade', String(opt.verifiedGrade ?? ''));
   body.append('contact', opt.contact ?? '');
   body.append('password', opt.password ?? '');
   body.append('note', opt.note ?? '');

@@ -705,7 +705,10 @@ export function renderResult(bundle, mode, openForm = false) {
      끝납니다. 여기는 그 결과를 보여 주는 자리이지 무언가를 더 적는 자리가
      아닙니다. 동의를 한 번 받았는데 여기서 연락처와 비밀번호를 또 받으면
      자동이 아닙니다. */
-  const archiveBlock = !elig.ok ? '' : `
+  // 아카이브는 간단 검사에서 3등급을 받은 원본만 자동으로 받습니다.
+  // 통과하지 못한 파일을 보관하면 "촬영 흔적이 확인된 원본"이라는
+  // 아카이브의 전제가 무너집니다.
+  const archiveBlock = !elig.ok || !isPass ? '' : `
     <div class="claim-item claim-item--archive" data-archive-box>
       <h3 class="claim-head"><span class="claim-no">${isPass ? 2 : 1}</span>아카이브 등록</h3>
 
@@ -723,12 +726,17 @@ export function renderResult(bundle, mode, openForm = false) {
 
       <p class="claim-lead" data-arc-lead>
         원본과 지문, 등록 시각이 함께 남아 나중에 "언제 존재한 무엇"인지를 댈 근거가 됩니다.
-        ${isPass ? '' : '판정이 통과가 아니어도 등록됩니다. 등록은 등급과 별개입니다.'}
       </p>
       <p class="later-note">
         <b>배분받을 계좌는 아직 받지 않습니다.</b> 로그인 기능을 붙인 뒤에 계정에서 받습니다.
       </p>
     </div>`;
+
+  const archiveNotice = !isPass && !isDeclared ? `
+    <div class="claim-item claim-item--archive">
+      <h3 class="claim-head">아카이브 등록</h3>
+      <p class="claim-lead">3등급을 받지 못한 파일은 아카이브에 등록하지 않았습니다.</p>
+    </div>` : '';
 
   const claimPanel = (markBlock || archiveBlock) ? `
     <div class="panel claim-panel">
@@ -780,7 +788,6 @@ export function renderResult(bundle, mode, openForm = false) {
           <select data-apply-grade>
             <option value="2">2등급 — 사람이 직접 봅니다</option>
             <option value="1">1등급 — 센서 지문까지 대조합니다</option>
-            <option value="3">아카이브 등록만 — 사람 심사 없이 바로</option>
           </select>
         </label>
         <label class="fld">
@@ -804,10 +811,9 @@ export function renderResult(bundle, mode, openForm = false) {
         서버에는 비밀번호를 늘려 섞은 값만 남으므로 저희도 원문을 알지 못하고 다시 알려 드릴 수 없습니다.
       </p>
       <p class="apply-hint">
-        <strong>신청하신 것은 아카이브에도 함께 등록됩니다.</strong> 고르실 것이 없습니다.
-        원본과 지문, 등록 시각이 함께 남아 무단 학습을 추적할 근거가 되고, 학습용으로 팔리면
-        그 몫이 돌아옵니다. 등급이 높을수록 확인된 범위가 넓어 몫도 커집니다 —
-        <a href="/archive#share">배분 방식</a>. 나중에 연락처로 말씀하시면 등록을 거두실 수 있습니다.
+        <strong>상세 심사는 아카이브 등록과 별개입니다.</strong> 통과한 원본은 간단 검사 직후
+        아카이브에 등록됐고, 여기서는 2등급 또는 1등급 심사만 고르시면 됩니다.
+        등급이 높을수록 확인된 범위가 넓어 몫도 커집니다 — <a href="/archive#share">배분 방식</a>.
       </p>
       <p class="later-note">
         <b>배분받을 계좌는 아직 받지 않습니다.</b> 로그인 기능을 붙인 뒤에 계정에서 받습니다.
@@ -863,11 +869,11 @@ export function renderResult(bundle, mode, openForm = false) {
       <div class="claim-cta-text">
         <p class="claim-cta-line" data-cta-line><b>검사가 끝났습니다.</b></p>
         <p class="claim-cta-sub" data-cta-sub>${isPass
-          ? '인증 마크와 아카이브 등록 결과를 다음 화면에서 보십시오.'
-          : '판정이 통과가 아니어도 아카이브에는 등록됩니다. 다음 화면에서 보십시오.'}</p>
+          ? '아카이브 등록이 끝나면, 원하시는 상세 심사 등급을 고르실 수 있습니다.'
+          : '이 파일은 아카이브에 등록하지 않았습니다.'}</p>
       </div>
       <button class="btn" type="button" data-action="claim-open">
-        ${isPass ? '인증 마크 받기' : '등록 결과 보기'}
+        ${isPass ? '인증 마크와 등록 결과 보기' : '검사 결과 보기'}
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
       </button>
     </div>` : '';
@@ -890,6 +896,8 @@ export function renderResult(bundle, mode, openForm = false) {
     </section>
 
     ${renderScoreHero(bundle)}
+
+    ${mode === 'quick' ? archiveNotice : ''}
 
     ${mode === 'deep' ? '' : claimCta}
 
@@ -1231,6 +1239,13 @@ export function mountVerifier(root) {
   /* 지금 돌리는 검사의 단계 이름. 매체마다 하는 일이 달라서 목록이 다릅니다. */
   let steps = STEPS;
 
+  // 자동 등록은 화면에 보이는 문구가 아니라 최종 판정값으로 한 번 더 잠급니다.
+  // 결과 보기·뒤로가기·상세 심사 전환은 이 조건을 통과하지 못하므로 등록 요청을
+  // 만들 수 없습니다.
+  const canAutoArchive = () => current?.mode === 'quick'
+    && current.bundle?.result?.verdict === VERDICT.PASS
+    && current.bundle?.result?.grade === 3;
+
   const revoke = () => {
     if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
     if (markUrl) { URL.revokeObjectURL(markUrl); markUrl = null; }
@@ -1527,7 +1542,7 @@ export function mountVerifier(root) {
 
       /* 여기서 등록까지 잇습니다. 동의는 검사 시작 화면에서 이미 받았으므로
          더 물어보지 않습니다. 견본은 남의 사진이라 등록하지 않습니다. */
-      if (!sample && mode === 'quick') {
+      if (!sample && canAutoArchive()) {
         if (consentBox?.checked) autoArchive();
         else paintArchiveSkipped();
       }
@@ -1750,18 +1765,7 @@ export function mountVerifier(root) {
     if (!line) return;
     line.textContent = '대기 건수를 확인하는 중…';
     const open = await fetchQueue();
-    const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
-    /* 등록만 하는 길에는 기다릴 것이 없습니다. 등록 의사 칸도 고를
-       것이 없어 잠가 둡니다. */
-    const box = applyEl('[data-apply-archive]');
-    if (box) {
-      box.disabled = grade === 3;
-      if (grade === 3) box.value = 'yes';
-    }
-    if (grade === 3) {
-      line.textContent = '사람 심사를 받지 않으므로 기다릴 것이 없습니다. 올리는 즉시 등록되고 등록증이 나옵니다.';
-      return;
-    }
+    const grade = Number(applyEl('[data-apply-grade]')?.value || 2) === 1 ? 1 : 2;
     const base = grade === 1 ? 15 : 4;
     if (open == null) {
       line.textContent = `${grade}등급은 영업일 ${base}일 정도 걸립니다. 접수하면 정확한 완료 예정일이 나옵니다.`;
@@ -1781,9 +1785,13 @@ export function mountVerifier(root) {
     const password = applyEl('[data-apply-pw]')?.value || '';
     const password2 = applyEl('[data-apply-pw2]')?.value || '';
     const note = applyEl('[data-apply-note]')?.value?.trim() || '';
-    const grade = Number(applyEl('[data-apply-grade]')?.value || 2);
-    // 검증한 것은 모두 등록됩니다. 고르개를 두지 않습니다.
-    const archive = true;
+    // 상세 심사는 1·2등급만 받습니다. DOM 값을 바꿔도 3등급 등록 요청으로
+    // 바뀌지 않게 이 자리에서 다시 제한합니다.
+    const grade = Number(applyEl('[data-apply-grade]')?.value || 2) === 1 ? 1 : 2;
+    // 상세 심사는 심사 접수일 뿐 아카이브 등록이 아닙니다. 통과한 원본만
+    // 간단 검사 직후 별도 자동 등록하며, 3등급을 받지 못한 파일은 여기서도
+    // 아카이브에 넣지 않습니다.
+    const archive = false;
 
     const say = (text, bad = false) => {
       if (!msg) return;
@@ -1805,9 +1813,7 @@ export function mountVerifier(root) {
 
     button.disabled = true;
     bar.hidden = false;
-    say(grade === 3
-      ? '파일을 올려 아카이브에 등록하고 있습니다. 이 창을 닫지 마세요.'
-      : '파일을 올리고 있습니다. 이 창을 닫지 마세요.');
+    say('파일을 올리고 있습니다. 이 창을 닫지 마세요.');
 
     try {
       const r = await submitApplication({
@@ -1864,7 +1870,7 @@ export function mountVerifier(root) {
    * 적어 두어 나중에 자기 등록을 엽니다.
    */
   const autoArchive = async () => {
-    if (!current || current.sample || current.archived) return;
+    if (!current || current.sample || current.archived || !canAutoArchive()) return;
     const box = output.querySelector('[data-archive-box]');
     if (!box) return;
 
@@ -1893,6 +1899,7 @@ export function mountVerifier(root) {
         file: current.file,
         grade: 3,
         archive: true,
+        verifiedGrade: 3,
         contact: '',
         password: '',
         note: '',
@@ -1931,7 +1938,13 @@ export function mountVerifier(root) {
     const line = output.querySelector('[data-cta-line]');
     const sub = output.querySelector('[data-cta-sub]');
     if (line) line.innerHTML = '<b>검사와 아카이브 등록이 모두 끝났습니다.</b>';
-    if (sub) sub.textContent = `등록번호 ${r.id} · ${formatStamp(r.createdAt)}. 다음 화면에서 확인하십시오.`;
+    if (sub) sub.textContent = `등록번호 ${r.id} · ${formatStamp(r.createdAt)}. 원하시면 2등급 또는 1등급 상세 심사를 선택해 주세요.`;
+    const button = output.querySelector('[data-action="claim-open"]');
+    if (button) {
+      button.dataset.action = 'swap-mode';
+      button.innerHTML = '상세 심사 선택'
+        + '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
+    }
   };
 
   /** 동의를 빼셨으면 등록하지 않았다는 사실을 그 자리에 적습니다. */
