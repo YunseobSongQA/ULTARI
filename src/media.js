@@ -79,7 +79,10 @@ function videoCategories(bundle) {
   /* 2. 광학 흔적 — 렌즈를 거친 그림에만 남습니다.
         편집 영상 720p만 5/5로 전무했습니다. */
   const opticsHit = (s.vignetteFrames || 0) + (s.caFrames || 0);
-  const optics = opticsHit >= 3 ? 'match' : 'unknown';
+  // 다섯 장 중 두 장에서 같은 렌즈 흔적이 보이면 피사체 한 장의 우연한
+  // 밝기 차이보다 강한 근거입니다. 세 장을 요구하면 짧은 세로 영상에서
+  // 실제 비네팅을 놓칩니다.
+  const optics = opticsHit >= 2 ? 'match' : 'unknown';
 
   /* 3. 하이라이트 날림 — 실제 빛에서 생깁니다. 전 파일에서 4~5/5로 나와
         판별력이 약합니다. 그래서 가중치를 낮게 두었습니다. */
@@ -176,15 +179,13 @@ export function mediaScore(bundle) {
   }
 
   /* 영상에서 비네팅·색수차가 충분히 검출됐다면 렌즈를 지난 빛이라는
-     양성 근거가 이미 있습니다. 기기 기록이 지워졌거나 HDR이 노이즈 곡선을
-     바꿔 나머지 항목을 재지 못한 것을 50%씩 깎으면, 실제 촬영본이 68%처럼
-     보이는 거짓된 빈칸 점수가 됩니다. 이 경우 'unknown'은 반대 증거가
-     아니므로 촬영 흔적 계산에서는 확인된 쪽으로 채웁니다. 변환 도구처럼
-     실제 반대 이력이 있는 'against'는 그대로 남습니다. */
+     양성 근거가 있습니다. HDR·노이즈 제거는 노이즈 곡선을 뒤집거나
+     평평하게 만들어 'unknown'으로 두는데, 이를 50%로 깎으면 실제 촬영본이
+     빈칸 때문에 낮은 점수를 받습니다. 광학 흔적이 확인된 경우에만 이
+     노이즈 항목을 촬영 쪽으로 채웁니다. 기기 기록·하이라이트처럼 다른
+     관측 불가 항목과 변환 도구 같은 실제 반대 이력은 그대로 둡니다. */
   if (kind === 'video' && categories.optics === 'match') {
-    for (const key of Object.keys(categories)) {
-      if (categories[key] === 'unknown') categories[key] = 'match';
-    }
+    if (categories.noise === 'unknown') categories.noise = 'match';
   }
 
   let got = 0;
