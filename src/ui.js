@@ -520,9 +520,16 @@ function renderScoreHero(bundle) {
   const onCamera = result.verdict === VERDICT.PASS;
   const pct = onCamera ? trace : ai;
   const side = onCamera ? 'trace' : 'ai';
+  const blockerValue = (item) => ({
+    'too-small': '화소 부족',
+    'exif-absent': '촬영 정보 없음',
+    'no-camera-id': '촬영 기기 없음',
+    'no-capture-time': '촬영 시각 없음',
+    'pixels-not-measurable': '측정 영역 부족',
+  }[item.code] || '기준 미충족');
   const reasons = !onCamera
     ? [
-      ...(result.blockers || []).map((item) => ({ title: item.title, detail: item.detail })),
+      ...(result.blockers || []).map((item) => ({ title: item.title, detail: blockerValue(item) })),
       ...[...aiSignals(bundle), ...synthesisSignals(bundle)]
         .filter((item) => item.side === 'ai')
         .map((item) => ({ title: item.label, detail: item.got })),
@@ -545,13 +552,12 @@ function renderScoreHero(bundle) {
           : declared
             ? `파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다.
                재서 얻은 추정이 아니라 파일이 스스로 밝힌 사실입니다.`
-            : `<strong>이 숫자는 “AI가 만들었다”는 뜻이 아닙니다.</strong>
-               촬영 흔적과 생성 쪽 신호를 함께 반영한 값입니다. 메신저를 거친 사진,
-               스크린샷, 다시 저장한 사진도 이 숫자가 높게 나올 수 있습니다.`}
+            : `<strong>촬영 원본 기준을 충족하지 못한 정도입니다.</strong>
+               AI 생성 여부를 확정하지 않습니다.`}
       </p>
       ${reasons.length ? `
         <div class="score-reasons">
-          <b>확인이 멈춘 항목</b>
+          <b>판정 기준</b>
           <ul>${reasons.map((item) => `<li><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.detail)}</span></li>`).join('')}</ul>
         </div>` : ''}
     </div>`;
