@@ -583,7 +583,6 @@ function renderScoreDetail(bundle) {
   const blockers = [
     prov?.declaresAi && 'AI 생성 표식 있음',
     !bundle.exif.hasCameraId && '촬영 정보 없음',
-    result.contradictions.length > 0 && `정합성 모순 ${result.contradictions.length}건`,
     result.softSignals.length >= GATE.softSignalsForHold && `약한 신호 ${result.softSignals.length}건`,
     mp < GATE.minMegapixels && `화소 ${mp.toFixed(1)}MP`,
   ].filter(Boolean);
@@ -628,8 +627,8 @@ function renderScoreDetail(bundle) {
         : `발급하지 않습니다. 막은 조건 — ${escapeHtml(blockers.join(', '))}`}
     </p>
     <p class="score-caveat">
-      발급 조건은 다섯입니다 — AI 생성 표식 없음 · 촬영 정보(제조사·모델 + 촬영 시각) 있음 ·
-      정합성 모순 0건 · 약한 신호 ${GATE.softSignalsForHold}건 미만 · 화소 ${GATE.minMegapixels}MP 이상.
+      발급 조건은 넷입니다 — AI 생성 표식 없음 · 촬영 정보(제조사·모델 + 촬영 시각) 있음 ·
+      서로 독립적인 약한 신호 ${GATE.softSignalsForHold}건 미만 · 화소 ${GATE.minMegapixels}MP 이상.
       ${onCamera ? `환산 수치(${trace}%)는 발급 근거가 아니라 표시용입니다.` : ''}
     </p>`;
 

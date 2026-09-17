@@ -4,7 +4,7 @@
  *   AI 생성 기록  파일이 스스로 AI 생성물이라고 밝힘 (읽은 값, 추정 아님)
  *   통과          3등급 발급
  *   판정 불가     자동 검증에 필요한 정보가 없음
- *   보류          측정값끼리 서로 맞지 않음
+ *   보류          서로 독립적인 약한 신호가 겹침
  *
  * 픽셀을 재서 "AI로 보인다"고 말하는 일은 여전히 하지 않습니다. AI라고 적는
  * 경우는 단 하나, 파일 자신이 C2PA 규격으로 그렇게 선언해 둔 때뿐입니다.
@@ -120,10 +120,12 @@ function collectBlockers({ exif, consistency, pixels }) {
 }
 
 function collectContradictions({ consistency }) {
-  const hard = [];
+  // 휴대폰의 HDR·야간 모드·노이즈 제거는 센서에서 나온 값의 관계를 바꿉니다.
+  // 이 값들은 결과에 보여 주는 참고 정보일 뿐, 등급을 막는 증거가 아닙니다.
+  const notices = [];
 
   if (consistency.flags.isoNoiseMismatch) {
-    hard.push({
+    notices.push({
       code: 'iso-noise-mismatch',
       title: 'ISO 기록과 실측 노이즈가 맞지 않습니다',
       detail: `메타데이터에는 ISO ${consistency.iso}로 적혀 있는데, 어두운 영역의 노이즈가 σ=${consistency.measured.darkSigma.toFixed(2)}로 거의 없습니다. 강한 노이즈 제거를 걸었거나, 기록된 ISO가 실제 촬영값이 아닙니다.`,
@@ -131,7 +133,7 @@ function collectContradictions({ consistency }) {
   }
 
   if (consistency.flags.noiseSignalInverted) {
-    hard.push({
+    notices.push({
       code: 'noise-signal-inverted',
       title: '밝을수록 노이즈가 줄어듭니다',
       detail: '빛은 알갱이로 도착하기 때문에 밝은 곳일수록 노이즈가 커집니다. 측정값은 그 반대 방향입니다.',
@@ -139,14 +141,14 @@ function collectContradictions({ consistency }) {
   }
 
   if (consistency.flags.noiseSignalFlat) {
-    hard.push({
+    notices.push({
       code: 'noise-signal-flat',
       title: '밝기와 무관하게 노이즈가 일정합니다',
       detail: '센서 노이즈는 밝기를 따라 변해야 합니다. 다만 휴대폰의 촬영 시 노이즈 제거도 똑같은 모양을 만듭니다. 실제로 찍으신 사진이라면 이 결과는 카메라가 후처리를 강하게 걸었다는 뜻일 가능성이 높습니다.',
     });
   }
 
-  return hard;
+  return notices;
 }
 
 function collectSoftSignals({ consistency, optics, compression }) {
@@ -227,7 +229,7 @@ export function gradeResult(input) {
     verdict = VERDICT.DECLARED_AI;
   } else if (blockers.length > 0) {
     verdict = VERDICT.INSUFFICIENT;
-  } else if (contradictions.length > 0 || softSignals.length >= T.softSignalsForHold) {
+  } else if (softSignals.length >= T.softSignalsForHold) {
     verdict = VERDICT.HOLD;
   } else {
     verdict = VERDICT.PASS;

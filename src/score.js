@@ -41,10 +41,12 @@ export const STATE_LABEL = {
 const pick = (state, weight) => Math.round(FACTOR[state] * weight * 10) / 10;
 
 function scoreExif(exif) {
-  if (!exif.present) return { state: 'against', note: '메타데이터가 전부 지워졌습니다' };
-  if (!exif.hasCameraId) return { state: 'against', note: '제조사·모델이 지워졌습니다' };
+  // 메타데이터는 전달·편집 과정에서 흔히 지워집니다. 없다는 사실은
+  // 카메라와 생성물을 가르는 증거가 아니므로 반대 점수가 아니라 측정 불가입니다.
+  if (!exif.present) return { state: 'unknown', note: '메타데이터가 전부 지워져 촬영 정보를 대조하지 못했습니다' };
+  if (!exif.hasCameraId) return { state: 'unknown', note: '제조사·모델이 없어 촬영 기기를 대조하지 못했습니다' };
   if (!exif.dateTimeOriginal && !exif.dateTimeOriginalRaw) {
-    return { state: 'against', note: '촬영 시각이 없습니다' };
+    return { state: 'unknown', note: '촬영 시각이 없어 촬영 기록을 완전히 대조하지 못했습니다' };
   }
   return { state: 'match', note: '기기와 촬영 시각이 남아 있습니다' };
 }
@@ -52,7 +54,7 @@ function scoreExif(exif) {
 function scoreIsoNoise(consistency) {
   const { darkSigma } = consistency.measured;
   if (consistency.flags.isoNoiseMismatch) {
-    return { state: 'against', note: `ISO ${consistency.iso} 기록에 비해 노이즈가 없습니다` };
+    return { state: 'unknown', note: `ISO ${consistency.iso} 기록보다 노이즈가 적습니다 — 휴대폰 노이즈 제거도 같은 값을 만듭니다` };
   }
   if (darkSigma == null) return { state: 'unknown', note: '잴 수 있는 어두운 영역이 모자랍니다' };
   if (consistency.iso == null) return { state: 'unknown', note: 'ISO 기록이 없어 대조하지 못했습니다' };
@@ -62,10 +64,10 @@ function scoreIsoNoise(consistency) {
 function scoreNoisePhysics(consistency) {
   const { slopeCorrelation } = consistency.measured;
   if (consistency.flags.noiseSignalInverted) {
-    return { state: 'against', note: '밝을수록 노이즈가 줄어듭니다' };
+    return { state: 'unknown', note: '밝기와 노이즈의 방향이 뒤집혔습니다 — HDR·노이즈 제거 때문에 단정할 수 없습니다' };
   }
   if (consistency.flags.noiseSignalFlat) {
-    return { state: 'against', note: '밝기와 무관하게 노이즈가 일정합니다' };
+    return { state: 'unknown', note: '밝기와 무관하게 노이즈가 일정합니다 — 휴대폰 후처리로도 생깁니다' };
   }
   if (slopeCorrelation == null) return { state: 'unknown', note: '밝기 분포가 좁아 재지 못했습니다' };
   // 모순 플래그(상관 -0.7 이하)에는 못 미치지만 방향이 양수가 아니면 증거로 세지 않습니다.
@@ -85,19 +87,19 @@ function scoreOptics(optics) {
   if (vig.ratio == null && !ca.measurable) {
     return { state: 'unknown', note: '렌즈 흔적을 잴 표본이 모자랍니다' };
   }
-  return { state: 'against', note: '비네팅도 색수차도 없습니다 — 보정이나 크롭으로도 지워집니다' };
+  return { state: 'unknown', note: '비네팅과 색수차를 찾지 못했습니다 — 보정이나 크롭으로도 지워집니다' };
 }
 
 function scoreFocus(optics) {
   if (optics.focus.discontinuous) {
-    return { state: 'against', note: '선명도가 구역별로 끊깁니다' };
+    return { state: 'unknown', note: '선명도가 구역별로 끊깁니다 — 피사체·심도·후처리만으로도 생길 수 있습니다' };
   }
   return { state: 'match', note: `그리드 편차 ${optics.focus.abruptness.toFixed(2)} — 연속적입니다` };
 }
 
 function scoreCompression(compression) {
   if (compression.flags.regionalBlockDeviation) {
-    return { state: 'against', note: `${compression.weakTiles}개 구역에서 격자가 다릅니다` };
+    return { state: 'unknown', note: `${compression.weakTiles}개 구역에서 격자가 다릅니다 — 편집·크롭 이력만으로 출처를 단정할 수 없습니다` };
   }
   if (compression.flags.recompressed) {
     return { state: 'unknown', note: '자르거나 크기를 바꿔 다시 저장했습니다' };
@@ -196,7 +198,7 @@ export function aiSignals(b) {
     label: '촬영 정보',
     basis: '제조사·모델·렌즈·촬영 시각',
     got: exif.hasCameraId ? '있음' : exif.present ? '일부만 남음' : '없음',
-    side: exif.hasCameraId ? 'camera' : 'ai',
+    side: exif.hasCameraId ? 'camera' : 'unknown',
     note: exif.hasCameraId
       ? '생성물에는 촬영 기기가 적히지 않습니다'
       : '메신저를 거친 실제 사진도 이렇게 됩니다',
@@ -221,7 +223,7 @@ export function aiSignals(b) {
   {
     const { slopeCorrelation } = consistency.measured;
     const bad = consistency.flags.noiseSignalInverted || consistency.flags.noiseSignalFlat;
-    const side = bad ? 'ai' : slopeCorrelation == null || slopeCorrelation <= 0 ? 'unknown' : 'camera';
+    const side = bad || slopeCorrelation == null || slopeCorrelation <= 0 ? 'unknown' : 'camera';
     rows.push({
       label: '노이즈-신호 물리',
       basis: '밝을수록 노이즈가 커져야 함 (포아송)',
@@ -235,7 +237,7 @@ export function aiSignals(b) {
   {
     const found = [optics.vignetting.detected && '비네팅', optics.chromaticAberration.detected && '색수차']
       .filter(Boolean);
-    const side = found.length === 2 ? 'camera' : found.length === 1 ? 'unknown' : 'ai';
+    const side = found.length === 2 ? 'camera' : 'unknown';
     rows.push({
       label: '렌즈 광학 흔적',
       basis: '비네팅과 색수차가 있어야 함',
