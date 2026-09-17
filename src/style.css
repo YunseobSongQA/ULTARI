@@ -1431,26 +1431,20 @@ main.main--tool .page-head { margin-bottom: 22px; }
   .principle-list li { padding: 10px 0; font-size: 15px; line-height: 1.62; }
 }
 
-/* 글자 — 한 자씩 올라오면서 굵기가 붙습니다.
-   Pretendard Variable의 wght를 그대로 움직이므로 글자 모양이 변합니다. */
+/* 제목은 화면이 바뀔 때도 형태를 유지합니다. */
 .morph span {
   display: inline-block;
   font-variation-settings: 'wght' 600;
 }
 .reel.is-reel .morph span {
-  opacity: 0;
-  transform: translateY(0.42em);
-  font-variation-settings: 'wght' 200;
-  transition:
-    opacity 380ms ease,
-    transform 520ms var(--ease),
-    font-variation-settings 620ms ease;
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 .reel.is-reel .slide.is-on .morph span {
   opacity: 1;
   transform: none;
   font-variation-settings: 'wght' 600;
-  transition-delay: calc(var(--i, 0) * var(--step));
 }
 
 /* 나머지 요소도 조금 늦게 따라옵니다. 한꺼번에 나타나면 툭 바뀝니다. */
@@ -1466,8 +1460,8 @@ main.main--tool .page-head { margin-bottom: 22px; }
 .reel.is-reel .slide .id-value,
 .reel.is-reel .slide .principle-list {
   opacity: 0;
-  transform: translateY(16px);
-  transition: opacity 380ms ease, transform 480ms var(--ease);
+  transform: translateY(8px);
+  transition: opacity 220ms ease, transform 260ms var(--ease);
 }
 .reel.is-reel .slide.is-on .stage-en { opacity: 1; transform: none; transition-delay: 40ms; }
 .reel.is-reel .slide.is-on .id-mark { opacity: 1; transform: none; transition-delay: 90ms; }
@@ -1544,11 +1538,7 @@ main.main--tool .page-head { margin-bottom: 22px; }
   font-size: 12px; color: var(--ink-3); border-bottom: none;
 }
 .stage-next:hover { color: var(--ink); border-bottom: none; }
-.stage-next svg { animation: nudge 2.4s ease-in-out infinite; }
-@keyframes nudge {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
-}
+.stage-next svg { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .stage-next svg { animation: none; }
 }
