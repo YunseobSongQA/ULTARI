@@ -33,6 +33,10 @@
   /* 링크 밑줄은 칸을 나누는 선이 아니라 글자의 일부입니다.
      그래서 선 색이 아니라 잉크를 묽혀 씁니다. */
   --link-rule: rgba(36, 33, 29, 0.30);
+  --page-wash:
+    radial-gradient(1100px 680px at 8% -12%, rgba(255, 255, 255, 0.72), transparent 64%),
+    radial-gradient(900px 620px at 100% 10%, rgba(99, 88, 75, 0.055), transparent 68%),
+    var(--paper);
 
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
@@ -68,7 +72,7 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--page-wash);
   color: var(--ink);
   font-family: var(--font);
   font-size: 16px;
@@ -785,12 +789,13 @@ main.main--tool { padding-block: 32px 80px; }
   display: inline-flex; align-items: center; gap: 8px;
   font: inherit; font-size: 14.5px; font-weight: 500;
   padding: 11px 20px; border: 1px solid var(--ink);
-  background: var(--ink); color: var(--paper); cursor: pointer;
+  background: linear-gradient(135deg, #2E2A25 0%, var(--ink) 58%, #1F1C19 100%);
+  color: var(--paper); cursor: pointer;
   border-bottom: 1px solid var(--ink);
 }
-.btn:hover { background: var(--ink-press); }
-.btn--ghost { background: transparent; color: var(--ink); border-color: var(--rule-strong); }
-.btn--ghost:hover { background: transparent; border-color: var(--ink); }
+.btn:hover { background: linear-gradient(135deg, var(--ink-press), #28231E); }
+.btn--ghost { background: linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.18)); color: var(--ink); border-color: var(--rule-strong); }
+.btn--ghost:hover { background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(236, 232, 224, 0.56)); border-color: var(--ink); }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; align-items: center; }
 .btn-note { font-size: 12.5px; color: var(--ink-3); margin-top: 12px; }
@@ -1331,7 +1336,7 @@ main.main--tool .page-head { margin-bottom: 22px; }
    각 화면에서 검증 도구로 바로 갑니다. 스냅은 proximity로 둡니다 —
    mandatory는 휠과 키보드로 읽는 사람을 가둡니다. */
 
-.body--landing { background: var(--paper); }
+.body--landing { background: var(--page-wash); }
 
 .site-head--landing {
   /* sticky가 아니라 fixed입니다. 흐름에 자리를 차지하면 첫 화면이 그만큼
@@ -1573,18 +1578,18 @@ main.main--tool .page-head { margin-bottom: 22px; }
 .stage-go {
   display: inline-flex; align-items: center; gap: 9px;
   margin-top: 34px; padding: 14px 22px;
-  background: var(--measure); color: #fff;
+  background: linear-gradient(135deg, #74695B, var(--measure) 62%, #51483D); color: #fff;
   font-size: 14.5px; font-weight: 600; border-bottom: none;
 }
-.stage-go:not(.stage-go--quiet):hover { background: var(--ink-press); border-bottom: none; color: #fff; }
+.stage-go:not(.stage-go--quiet):hover { background: linear-gradient(135deg, var(--ink-press), #28231E); border-bottom: none; color: #fff; }
 .stage-go svg { transition: transform 140ms ease; }
 .stage-go:hover svg { transform: translateX(3px); }
 .stage-go--quiet {
-  background: var(--surface); color: var(--ink);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(252, 251, 248, 0.52)); color: var(--ink);
   border: 1px solid var(--rule-strong);
 }
 .stage-go--quiet:hover {
-  background: var(--tint-measure); color: var(--ink); border-color: var(--measure);
+  background: linear-gradient(135deg, #F4F1EB, var(--tint-measure)); color: var(--ink); border-color: var(--measure);
   border-bottom: 1px solid var(--measure);
 }
 
