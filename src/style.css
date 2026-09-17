@@ -674,6 +674,16 @@ main.main--tool { padding-block: 32px 80px; }
   margin-top: 14px; font-size: 12.5px; line-height: 1.65; color: var(--ink-3);
   border-left: 2px solid var(--rule-strong); padding-left: 14px;
 }
+.score-reasons {
+  margin-top: 18px; padding: 14px 16px;
+  border: 1px solid rgba(151, 76, 60, 0.32); background: var(--tint-warn);
+  font-size: 13px; line-height: 1.55;
+}
+.score-reasons > b { display: block; margin-bottom: 8px; color: var(--warn); font-weight: 600; }
+.score-reasons ul { list-style: none; margin: 0; padding: 0; }
+.score-reasons li { display: flex; gap: 8px; padding: 4px 0; }
+.score-reasons li strong { flex: none; font-weight: 600; }
+.score-reasons li span { color: var(--ink-2); }
 
 /* 항목별 배점 */
 .cats { display: grid; gap: 18px; }

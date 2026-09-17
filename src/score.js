@@ -146,7 +146,15 @@ export function scoreTraces(bundle) {
   });
 
   const earned = categories.reduce((sum, c) => sum + c.earned, 0);
-  const trace = Math.round(earned);
+  const rawTrace = Math.round(earned);
+  /* 촬영 흔적 점수만으로는 생성 쪽 신호가 여러 개 잡혀도 숫자가 낮게
+     보일 수 있습니다. 원본 확인을 방해하는 독립 신호를 함께 반영해,
+     결과 화면에서 확인 불충족의 크기가 읽히도록 합니다. 이 값도 AI를
+     확정하는 판별값은 아닙니다. */
+  const aiEvidence = [...aiSignals(bundle), ...synthesisSignals(bundle)]
+    .filter((row) => row.side === 'ai').length;
+  const aiFloor = aiEvidence ? Math.min(92, 20 + aiEvidence * 12) : 0;
+  const trace = Math.min(rawTrace, 100 - aiFloor);
 
   return { trace, ai: 100 - trace, declared: false, categories };
 }

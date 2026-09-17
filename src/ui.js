@@ -520,13 +520,21 @@ function renderScoreHero(bundle) {
   const onCamera = result.verdict === VERDICT.PASS;
   const pct = onCamera ? trace : ai;
   const side = onCamera ? 'trace' : 'ai';
+  const reasons = !onCamera
+    ? [
+      ...(result.blockers || []).map((item) => ({ title: item.title, detail: item.detail })),
+      ...[...aiSignals(bundle), ...synthesisSignals(bundle)]
+        .filter((item) => item.side === 'ai')
+        .map((item) => ({ title: item.label, detail: item.got })),
+    ].slice(0, 3)
+    : [];
 
   return `
     <div class="panel score-panel score-panel--hero">
       <div class="score-hero score-hero--${side}">
         <div class="score-figure">
           <span class="score-num score-num--${side}">${pct}<small>%</small></span>
-          <span class="score-cap">${onCamera ? '촬영 흔적' : 'AI 쪽 환산'}</span>
+          <span class="score-cap">${onCamera ? '촬영 흔적' : '원본 확인 불충족'}</span>
         </div>
       </div>
       ${scoreBar(pct, side)}
@@ -538,9 +546,14 @@ function renderScoreHero(bundle) {
             ? `파일에 AI 생성 기록이 적혀 있어 촬영 흔적을 세지 않았습니다.
                재서 얻은 추정이 아니라 파일이 스스로 밝힌 사실입니다.`
             : `<strong>이 숫자는 “AI가 만들었다”는 뜻이 아닙니다.</strong>
-               촬영 흔적이 얼마나 안 남아 있는지를 잰 값입니다. 메신저를 거친 사진,
-               스크린샷, 다시 저장한 사진도 이 숫자가 높게 나옵니다.`}
+               촬영 흔적과 생성 쪽 신호를 함께 반영한 값입니다. 메신저를 거친 사진,
+               스크린샷, 다시 저장한 사진도 이 숫자가 높게 나올 수 있습니다.`}
       </p>
+      ${reasons.length ? `
+        <div class="score-reasons">
+          <b>확인이 멈춘 항목</b>
+          <ul>${reasons.map((item) => `<li><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.detail)}</span></li>`).join('')}</ul>
+        </div>` : ''}
     </div>`;
 }
 
