@@ -2198,38 +2198,19 @@ export function mountVerifier(root) {
   });
 
   /**
-   * 랜딩에서 "사진 검증 →" 같은 버튼을 누르면 /verify?kind=photo 로 옵니다.
-   * 무엇을 고르려고 왔는지 알고 있으므로 파일 선택 창이 그 형식만 보게
-   * 좁혀 주고, 상세 검사로 왔으면 그쪽 투입구를 가리킵니다.
-   *
-   * 좁힐 때 형식만 적으면 안 됩니다. iOS 사파리는 accept가 audio/*뿐이면
-   * 파일 앱이 아니라 음악 보관함을 엽니다. 거기에는 내려받아 둔 mp3가 없고
-   * 있는 곡은 보호돼 있어 고를 수가 없습니다 — "음악 검증"으로 들어온 분이
-   * mp3를 못 고르던 것이 이것입니다. 확장자를 하나라도 적어 두면 파일
-   * 고르기가 열립니다. 안드로이드도 소리 전용 고르개 대신 파일 앱이 열립니다.
+   * 랜딩의 사진·영상·음악 링크는 어느 검사 칸을 먼저 보여 줄지만 정합니다.
+   * 파일 선택기를 한 종류로 좁히면, 그 화면에서 다른 매체를 올리려는 사람이
+   * 사진 보관함이나 음악 보관함에 갇힙니다. 일반 검사는 언제나 모든 지원
+   * 매체를 고를 수 있어야 합니다.
    */
-  const ACCEPT = {
-    photo: 'image/*,.heic,.heif',
-    video: 'video/*,.mov,.m4v',
-    music: 'audio/*,.mp3,.m4a,.wav,.flac,.aac,.ogg,.opus,.aif,.aiff',
-    audio: 'audio/*,.mp3,.m4a,.wav,.flac,.aac,.ogg,.opus,.aif,.aiff',
-  };
+  const INTENT = new Set(['photo', 'video', 'music', 'audio']);
 
   const applyIntent = () => {
     const params = new URLSearchParams(window.location.search);
     const kind = (params.get('kind') || '').toLowerCase();
     const mode = (params.get('mode') || '').toLowerCase();
-    const accept = ACCEPT[kind];
-
-    if (accept) {
-      root.querySelectorAll('input[type="file"][data-mode]').forEach((input) => {
-        input.accept = accept;
-      });
-      const label = { photo: '사진', video: '영상', music: '음악·소리', audio: '음악·소리' }[kind];
-      root.querySelectorAll('.drop-main').forEach((el) => { el.textContent = `${label} 고르기`; });
-    }
-
-    const wanted = mode === 'deep' ? 'deep' : accept ? 'quick' : null;
+    const hasIntent = INTENT.has(kind);
+    const wanted = mode === 'deep' ? 'deep' : hasIntent ? 'quick' : null;
     if (!wanted) return;
     const lane = root.querySelector(`.lane input[data-mode="${wanted}"]`)?.closest('.lane');
     if (!lane) return;
