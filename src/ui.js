@@ -758,6 +758,10 @@ export function renderResult(bundle, mode, openForm = false) {
             이 기록은 생성한 쪽이 규격(C2PA)에 따라 서명해 남긴 것이라 사람이 다시 볼 여지가 없습니다.</p>
           <p>측정값 때문이 아니라 파일에 적힌 것 때문입니다. 촬영한 사진이 맞다면
             카메라나 갤러리에서 바로 꺼낸 원본으로 다시 시도해 주세요.</p>` : ''}
+        ${!elig.passed && !elig.declared ? `
+          <p><strong>3등급을 받은 원본만 상세 검사를 신청할 수 있습니다.</strong>
+            이 파일은 자동 검사에서 3등급이 발급되지 않았습니다.</p>
+          <p>카메라나 녹음기에서 바로 꺼낸 원본으로 다시 검사해 주세요.</p>` : ''}
         ${elig.oversize ? `
           <p><strong>파일이 접수 상한 ${UPLOAD_MB}MB를 넘습니다.</strong>
             이 파일은 ${escapeHtml(formatBytes(bundle.print?.bytes) || '크기 미상')}입니다.</p>
@@ -925,7 +929,9 @@ export function renderResult(bundle, mode, openForm = false) {
         ? '검사를 다시 돌리지 않습니다. 이미 계산한 측정값을 그대로 씁니다.'
         : elig.declared
           ? '이 파일은 AI 생성 기록이 있어 상세 검사를 신청할 수 없습니다.'
-          : `이 파일은 ${UPLOAD_MB}MB를 넘어 화면에서 접수할 수 없습니다.`}</p>
+          : elig.oversize
+            ? `이 파일은 ${UPLOAD_MB}MB를 넘어 화면에서 접수할 수 없습니다.`
+            : '3등급을 받은 원본만 상세 검사를 신청할 수 있습니다.'}</p>
     </div>
 
     </div>
@@ -994,12 +1000,18 @@ function eligibility(bundle) {
     || Boolean(prov?.declaresAi || bundle.container?.declaresAi);
   const generator = prov?.generator || bundle.container?.generator || null;
   const oversize = bytes > MAX_UPLOAD;
+  const passed = result?.verdict === VERDICT.PASS && result?.grade === 3;
 
   const checks = [
     {
       ok: true,
       label: '간단 검사',
       detail: `${STEPS_FOR(bundle.kind).length}단계 측정을 마쳤습니다`,
+    },
+    {
+      ok: passed,
+      label: '3등급 발급',
+      detail: passed ? '상세 검사 신청 기준을 충족했습니다' : '3등급이 발급되지 않았습니다',
     },
     {
       ok: !declared,
@@ -1015,7 +1027,7 @@ function eligibility(bundle) {
     },
   ];
 
-  return { ok: !declared && !oversize, declared, oversize, checks };
+  return { ok: passed && !declared && !oversize, declared, oversize, passed, checks };
 }
 
 /**
@@ -1053,7 +1065,7 @@ function renderEligibility(bundle, elig) {
         ${onCamera ? ` · 촬영 흔적 <b>${trace}%</b>` : ` · AI 쪽 환산 <b>${ai}%</b>`}
       </p>
       ${elig.ok ? `
-        <p class="elig-note">판정이 보류나 판정 불가여도 신청하실 수 있습니다. 자동으로 가리지 못한 것을 사람이 다시 보는 것이 상세 검사입니다.</p>
+        <p class="elig-note">3등급을 받은 원본만 상세 검사를 신청하실 수 있습니다.</p>
         <p class="elig-note">아래 버튼을 누르면 신청서가 열립니다.</p>` : ''}
 
       <div class="top-actions">
@@ -1829,6 +1841,7 @@ export function mountVerifier(root) {
         file: current.file,
         grade,
         archive,
+        verifiedGrade: current.bundle?.result?.grade === 3 ? 3 : null,
         contact,
         password,
         note,

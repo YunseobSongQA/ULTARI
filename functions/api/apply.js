@@ -58,11 +58,10 @@ export async function onRequestPost({ request, env }) {
   const rawGrade = String(form.get('grade') ?? '');
   const grade = rawGrade === '1' ? 1 : rawGrade === '3' ? 3 : 2;
   const reviewed = grade !== 3;
-  // 간단 검사 화면이 최종 통과한 경우에만 이 표식을 붙입니다. 예전 화면이나
-  // 실패 파일이 3등급 등록 요청을 보내더라도 서버에서 아카이브로 저장하지
-  // 않도록, 화면의 조건과 별개로 한 번 더 막습니다.
-  if (grade === 3 && String(form.get('verifiedGrade') ?? '') !== '3') {
-    return fail('3등급을 받은 파일만 아카이브에 등록할 수 있습니다.', 422);
+  // 상세 검사와 아카이브 등록은 모두 3등급을 받은 원본에서만 시작합니다.
+  // 예전 화면이나 실패 파일이 요청을 직접 보내더라도 서버에서 한 번 더 막습니다.
+  if (String(form.get('verifiedGrade') ?? '') !== '3') {
+    return fail('3등급을 받은 파일만 상세 검사 또는 아카이브 등록을 할 수 있습니다.', 422);
   }
   // 심사 접수와 아카이브 등록은 별개입니다. 간단 검사에서 3등급을 받은
   // 원본만 자동 등록하며, 상세 심사 접수는 원본을 보관하지 않는다고 명시한
