@@ -1807,6 +1807,55 @@ main.main--about { padding-block: 0; }
   .about-why { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 }
 
+/* 앞 문단의 "양쪽"을 말로만 두면 구호로 읽힙니다. 각자 무엇을 받는지
+   나란히 적어야 구조로 읽힙니다. */
+.about-both {
+  margin-top: clamp(22px, 2.8vw, 34px);
+  padding-top: clamp(18px, 2.2vw, 26px);
+  border-top: 1px solid var(--rule);
+  display: grid; gap: clamp(16px, 2.4vw, 34px);
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.about-both h3 {
+  margin: 0 0 10px; font-size: 13.5px; font-weight: 600;
+  color: var(--ink); letter-spacing: var(--track);
+}
+.about-both ul { list-style: none; margin: 0; padding: 0; }
+.about-both li {
+  position: relative; padding: 0 0 7px 14px;
+  font-size: 13.5px; line-height: 1.68; color: var(--ink-2);
+}
+/* 가운뎃점 대신 짧은 괘. 글자가 아니라 선이라 두 줄로 넘어가도 첫 줄에
+   머물러 있고, 들여쓴 자리가 흐트러지지 않습니다. */
+.about-both li::before {
+  content: ''; position: absolute; left: 0; top: 0.8em;
+  width: 7px; height: 1px; background: var(--ink-3);
+}
+/* .about-why p 보다 셈이 높아야 글자 크기가 먹습니다. */
+.about-why .about-both-note {
+  margin: clamp(14px, 1.8vw, 20px) 0 0;
+  font-size: 13px; line-height: 1.7; color: var(--ink-3);
+}
+.about-both-note a { color: var(--ink-2); border-bottom-color: var(--rule-strong); }
+.about-both-note a:hover { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* ── 걸음 넷 ─────────────────────────────────────────── */
+/* 첫 화면에서 빼내 제 띠를 줬습니다. 왜 하는가를 읽고 내려온 자리라
+   여기서는 "그래서 무엇을 어떻게"만 답하면 됩니다. */
+.about-steps {
+  border-top: 1px solid var(--rule-strong);
+  padding-block: clamp(34px, 4.4vw, 60px);
+}
+.about-steps .kicker {
+  font-size: 12px; color: var(--ink-3);
+  letter-spacing: 0.16em; margin: 0 0 12px;
+}
+.about-steps h2 {
+  font-size: clamp(20px, 2.15vw, 26px);
+  line-height: 1.32; letter-spacing: var(--track-xl);
+  margin: 0; color: var(--ink);
+}
+
 /* ── 아래의 작은 글씨 ────────────────────────────────── */
 .about-fine {
   border-top: 1px solid var(--rule-strong);
@@ -1847,6 +1896,7 @@ main.main--about { padding-block: 0; }
 @media (max-width: 620px) {
   .about { min-height: 0; padding-block: 6px 40px; }
   .about-title br { display: none; }
+  .about-steps { padding-block: 28px 34px; }
   .about-flow { grid-template-columns: 1fr; }
   .about-fine { grid-template-columns: 1fr; gap: 24px; padding-block: 26px 48px; }
 }
