@@ -1773,6 +1773,40 @@ main.main--about { padding-block: 0; }
 
 .about-go { display: flex; gap: 10px; flex-wrap: wrap; margin-top: clamp(20px, 2.6vw, 32px); }
 
+/* ── 왜 하는가 ───────────────────────────────────────── */
+/* 위 화면이 무엇을 하는가라면 여기는 왜 하는가입니다. 제목을 왼쪽에
+   세우고 글을 오른쪽에 두면, 문단이 셋이어도 어디까지가 한 덩어리인지
+   눈으로 먼저 잡힙니다. 제목 칸을 고정 폭이 아니라 최댓값으로 두는 것은
+   좁아질 때 글 칸을 먼저 지키기 위해서입니다. */
+.about-why {
+  border-top: 1px solid var(--rule-strong);
+  padding-block: clamp(34px, 4.4vw, 60px);
+  display: grid; align-items: start;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  gap: clamp(16px, 2.4vw, 44px);
+}
+.about-why .kicker {
+  font-size: 12px; color: var(--ink-3);
+  letter-spacing: 0.16em; margin: 0 0 12px;
+}
+.about-why h2 {
+  font-size: clamp(20px, 2.15vw, 26px);
+  line-height: 1.32; letter-spacing: var(--track-xl);
+  margin: 0; color: var(--ink);
+}
+.about-why p {
+  margin: 0 0 15px; max-width: 62ch;
+  font-size: clamp(14.5px, 1.25vw, 16px);
+  line-height: 1.78; color: var(--ink-2);
+}
+.about-why p:last-child { margin-bottom: 0; }
+
+/* 두 단이 나란히 서기에 좁아지면 위아래로 놓습니다. 제목이 글 칸을
+   밀어내 한 줄에 서너 자만 남는 것보다 낫습니다. */
+@media (max-width: 860px) {
+  .about-why { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+
 /* ── 아래의 작은 글씨 ────────────────────────────────── */
 .about-fine {
   border-top: 1px solid var(--rule-strong);
